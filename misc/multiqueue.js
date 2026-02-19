@@ -5,9 +5,8 @@ import {client} from "../discord/bot.js";
 import {getShop} from "../valorant/shop.js";
 import {
     getAuthQueueItemStatus,
-    queue2FACodeRedeem,
-    queueCookiesLogin, queueNullOperation,
-    queueUsernamePasswordLogin
+    queueCookiesLogin,
+    queueNullOperation
 } from "../valorant/authQueue.js";
 import config from "./config.js";
 
@@ -72,8 +71,6 @@ const mqSendMessage  = async (type, params={}) => {
 }
 
 export const mqGetShop = async (id, account=null) => await mqSendMessage("getShop", {id, account});
-export const mqLoginUsernamePass = async (id, username, password) => await mqSendMessage("loginUsernamePass", {id, username, password});
-export const mqLogin2fa = async (id, code) => await mqSendMessage("login2fa", {id, code});
 export const mqLoginCookies = async (id, cookies) => await mqSendMessage("loginCookies", {id, cookies});
 export const mqNullOperation = async (timeout) => await mqSendMessage("nullOperation", {timeout});
 export const mqGetAuthQueueItemStatus = async (c) => await mqSendMessage("getAuthQueueItemStatus", {c});
@@ -87,18 +84,6 @@ const mqProcessRequest = async ({mqid, mqtype, params}) => {
         case "getShop": {
             const {id, account} = params;
             response = await getShop(id, account);
-            break;
-        }
-
-        case "loginUsernamePass": {
-            const {id, username, password} = params;
-            response = await queueUsernamePasswordLogin(id, username, password);
-            break;
-        }
-
-        case "login2fa": {
-            const {id, code} = params;
-            response = await queue2FACodeRedeem(id, code);
             break;
         }
 

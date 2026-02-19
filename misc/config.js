@@ -3,7 +3,7 @@ import fs from "fs";
 export let config = {};
 export default config;
 
-export const loadConfig = (filename="config.json") => {
+export const loadConfig = (filename="config.json", saveAfterLoad=true) => {
     let loadedConfig;
 
     try {
@@ -21,7 +21,15 @@ export const loadConfig = (filename="config.json") => {
 
     try {
         loadedConfig = JSON.parse(loadedConfig);
-    } catch (e) {return console.error(`Could not JSON parse ${filename}! Is it corrupt?`, e)}
+    } catch (e) {
+        // Retry once in case the file was read mid-write during a reload
+        try {
+            const retryContent = fs.readFileSync(filename, 'utf-8');
+            loadedConfig = JSON.parse(retryContent);
+        } catch (e2) {
+            return console.error(`Could not JSON parse ${filename}! Is it corrupt?`, e2);
+        }
+    }
 
     if(!loadedConfig.token || loadedConfig.token === "token goes here")
         return console.error("You forgot to put your bot token in config.json!");
@@ -53,6 +61,7 @@ export const loadConfig = (filename="config.json") => {
     applyConfig(loadedConfig, "useEmojisFromServer", "");
     applyConfig(loadedConfig, "refreshSkins", "10 0 0 * * *");
     applyConfig(loadedConfig, "checkGameVersion", "*/15 * * * *");
+    applyConfig(loadedConfig, "refreshPrices", "*/30 * * * *");
     applyConfig(loadedConfig, "updateUserAgent", "*/15 * * * *");
     applyConfig(loadedConfig, "delayBetweenAlerts", 5 * 1000);
     applyConfig(loadedConfig, "alertsPerPage", 10);
@@ -67,10 +76,16 @@ export const loadConfig = (filename="config.json") => {
     applyConfig(loadedConfig, "authFailureStrikes", 2);
     applyConfig(loadedConfig, "maxAccountsPerUser", 5);
     applyConfig(loadedConfig, "userDataCacheExpiration", 168);
+    applyConfig(loadedConfig, "autoRefreshTokens", true);
+    applyConfig(loadedConfig, "tokenRefreshBufferMinutes", 5);
     applyConfig(loadedConfig, "rateLimitBackoff", 60);
     applyConfig(loadedConfig, "rateLimitCap", 10 * 60);
     applyConfig(loadedConfig, "useMultiqueue", false);
-    applyConfig(loadedConfig, "storePasswords", false);
+    applyConfig(loadedConfig, "useRedis", false);
+    applyConfig(loadedConfig, "redisHost", "127.0.0.1");
+    applyConfig(loadedConfig, "redisPort", 6379);
+    applyConfig(loadedConfig, "redisPassword", "");
+    applyConfig(loadedConfig, "redisDb", 0);
     applyConfig(loadedConfig, "trackStoreStats", true);
     applyConfig(loadedConfig, "statsExpirationDays", 14);
     applyConfig(loadedConfig, "statsPerPage", 8);
@@ -87,13 +102,37 @@ export const loadConfig = (filename="config.json") => {
     applyConfig(loadedConfig, "logFrequency", "*/10 * * * * *");
     applyConfig(loadedConfig, "logUrls", false);
 
-    saveConfig(filename, config);
+    if (saveAfterLoad) {
+        try {
+            saveConfig(filename, config);
+        } catch (e) {
+            console.error("Warning: Failed to save config after loading. This is usually safe to ignore during shard reloads.");
+        }
+    }
 
     return config;
 }
 
 export const saveConfig = (filename="config.json", configToSave) => {
-    fs.writeFileSync(filename, JSON.stringify(configToSave || config, null, 2));
+    const payload = JSON.stringify(configToSave || config, null, 2);
+    const tmpFile = `${filename}.tmp`;
+
+    try {
+        // Write to temp file, then atomically replace
+        fs.writeFileSync(tmpFile, payload);
+        fs.renameSync(tmpFile, filename);
+    } catch (e) {
+        console.error(`Failed to save config to ${filename}:`, e);
+        // Clean up temp file if it was created
+        try {
+            if (fs.existsSync(tmpFile)) {
+                fs.unlinkSync(tmpFile);
+            }
+        } catch (cleanupError) {
+            // Ignore cleanup errors
+        }
+        throw e; // Re-throw to let caller know save failed
+    }
 }
 
 const applyConfig = (loadedConfig, name, defaultValue) => {

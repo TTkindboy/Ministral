@@ -17,7 +17,7 @@ import {
 } from "../misc/util.js";
 import config from "../misc/config.js";
 import {DEFAULT_VALORANT_LANG, discToValLang, l, s, hideUsername} from "../misc/languages.js";
-import {ActionRowBuilder, ButtonBuilder, ButtonStyle, escapeMarkdown, EmbedBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder} from "discord.js";
+import {ActionRowBuilder, ButtonBuilder, ButtonStyle, escapeMarkdown, EmbedBuilder, MessageFlags, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionsBitField} from "discord.js";
 import {getStatsFor} from "../misc/stats.js";
 import {getUser} from "../valorant/auth.js";
 import {readUserJson, removeDupeAccounts, saveUser} from "../valorant/accountSwitcher.js";
@@ -49,20 +49,6 @@ export const authFailureMessage = (interactionOrId, authResponse, message="AUTH_
     let embed;
 
     if(authResponse.maintenance) embed = basicEmbed(s(interactionOrId).error.MAINTENANCE);
-    else if(authResponse.mfa) {
-        console.log(`${tag} needs 2FA code`);
-
-        // TMP: 2FA doesn't work because of auth flow change (see issue #99)
-        embed = basicEmbed(s(interactionOrId).info.MFA_DISABLED);
-
-        /*
-        if(authResponse.method === "email") {
-            if(isEphemeral) embed = basicEmbed(s(interactionOrId).info.MFA_EMAIL.f({e: escapeMarkdown(authResponse.email)}));
-            else embed = basicEmbed(s(interactionOrId).info.MFA_EMAIL_HIDDEN);
-        }
-        else embed = basicEmbed(s(interactionOrId).info.MFA_GENERIC);
-        */
-    }
     else if(authResponse.rateLimit) {
         console.log(`${tag} got rate-limited`);
         if(typeof authResponse.rateLimit === "number") embed = basicEmbed(s(interactionOrId).error.LOGIN_RATELIMIT_UNTIL.f({t: Math.ceil(authResponse.rateLimit / 1000)}));
@@ -81,7 +67,7 @@ export const authFailureMessage = (interactionOrId, authResponse, message="AUTH_
 
     return {
         embeds: [embed],
-        ephemeral: true
+        flags: [MessageFlags.Ephemeral]
     }
 }
 
@@ -131,6 +117,11 @@ export const renderOffers = async (shop, interaction, valorantUser, VPemoji, oth
         const embed = await skinEmbed(skin.uuid, price, interaction, VPemoji);
         embeds.push(embed);
     }
+
+    const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
+    if((VPemoji && !VPemoji.startsWith("<:")) || missingExternalPerms) {
+        embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
+    } // previous check was: if(VPemoji && !VPemoji.startsWith("<:"))
 
     // show notice if there is one
     if(config.notice && valorantUser) {
@@ -212,6 +203,11 @@ export const renderAccessoryOffers = async (shop, interaction, valorantUser, KCe
     // leave a little message if the accessory shop is empty (i.e. they have every single accessory in the game)
     if(shop.accessory.offers.length === 0) {
         embeds.push(basicEmbed(s(interaction).info.NO_MORE_ACCESSORIES));
+    }
+
+    const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
+    if((KCemoji && !KCemoji.startsWith("<:")) || missingExternalPerms) {
+        embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
     }
 
     // show notice if there is one
@@ -308,6 +304,11 @@ export const renderBundles = async (bundles, interaction, VPemoji) => {
         }
     }
 
+    const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
+    if((VPemoji && !VPemoji.startsWith("<:")) || missingExternalPerms) {
+        embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
+    }
+
     return {
         embeds: embeds,
         components: [new ActionRowBuilder().addComponents(...buttons)]
@@ -346,7 +347,14 @@ export const renderBundle = async (bundle, interaction, emoji, includeExpires=tr
 
     const itemEmbeds = await renderBundleItems(bundle, interaction, emoji);
     const levels = await getSkinLevels(bundle.items.map(i=>i.uuid), interaction);
-    return levels ? {embeds: [bundleTitleEmbed, ...itemEmbeds], components: [levels]} : {embeds: [bundleTitleEmbed, ...itemEmbeds], components: []};
+    const result = levels ? {embeds: [bundleTitleEmbed, ...itemEmbeds], components: [levels]} : {embeds: [bundleTitleEmbed, ...itemEmbeds], components: []};
+    
+    const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
+    if((emoji && !emoji.startsWith("<:")) || missingExternalPerms) {
+        result.embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
+    }
+
+    return result;
 }
 
 export const renderNightMarket = async (market, interaction, valorantUser, emoji) => {
@@ -372,6 +380,11 @@ export const renderNightMarket = async (market, interaction, valorantUser, emoji
         embeds.push(embed);
     }
     
+    const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
+    if((emoji && !emoji.startsWith("<:")) || missingExternalPerms) {
+        embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
+    }
+
     const components = switchAccountButtons(interaction, "nm", true);
 
     const levels = await getSkinLevels(market.offers, interaction, true);
@@ -894,7 +907,7 @@ export const botInfoEmbed = (interaction, client, guildCount, userCount, registe
     ];
     if(ownerString) fields.push({
         name: s(interaction).info.INFO_OWNER,
-        value: ownerString || "Giorgio#0609",
+        value: ownerString,
         inline: true
     });
     if(interaction.client.shard) fields.push({
@@ -1184,7 +1197,7 @@ export const alertsPageEmbed = async (interaction, alerts, pageIndex, emojiStrin
                 }
             }],
             components: [removeAlertActionRow(interaction.user.id, alert.uuid, s(interaction).info.REMOVE_ALERT_BUTTON)].concat(components),
-            ephemeral: true
+            flags: [MessageFlags.Ephemeral]
         }
     }
 
@@ -1313,7 +1326,7 @@ export const accountsListEmbed = (interaction, userJson) => {
             fields: fields,
             color: VAL_COLOR_1
         }],
-        ephemeral: hideIgn
+        flags: hideIgn ? [MessageFlags.Ephemeral] : []
     }
 }
 

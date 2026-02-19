@@ -1,8 +1,10 @@
 import config from "./config.js";
+import {getRateLimit, setRateLimit, isRedisAvailable} from "./redisQueue.js";
 
-const rateLimits = {};
+// Local fallback for when Redis is not available
+const localRateLimits = {};
 
-export const checkRateLimit = (req, url) => {
+export const checkRateLimit = async (req, url) => {
     let rateLimited = req.statusCode === 429 || req.headers.location?.startsWith("/auth-error?error=rate_limited");
     if(!rateLimited) try {
         const json = JSON.parse(req.body);
@@ -24,20 +26,37 @@ export const checkRateLimit = (req, url) => {
         }
 
         const retryAt = Date.now() + retryAfter * 1000;
-        rateLimits[url] = retryAt;
+        
+        // Store in Redis if available, otherwise local fallback
+        if (isRedisAvailable()) {
+            await setRateLimit(url, retryAt);
+        } else {
+            localRateLimits[url] = retryAt;
+        }
+        
         return retryAt;
     }
 
     return false;
 }
 
-export const isRateLimited = (url) => {
-    const retryAt = rateLimits[url];
+export const isRateLimited = async (url) => {
+    // Check Redis first if available
+    let retryAt;
+    if (isRedisAvailable()) {
+        retryAt = await getRateLimit(url);
+    } else {
+        retryAt = localRateLimits[url];
+    }
 
     if(!retryAt) return false;
 
     if(retryAt < Date.now()) {
-        delete rateLimits[url];
+        // Rate limit expired, clean up
+        if (!isRedisAvailable()) {
+            delete localRateLimits[url];
+        }
+        // Redis keys auto-expire via TTL, no cleanup needed
         return false;
     }
 

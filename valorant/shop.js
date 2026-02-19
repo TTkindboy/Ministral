@@ -10,11 +10,14 @@ import {
     userRegion,
     riotClientHeaders,
 } from "../misc/util.js";
-import { addBundleData, getSkin, getSkinFromSkinUuid } from "./cache.js";
+import { addBundleData, getSkin, getSkinFromSkinUuid, addPricesFromShop } from "./cache.js";
 import { addStore } from "../misc/stats.js";
 import config from "../misc/config.js";
 import { deleteUser, saveUser } from "./accountSwitcher.js";
 import { mqGetShop, useMultiqueue } from "../misc/multiqueue.js";
+
+// In-memory shop cache to avoid repeated fs.readFileSync on every cache check
+const memoryShopCache = new Map();
 
 export const getShop = async (id, account = null) => {
     if (useMultiqueue()) return await mqGetShop(id, account);
@@ -55,6 +58,9 @@ export const getShop = async (id, account = null) => {
     // add to shop cache
     addShopCache(user.puuid, json);
 
+    // collect prices from shop data (gradual price building)
+    addPricesFromShop(json);
+
     // save bundle data & prices
     Promise.all(json.FeaturedBundle.Bundles.map(rawBundle => formatBundle(rawBundle))).then(async bundles => {
         for (const bundle of bundles)
@@ -65,7 +71,10 @@ export const getShop = async (id, account = null) => {
 }
 
 export const getOffers = async (id, account = null) => {
-    const shopCache = getShopCache(getPuuid(id, account), "offers");
+    const puuid = getPuuid(id, account);
+    if (!puuid) return { success: false, error: "User not found" };
+    
+    const shopCache = getShopCache(puuid, "offers");
     if (shopCache) return { success: true, cached: true, ...shopCache.offers };
 
     const resp = await getShop(id, account);
@@ -89,7 +98,10 @@ export const getOffers = async (id, account = null) => {
 }
 
 export const getBundles = async (id, account = null) => {
-    const shopCache = getShopCache(getPuuid(id, account), "bundles");
+    const puuid = getPuuid(id, account);
+    if (!puuid) return { success: false, error: "User not found" };
+    
+    const shopCache = getShopCache(puuid, "bundles");
     if (shopCache) return { success: true, bundles: shopCache.bundles };
 
     const resp = await getShop(id, account);
@@ -101,7 +113,10 @@ export const getBundles = async (id, account = null) => {
 }
 
 export const getNightMarket = async (id, account = null) => {
-    const shopCache = getShopCache(getPuuid(id, account), "night_market");
+    const puuid = getPuuid(id, account);
+    if (!puuid) return { success: false, error: "User not found" };
+    
+    const shopCache = getShopCache(puuid, "night_market");
     if (shopCache) return { success: true, ...shopCache.night_market };
 
     const resp = await getShop(id, account);
@@ -202,7 +217,16 @@ export const getShopCache = (puuid, target = "offers", print = true) => {
     if (!config.useShopCache) return null;
 
     try {
-        const shopCache = JSON.parse(fs.readFileSync("data/shopCache/" + puuid + ".json", "utf8"));
+        // Try in-memory cache first, fall back to disk
+        let shopCache = memoryShopCache.get(puuid);
+        if (!shopCache) {
+            try {
+                shopCache = JSON.parse(fs.readFileSync("data/shopCache/" + puuid + ".json", "utf8"));
+                memoryShopCache.set(puuid, shopCache); // warm the memory cache
+            } catch (e) {
+                return null;
+            }
+        }
 
         let expiresTimestamp;
         if (target === "offers") expiresTimestamp = shopCache[target].expires;
@@ -211,11 +235,17 @@ export const getShopCache = (puuid, target = "offers", print = true) => {
         else if (target === "all") expiresTimestamp = Math.min(shopCache.offers.expires, ...shopCache.bundles.map(bundle => bundle.expires), get9PMTimetstamp(Date.now()), shopCache.night_market.expires);
         else console.error("Invalid target for shop cache! " + target);
 
-        if (Date.now() / 1000 > expiresTimestamp) return null;
+        if (Date.now() / 1000 > expiresTimestamp) {
+            memoryShopCache.delete(puuid); // expired, evict from memory
+            return null;
+        }
 
         if (print) console.log(`Fetched shop cache for user ${discordTag(puuid)}`);
 
-        if (!shopCache.offers.accessory) return null;// If there are no accessories in the cache, it returns null so that the user's shop is checked again.
+        if (!shopCache.offers.accessory) {
+            memoryShopCache.delete(puuid);
+            return null; // If there are no accessories in the cache, it returns null so that the user's shop is checked again.
+        }
 
         return shopCache;
     } catch (e) { }
@@ -253,10 +283,21 @@ const addShopCache = (puuid, shopJson) => {
 
     if (shopJson.BonusStore) NMTimestamp = now
 
+    // Store in memory first (fast path for subsequent reads)
+    memoryShopCache.set(puuid, shopCache);
+
+    // Persist to disk asynchronously (non-blocking)
     if (!fs.existsSync("data/shopCache")) fs.mkdirSync("data/shopCache");
-    fs.writeFileSync("data/shopCache/" + puuid + ".json", JSON.stringify(shopCache, null, 2));
+    fs.writeFile("data/shopCache/" + puuid + ".json", JSON.stringify(shopCache, null, 2), (err) => {
+        if (err) console.error(`Failed to write shop cache for ${puuid}:`, err.message);
+    });
 
     console.log(`Added shop cache for user ${discordTag(puuid)}`);
+}
+
+// Clear all in-memory shop caches (e.g., on !config clearcache)
+export const clearShopMemoryCache = () => {
+    memoryShopCache.clear();
 }
 
 const getMidnightTimestamp = (timestamp) => {

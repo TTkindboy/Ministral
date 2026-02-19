@@ -8,7 +8,7 @@ import {
     wait,
     removeAlertButton
 } from "../misc/util.js";
-import {authUser, deleteUserAuth, getUser, getUserList} from "../valorant/auth.js";
+import {authUser, deleteUserAuth, getUser, getUserList, beginUserCacheScope, endUserCacheScope, invalidateUserCache} from "../valorant/auth.js";
 import {getOffers} from "../valorant/shop.js";
 import {getSkin} from "../valorant/cache.js";
 import {alertsPageEmbed, authFailureMessage, basicEmbed, renderOffers, VAL_COLOR_1, skinEmbed} from "./embed.js";
@@ -16,7 +16,7 @@ import {client} from "./bot.js";
 import config from "../misc/config.js";
 import {l, s} from "../misc/languages.js";
 import {readUserJson, saveUser} from "../valorant/accountSwitcher.js";
-import {sendShardMessage} from "../misc/shardMessage.js";
+import {sendShardMessage, sendShardMessageForChannel} from "../misc/shardMessage.js";
 import {VPEmoji} from "./emoji.js";
 import {getSetting} from "../misc/settings.js";
 import { ActionRowBuilder } from "discord.js";
@@ -27,6 +27,52 @@ import { ActionRowBuilder } from "discord.js";
  * }
  * Each user should have one alert per skin.
  */
+
+// Channel validation cache: Map<channelId, {canAccess: boolean, timestamp: number}>
+// Cache expires after 5 minutes to ensure we recheck permissions periodically
+const channelAccessCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+export const canAccessChannel = async (channelId) => {
+    // Check cache first
+    const cached = channelAccessCache.get(channelId);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.canAccess;
+    }
+
+    // Perform the check (same logic as testAlerts)
+    try {
+        const channel = await fetchChannel(channelId);
+        if (!channel) {
+            channelAccessCache.set(channelId, {canAccess: false, timestamp: Date.now()});
+            return false;
+        }
+
+        // Try to send a test message (we won't actually send it, just check permissions)
+        if (channel.guild) {
+            const permissions = channel.permissionsFor(client.user);
+            if (!permissions || !permissions.has('ViewChannel') || !permissions.has('SendMessages')) {
+                channelAccessCache.set(channelId, {canAccess: false, timestamp: Date.now()});
+                return false;
+            }
+        }
+
+        channelAccessCache.set(channelId, {canAccess: true, timestamp: Date.now()});
+        return true;
+    } catch (e) {
+        console.error(`Channel access check failed for ${channelId}:`, e.message);
+        channelAccessCache.set(channelId, {canAccess: false, timestamp: Date.now()});
+        return false;
+    }
+}
+
+export const clearChannelAccessCache = (channelId = null) => {
+    if (channelId) {
+        channelAccessCache.delete(channelId);
+    } else {
+        channelAccessCache.clear();
+    }
+}
 
 export const addAlert = (id, alert) => {
     const user = getUser(id);
@@ -103,6 +149,9 @@ export const checkAlerts = async () => {
             try {
                 let credsExpiredAlerts = false;
 
+                // Start a user-cache scope for this user's entire check cycle
+                beginUserCacheScope();
+
                 const userJson = readUserJson(id);
                 if(!userJson) continue;
 
@@ -128,6 +177,7 @@ export const checkAlerts = async () => {
                     if(userAlerts.length !== rawUserAlerts.length) {
                         valorantUser.alerts = userAlerts;
                         saveUser(valorantUser, i);
+                        invalidateUserCache(id);
                     }
 
                     let offers;
@@ -156,6 +206,7 @@ export const checkAlerts = async () => {
                                 }
 
                                 deleteUserAuth(valorantUser);
+                                invalidateUserCache(id);
                                 break;
                             }
                         }
@@ -183,6 +234,8 @@ export const checkAlerts = async () => {
             } catch(e) {
                 console.error("There was an error while trying to fetch and send alerts for user " + discordTag(id));
                 console.error(e);
+            } finally {
+                endUserCacheScope();
             }
         }
 
@@ -229,12 +282,23 @@ export const sendAlert = async (id, account, alerts, expires, tryOnOtherShard=tr
         const channel = await fetchChannel(channel_id);
         if(!channel) {
             if(client.shard && tryOnOtherShard) {
-                sendShardMessage({
+                const delivered = await sendShardMessageForChannel({
                     type: "alert",
                     alerts: filteredAlerts[channel_id],
                     id, account, expires, alertsLength
-                });
+                }, channel_id);
+                if(!delivered) {
+                    // No shard has this channel - it's truly inaccessible
+                    console.error(`Cannot access alert channel ${channel_id} for user ${username} on any shard, attempting to migrate to DM...`);
+                    await notifyChannelInaccessible(id, channel_id, 'alert');
+                }
+            } else if(!client.shard) {
+                // Not sharded and channel not found - truly inaccessible
+                console.error(`Cannot access alert channel ${channel_id} for user ${username}, attempting to migrate to DM...`);
+                await notifyChannelInaccessible(id, channel_id, 'alert');
             }
+            // If tryOnOtherShard=false and channel not found, silently skip -
+            // the originating shard handles the fallback via sendShardMessageForChannel
             continue;
         }
 
@@ -287,15 +351,22 @@ export const sendCredentialsExpired = async (id, alert, tryOnOtherShard=true) =>
     const channel = await fetchChannel(alert.channel_id);
     if(!channel) {
         if(client.shard && tryOnOtherShard) {
-            sendShardMessage({
-                type: "alertCredentialsExpired",
+            const delivered = await sendShardMessageForChannel({
+                type: "credentialsExpired",
                 id, alert
-            });
+            }, alert.channel_id);
+            if(!delivered) {
+                const user = await client.users.fetch(id).catch(() => {});
+                if(user) console.error(`Please tell ${user.tag} that their credentials have expired, and that they should /login again. (I can't find the channel where the alert was set up on any shard)`);
+            }
             return;
         }
 
-        const user = await client.users.fetch(id).catch(() => {});
-        if(user) console.error(`Please tell ${user.tag} that their credentials have expired, and that they should /login again. (I can't find the channel where the alert was set up)`);
+        if(!client.shard) {
+            const user = await client.users.fetch(id).catch(() => {});
+            if(user) console.error(`Please tell ${user.tag} that their credentials have expired, and that they should /login again. (I can't find the channel where the alert was set up)`);
+        }
+        // If tryOnOtherShard=false and channel not found, silently skip
         return;
     }
 
@@ -329,15 +400,28 @@ export const sendDailyShop = async (id, shop, channelId, valorantUser, tryOnOthe
     const channel = await fetchChannel(channelId);
     if(!channel) {
         if(client.shard && tryOnOtherShard) {
-            sendShardMessage({
+            const delivered = await sendShardMessageForChannel({
                 type: "dailyShop",
                 id, shop, channelId, valorantUser
-            });
+            }, channelId);
+            if(!delivered) {
+                const user = await client.users.fetch(id).catch(() => {});
+                if(user) {
+                    console.error(`Cannot access daily shop channel ${channelId} for user ${user.tag} on any shard, attempting to notify via DM...`);
+                    await notifyChannelInaccessible(id, channelId, 'dailyShop');
+                }
+            }
             return;
         }
 
-        const user = await client.users.fetch(id).catch(() => {});
-        if(user) console.error(`Please tell ${user.tag} that the daily shop is out! (I can't find the channel where the alert was set up)`);
+        if(!client.shard) {
+            const user = await client.users.fetch(id).catch(() => {});
+            if(user) {
+                console.error(`Cannot access daily shop channel ${channelId} for user ${user.tag}, attempting to notify via DM...`);
+                await notifyChannelInaccessible(id, channelId, 'dailyShop');
+            }
+        }
+        // If tryOnOtherShard=false and channel not found, silently skip
         return;
     }
 
@@ -349,6 +433,105 @@ export const sendDailyShop = async (id, shop, channelId, valorantUser, tryOnOthe
         content,
         ...rendered
     });
+}
+
+export const migrateAlertsToUserDM = async (id, channelId) => {
+    const userJson = readUserJson(id);
+    if (!userJson) return 0;
+
+    let migratedCount = 0;
+    const user = await client.users.fetch(id).catch(() => null);
+    const userDMChannelId = user?.dmChannel?.id || (await user?.createDM().catch(() => null))?.id;
+
+    if (!userDMChannelId) {
+        console.error(`Cannot migrate alerts for user ${id} - unable to create DM channel`);
+        return 0;
+    }
+
+    for (let i = 0; i < userJson.accounts.length; i++) {
+        const account = userJson.accounts[i];
+        if (!account.alerts) continue;
+
+        const alertsToMigrate = account.alerts.filter(alert => alert.channel_id === channelId);
+        if (alertsToMigrate.length === 0) continue;
+
+        // Update channel_id for migrated alerts
+        account.alerts = account.alerts.map(alert => {
+            if (alert.channel_id === channelId) {
+                console.log(`Migrating alert for skin ${alert.uuid} from channel ${channelId} to DM for user ${id}`);
+                migratedCount++;
+                return { ...alert, channel_id: userDMChannelId };
+            }
+            return alert;
+        });
+    }
+
+    if (migratedCount > 0) {
+        const {saveUserJson} = await import("../valorant/accountSwitcher.js");
+        saveUserJson(id, userJson);
+        console.log(`Migrated ${migratedCount} alert(s) to DM for user ${id}`);
+    }
+
+    return migratedCount;
+}
+
+export const notifyChannelInaccessible = async (id, channelId, type = 'alert') => {
+    try {
+        const user = await client.users.fetch(id).catch(() => null);
+        if (!user) {
+            console.error(`Cannot notify user ${id} - user not found`);
+            return false;
+        }
+
+        const valorantUser = getUser(id);
+        if (!valorantUser) {
+            console.error(`Cannot notify user ${id} - valorant user not found`);
+            return false;
+        }
+
+        const reason = await diagnoseChannelIssue(channelId, id);
+        const perms = s(valorantUser).error.ALERT_NO_PERMS;
+        
+        let message = '';
+        if (type === 'dailyShop') {
+            message = s(valorantUser).error.DAILY_SHOP_CHANNEL_INACCESSIBLE.f({
+                perms,
+                c: channelId,
+                r: reason
+            });
+        } else {
+            const migratedCount = await migrateAlertsToUserDM(id, channelId);
+            
+            if (migratedCount > 0) {
+                message = s(valorantUser).error.ALERT_CHANNEL_INACCESSIBLE_MIGRATED.f({
+                    perms,
+                    c: channelId,
+                    r: reason,
+                    n: migratedCount
+                });
+            } else {
+                message = s(valorantUser).error.ALERT_CHANNEL_INACCESSIBLE.f({
+                    perms,
+                    c: channelId,
+                    r: reason
+                });
+            }
+        }
+
+        await user.send({
+            embeds: [{
+                description: message,
+                color: 0xFFA500, // Orange color for warnings
+                timestamp: new Date().toISOString()
+            }]
+        });
+
+        console.log(`Notified user ${user.tag} about inaccessible channel ${channelId}`);
+        return true;
+    } catch (e) {
+        console.error(`Failed to notify user ${id} about inaccessible channel:`, e.message);
+        return false;
+    }
 }
 
 export const testAlerts = async (interaction) => {
@@ -375,4 +558,209 @@ export const fetchAlerts = async (interaction) => {
     const emojiString = await VPEmoji(interaction, channel);
 
     return await alertsPageEmbed(interaction, await filteredAlertsForUser(interaction), 0, emojiString);
+}
+
+export const debugCheckAlerts = async () => {
+    const debugLog = [];
+    const log = (message, level = 'INFO') => {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] [${level}] ${message}`;
+        console.log(logMessage);
+        debugLog.push(logMessage);
+    };
+
+    log('=== Starting Debug Alert Check (DRY RUN - No messages will be sent) ===', 'DEBUG');
+    
+    try {
+        let totalUsers = 0;
+        let usersWithAlerts = 0;
+        let usersWithDailyShop = 0;
+        let unreachableChannels = new Map(); // channelId -> {reason, count}
+        let reachableChannels = new Set();
+
+        for(const id of getUserList()) {
+            totalUsers++;
+            
+            try {
+                const userJson = readUserJson(id);
+                if(!userJson) {
+                    log(`User ${id}: No JSON data found`, 'WARN');
+                    continue;
+                }
+
+                const discordUser = await client.users.fetch(id).catch(() => null);
+                const discordUsername = discordUser ? `${discordUser.username} (${id})` : id;
+
+                const accountCount = userJson.accounts.length;
+                log(`\n--- User: ${discordUsername} (${accountCount} account${accountCount !== 1 ? 's' : ''}) ---`);
+
+                for(let i = 1; i <= accountCount; i++) {
+                    const rawUserAlerts = alertsForUser(id, i);
+                    const dailyShopChannel = getSetting(id, "dailyShop");
+                    
+                    if(!rawUserAlerts?.length && !dailyShopChannel) {
+                        log(`  Account ${i}/${accountCount}: No alerts or daily shop configured`, 'DEBUG');
+                        continue;
+                    }
+
+                    const valorantUser = getUser(id, i);
+                    if(!valorantUser) {
+                        log(`  Account ${i}/${accountCount}: Could not load Valorant user data`, 'ERROR');
+                        continue;
+                    }
+
+                    log(`  Account ${i}/${accountCount}: ${valorantUser.username}`);
+
+                    // Check daily shop channel
+                    if(dailyShopChannel && i === userJson.currentAccount) {
+                        usersWithDailyShop++;
+                        log(`    Daily Shop: Enabled for channel ID ${dailyShopChannel}`);
+                        
+                        const channel = await fetchChannel(dailyShopChannel).catch(e => {
+                            log(`    Daily Shop Channel: ERROR fetching - ${e.message}`, 'ERROR');
+                            return null;
+                        });
+
+                        if(!channel) {
+                            const reason = await diagnoseChannelIssue(dailyShopChannel, id);
+                            log(`    Daily Shop Channel: ❌ UNREACHABLE - ${reason}`, 'ERROR');
+                            const key = `${dailyShopChannel}`;
+                            if(!unreachableChannels.has(key)) {
+                                unreachableChannels.set(key, {reason, count: 0, type: 'dailyShop', users: []});
+                            }
+                            unreachableChannels.get(key).count++;
+                            unreachableChannels.get(key).users.push(discordUsername);
+                        } else {
+                            log(`    Daily Shop Channel: ✓ Accessible in guild "${channel.guild?.name || 'DM'}" #${channel.name}`, 'INFO');
+                            reachableChannels.add(dailyShopChannel);
+                        }
+                    } else if(dailyShopChannel && i !== userJson.currentAccount) {
+                        log(`    Daily Shop: Configured but skipped (not current account)`, 'DEBUG');
+                    }
+
+                    // Check alerts
+                    if(rawUserAlerts?.length) {
+                        usersWithAlerts++;
+                        const userAlerts = removeDupeAlerts(rawUserAlerts);
+                        log(`    Alerts: ${userAlerts.length} skin alert${userAlerts.length !== 1 ? 's' : ''} configured`);
+
+                        const channelGroups = {};
+                        for(const alert of userAlerts) {
+                            if(!channelGroups[alert.channel_id]) channelGroups[alert.channel_id] = [];
+                            channelGroups[alert.channel_id].push(alert);
+                        }
+
+                        for(const [channelId, alerts] of Object.entries(channelGroups)) {
+                            const channel = await fetchChannel(channelId).catch(e => {
+                                log(`      Alert Channel ${channelId}: ERROR fetching - ${e.message}`, 'ERROR');
+                                return null;
+                            });
+
+                            if(!channel) {
+                                const reason = await diagnoseChannelIssue(channelId, id);
+                                log(`      Alert Channel ${channelId}: ❌ UNREACHABLE - ${reason}`, 'ERROR');
+                                log(`        ${alerts.length} alert${alerts.length !== 1 ? 's' : ''} would fail to send`, 'ERROR');
+                                
+                                const key = `${channelId}`;
+                                if(!unreachableChannels.has(key)) {
+                                    unreachableChannels.set(key, {reason, count: 0, type: 'alert', users: [], skins: []});
+                                }
+                                unreachableChannels.get(key).count += alerts.length;
+                                unreachableChannels.get(key).users.push(discordUsername);
+                                
+                                for(const alert of alerts) {
+                                    const skin = await getSkin(alert.uuid);
+                                    unreachableChannels.get(key).skins.push(l(skin.names));
+                                }
+                            } else {
+                                log(`      Alert Channel ${channelId}: ✓ Accessible in guild "${channel.guild?.name || 'DM'}" #${channel.name}`, 'INFO');
+                                reachableChannels.add(channelId);
+                                for(const alert of alerts) {
+                                    const skin = await getSkin(alert.uuid);
+                                    log(`        - ${l(skin.names)} (${alert.uuid})`, 'DEBUG');
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch(e) {
+                log(`User ${id}: ERROR during check - ${e.message}`, 'ERROR');
+                log(e.stack, 'ERROR');
+            }
+        }
+
+        // Summary
+        log('\n=== DEBUG SUMMARY ===', 'INFO');
+        log(`Total users checked: ${totalUsers}`);
+        log(`Users with alerts: ${usersWithAlerts}`);
+        log(`Users with daily shop: ${usersWithDailyShop}`);
+        log(`Reachable channels: ${reachableChannels.size}`);
+        log(`Unreachable channels: ${unreachableChannels.size}`);
+
+        if(unreachableChannels.size > 0) {
+            log('\n=== UNREACHABLE CHANNELS DETAIL ===', 'ERROR');
+            for(const [channelId, info] of unreachableChannels) {
+                log(`\nChannel ID: ${channelId}`, 'ERROR');
+                log(`  Issue: ${info.reason}`, 'ERROR');
+                log(`  Type: ${info.type}`, 'ERROR');
+                log(`  Affected: ${info.count} alert${info.count !== 1 ? 's' : ''}`, 'ERROR');
+                log(`  Users: ${info.users.join(', ')}`, 'ERROR');
+                if(info.skins && info.skins.length > 0) {
+                    log(`  Skins: ${info.skins.join(', ')}`, 'ERROR');
+                }
+            }
+        }
+
+        log('\n=== Debug Alert Check Complete ===', 'DEBUG');
+        return debugLog.join('\n');
+    } catch(e) {
+        log(`FATAL ERROR during debug check: ${e.message}`, 'ERROR');
+        log(e.stack, 'ERROR');
+        return debugLog.join('\n');
+    }
+}
+
+async function diagnoseChannelIssue(channelId, userId) {
+    try {
+        // Try to get the channel from cache first
+        const cachedChannel = client.channels.cache.get(channelId);
+        if(cachedChannel) {
+            // Channel exists in cache, might be a permissions issue
+            try {
+                if(cachedChannel.guild) {
+                    const permissions = cachedChannel.permissionsFor(client.user);
+                    if(!permissions.has('ViewChannel')) return 'Bot lacks ViewChannel permission';
+                    if(!permissions.has('SendMessages')) return 'Bot lacks SendMessages permission';
+                }
+                return 'Channel exists but fetchChannel failed (unknown issue)';
+            } catch(e) {
+                return `Permission check failed: ${e.message}`;
+            }
+        }
+
+        // Try to fetch the channel
+        try {
+            const channel = await client.channels.fetch(channelId);
+            if(!channel) return 'Channel not found (may be deleted)';
+            
+            // If we got here, channel exists but wasn't in cache
+            if(channel.guild) {
+                const bot = await channel.guild.members.fetch(client.user.id).catch(() => null);
+                if(!bot) return 'Bot not in guild (kicked or guild deleted)';
+                
+                const permissions = channel.permissionsFor(client.user);
+                if(!permissions.has('ViewChannel')) return 'Bot lacks ViewChannel permission';
+                if(!permissions.has('SendMessages')) return 'Bot lacks SendMessages permission';
+            }
+            
+            return 'Channel accessible but fetchChannel returned null (unknown)';
+        } catch(e) {
+            if(e.code === 10003) return 'Channel deleted or does not exist';
+            if(e.code === 50001) return 'Bot lacks access to channel';
+            if(e.code === 50013) return 'Bot lacks permissions';
+            return `Fetch failed: ${e.code ? `Discord error ${e.code}` : e.message}`;
+        }
+    } catch(e) {
+        return `Diagnosis failed: ${e.message}`;
+    }
 }

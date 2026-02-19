@@ -1,4 +1,4 @@
-import {checkAlerts, sendAlert, sendCredentialsExpired, sendDailyShop} from "../discord/alerts.js";
+import {checkAlerts, debugCheckAlerts, sendAlert, sendCredentialsExpired, sendDailyShop} from "../discord/alerts.js";
 import {loadConfig} from "./config.js";
 import {client, destroyTasks, scheduleTasks} from "../discord/bot.js";
 import {addMessagesToLog, localLog} from "./logger.js";
@@ -25,6 +25,28 @@ export const sendShardMessage = async (message) => {
     await client.shard.broadcastEval((client, context) => {
         client.skinPeekShardMessageReceived(context.message);
     }, {context: {message}});
+}
+
+/**
+ * Send a shard message only to the shard that has a specific channel in its cache.
+ * Returns true if any shard processed it, false if no shard has the channel.
+ */
+export const sendShardMessageForChannel = async (message, channelId) => {
+    if(!client.shard) return false;
+
+    await allShardsReadyPromise;
+
+    localLog(`Sending targeted message for channel ${channelId}: ${JSON.stringify(message).substring(0, 100)}`);
+
+    const results = await client.shard.broadcastEval((client, context) => {
+        if (client.channels.cache.has(context.channelId)) {
+            client.skinPeekShardMessageReceived(context.message);
+            return true;
+        }
+        return false;
+    }, {context: {message, channelId}});
+
+    return results.some(r => r === true);
 }
 
 const receiveShardMessage = async (message) => {
@@ -56,8 +78,11 @@ const receiveShardMessage = async (message) => {
         case "checkAlerts":
             await checkAlerts();
             break;
+        case "debugCheckAlerts":
+            await debugCheckAlerts();
+            break;
         case "configReload":
-            loadConfig();
+            loadConfig("config.json", false); // Don't save during reload to avoid race conditions
             destroyTasks();
             scheduleTasks();
             break;
@@ -66,6 +91,11 @@ const receiveShardMessage = async (message) => {
             break;
         case "logMessages":
             addMessagesToLog(message.messages);
+            break;
+        case "riotVersionData":
+            const {setRiotVersionData} = await import("./util.js");
+            setRiotVersionData(message.data);
+            localLog(`Received Riot version data from shard 0: ${message.data.riotClientVersion}`);
             break;
         case "processExit":
             process.exit();

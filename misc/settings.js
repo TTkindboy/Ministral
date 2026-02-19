@@ -45,7 +45,7 @@ export const settings = {
     },
     othersCanUseAccountButtons: {
         values: [true, false],
-        default: true,
+        default: false,
     },
     locale: {
         values: ["Automatic"], // locales will be added after imports finished processing
@@ -62,7 +62,15 @@ setTimeout(() => settings.locale.values.push(...Object.keys(discLanguageNames)))
 export const defaultSettings = {};
 for(const setting in settings) defaultSettings[setting] = settings[setting].default;
 
+// Cache migrated settings to avoid repeated DB saves
+const settingsCache = new Map();
+
 const getSettings = (id) => {
+    // Check cache first
+    if (settingsCache.has(id)) {
+        return settingsCache.get(id);
+    }
+
     const json = readUserJson(id);
     if(!json) return defaultSettings;
 
@@ -90,11 +98,23 @@ const getSettings = (id) => {
         if(changed) saveUserJson(id, json);
     }
 
+    // Cache the result to prevent repeated migrations
+    settingsCache.set(id, json.settings);
+
     return json.settings;
 }
 
 export const getSetting = (id, setting) => {
     return getSettings(id)[setting];
+}
+
+// Clear cached settings for a user (useful after account deletion/logout)
+export const clearSettingsCache = (id) => {
+    if (id) {
+        settingsCache.delete(id);
+    } else {
+        settingsCache.clear(); // Clear all if no ID provided
+    }
 }
 
 export const setSetting = (interaction, setting, value, force=false) => { // force = whether is set from /settings set
@@ -117,6 +137,9 @@ export const setSetting = (interaction, setting, value, force=false) => { // for
     }
 
     saveUserJson(id, json);
+    
+    // Invalidate cache after updating settings
+    settingsCache.delete(id);
 
     return json.settings[setting];
 }

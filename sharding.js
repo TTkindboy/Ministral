@@ -14,39 +14,52 @@ const sendAllShardsReady = () => {
 }
 
 console.log("[Shards] Starting spawn");
+
 manager.on("shardCreate", (shard) => {
-    console.log(`[Shard ${shard.id}] Spawned`);
+    console.log(`[Shard ${shard.id}] Spawned at ${new Date().toISOString()}`);
 
     shard.on("death", () => {
-        console.log(`[Shard ${shard.id}] Died`);
+        console.error(`[Shard ${shard.id}] Died at ${new Date().toISOString()}`);
     });
 
-    shard.on("disconnect", (error, id) => {
-        console.log(`[Shard ${id}] Discord Websocket Disconnected`);
-        process.exit(1);
+    shard.on("disconnect", () => {
+        console.warn(`[Shard ${shard.id}] Discord Websocket Disconnected at ${new Date().toISOString()}`);
+    });
+
+    shard.on("reconnecting", () => {
+        console.log(`[Shard ${shard.id}] Attempting to reconnect at ${new Date().toISOString()}`);
+    });
+
+    shard.on("error", (error) => {
+        console.error(`[Shard ${shard.id}] Error at ${new Date().toISOString()}:`, error);
     });
 
     if(allShardsReady) {
         // this shard was respawned, tell it that all shards are ready
-        console.log("[Shards] Sending shardsReady to respawned shard (waiting for it to be ready)");
-        // shard.on("ready", sendAllShardsReady);
+        console.log(`[Shards] Sending shardsReady to respawned shard ${shard.id} at ${new Date().toISOString()}`);
         shard.on("ready", () => {
-            console.log(`[Shard ${shard.id}] Ready`);
+            console.log(`[Shard ${shard.id}] Ready at ${new Date().toISOString()}`);
             sendAllShardsReady();
         });
     }
 
-    shard.on("disconnect", () => console.log(`[Shard ${shard.id}] Disconnected`));
-    shard.on("reconnecting", () => console.log(`[Shard ${shard.id}] Reconnecting`));
     shard.on("message", (message) => {
         // console.log(`[Shard ${shard.id}] Message: ${JSON.stringify(message)}`);
         if(message === "shardReady" && allShardsReady) sendAllShardsReady();
     });
 });
 
+manager.on("error", (error) => {
+    console.error("[Shards] Manager error:", error);
+});
+
 manager.spawn({
     timeout: config.shardReadyTimeout,
 }).then(() => {
     allShardsReady = true;
+    console.log(`[Shards] All shards spawned and ready at ${new Date().toISOString()}`);
     sendAllShardsReady();
+}).catch(err => {
+    console.error("[Shards] Failed to spawn shards:", err);
+    process.exit(1);
 });

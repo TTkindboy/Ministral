@@ -113,10 +113,20 @@ String.prototype.f = function(args, interactionOrId=null, hideName=true) {
 
 // get the strings for a language
 export const s = (input) => {
+    // Fast path: if we already resolved the language for this interaction/user, reuse it
+    if (input && typeof input === 'object' && input._skinpeekLang) return input._skinpeekLang;
+
     const discLang = config.localiseText ? resolveDiscordLanguage(input) : DEFAULT_LANG;
 
     if(!languages[discLang]) importLanguage(discLang);
-    return languages[discLang] || languages[DEFAULT_LANG];
+    const result = languages[discLang] || languages[DEFAULT_LANG];
+
+    // Cache on the interaction/user object to avoid re-resolving
+    if (input && typeof input === 'object') {
+        try { input._skinpeekLang = result; } catch(e) { /* frozen object, ignore */ }
+    }
+
+    return result;
 }
 
 // get the skin/bundle name in a language

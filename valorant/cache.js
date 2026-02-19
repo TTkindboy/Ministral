@@ -14,9 +14,23 @@ let gameVersion;
 let weapons, skins, rarities, buddies, sprays, cards, titles, bundles, battlepass;
 let prices = { timestamp: null };
 
+let skinsSaveDirty = false;
+let skinsSaveTimer = null;
+const SKINS_SAVE_DEBOUNCE_MS = 3000;
+
+// Cached result from getAllSkins() — invalidated on skin/price reload
+let allSkinsCache = null;
+let allSkinsCacheVersion = null;
+
+// Fast-path flag: set to true once all data types have been loaded at least once.
+// Prevents getSkin()/getBundle()/etc. from entering fetchData() on every call.
+let dataFullyLoaded = false;
+
 export const clearCache = () => {
     weapons = skins = rarities = buddies = sprays = cards = titles = bundles = battlepass = null;
     prices = { timestamp: null };
+    allSkinsCache = null;
+    dataFullyLoaded = false;
 }
 
 export const getValorantVersion = async () => {
@@ -48,10 +62,41 @@ export const loadSkinsJSON = async (filename = "data/skins.json") => {
 }
 
 export const saveSkinsJSON = (filename = "data/skins.json") => {
+    const dir = filename.substring(0, filename.lastIndexOf("/"));
+    if (dir && !fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
     fs.writeFileSync(filename, JSON.stringify({ formatVersion, gameVersion, weapons, skins, prices, bundles, rarities, buddies, sprays, cards, titles, battlepass }, null, 2));
+    skinsSaveDirty = false;
+}
+
+const debouncedSaveSkinsJSON = () => {
+    skinsSaveDirty = true;
+    if(skinsSaveTimer) return;
+    skinsSaveTimer = setTimeout(() => {
+        skinsSaveTimer = null;
+        if(skinsSaveDirty) saveSkinsJSON();
+    }, SKINS_SAVE_DEBOUNCE_MS);
+}
+
+// Force flush pending skins.json writes (call on shutdown)
+export const flushSkinsJSON = () => {
+    if(skinsSaveTimer) {
+        clearTimeout(skinsSaveTimer);
+        skinsSaveTimer = null;
+    }
+    if(skinsSaveDirty) saveSkinsJSON();
 }
 
 export const fetchData = async (types = null, checkVersion = false) => {
+    // Fast path: if all data is already loaded and we're not doing a version check,
+    // skip the 9 conditional checks entirely.
+    if (dataFullyLoaded && !checkVersion && types !== null) {
+        // Quick check: do all requested types exist and have the right version?
+        const allPresent = types.every(t => t && (typeof t !== 'object' || t.version === gameVersion));
+        if (allPresent) return;
+    }
+
     try {
         if (checkVersion || !gameVersion) {
             gameVersion = (await getValorantVersion()).manifestId;
@@ -63,7 +108,8 @@ export const fetchData = async (types = null, checkVersion = false) => {
         const promises = [];
 
         if (types.includes(skins) && (!skins || skins.version !== gameVersion)) promises.push(getSkinList(gameVersion));
-        if (types.includes(prices) && (!prices || prices.version !== gameVersion)) promises.push(getPrices(gameVersion));
+        // Prices are now collected gradually from shop data, just ensure prices object exists
+        if (types.includes(prices) && !prices) promises.push(getPrices(gameVersion));
         if (types.includes(bundles) && (!bundles || bundles.version !== gameVersion)) promises.push(getBundleList(gameVersion));
         if (types.includes(rarities) && (!rarities || rarities.version !== gameVersion)) promises.push(getRarities(gameVersion));
         if (types.includes(buddies) && (!buddies || buddies.version !== gameVersion)) promises.push(getBuddies(gameVersion));
@@ -72,10 +118,21 @@ export const fetchData = async (types = null, checkVersion = false) => {
         if (types.includes(titles) && (!titles || titles.version !== gameVersion)) promises.push(getTitles(gameVersion));
         if (types.includes(battlepass) && (!battlepass || battlepass.version !== gameVersion)) promises.push(fetchBattlepassInfo(gameVersion));
 
-        if (!prices || Date.now() - prices.timestamp > 24 * 60 * 60 * 1000) promises.push(getPrices(gameVersion)); // refresh prices every 24h
+        // Removed: 24h price refresh - prices now collected gradually from shop/bundle data
 
-        if (promises.length === 0) return;
+        if (promises.length === 0) {
+            // All requested types already loaded — mark as fully loaded if all 9 types are present
+            if (skins && prices && bundles && rarities && buddies && cards && sprays && titles && battlepass) {
+                dataFullyLoaded = true;
+            }
+            return;
+        }
         await Promise.all(promises);
+
+        // Check if all data types are now present
+        if (skins && prices && bundles && rarities && buddies && cards && sprays && titles && battlepass) {
+            dataFullyLoaded = true;
+        }
 
         saveSkinsJSON();
 
@@ -134,58 +191,99 @@ export const getSkinList = async (gameVersion) => {
         }
     }
 
-    saveSkinsJSON();
+    // saveSkinsJSON() deferred to fetchData() caller
 }
 
 const getPrices = async (gameVersion, id = null) => {
     if (!config.fetchSkinPrices) return;
 
-    // if no ID is passed, try with all users
-    if (id === null) {
-        for (const id of getUserList()) {
-            const user = getUser(id);
-            if (!user || !user.auth) continue;
-
-            const success = await getPrices(gameVersion, id);
-            if (success) return true;
-        }
-        return false;
+    // Prices are now collected gradually from shop/bundle data
+    // Just ensure prices object exists with version
+    if (!prices || !prices.version) {
+        prices = { version: gameVersion, timestamp: Date.now() };
+        // saveSkinsJSON() deferred to fetchData() caller
     }
-
-    let user = getUser(id);
-    if (!user) return false;
-
-    const authSuccess = await authUser(id);
-    if (!authSuccess.success || !user.auth.rso || !user.auth.ent || !user.region) return false;
-
-    user = getUser(id);
-    console.log(`Fetching skin prices using ${user.username}'s access token...`);
-
-    // https://github.com/techchrism/valorant-api-docs/blob/trunk/docs/Store/GET%20Store_GetOffers.md
-    const req = await fetch(`https://pd.${userRegion(user)}.a.pvp.net/store/v1/offers/`, {
-        headers: {
-            "Authorization": "Bearer " + user.auth.rso,
-            "X-Riot-Entitlements-JWT": user.auth.ent,
-            ...riotClientHeaders(),
-        }
-    });
-    console.assert(req.statusCode === 200, `Valorant skins prices code is ${req.statusCode}!`, req);
-
-    const json = JSON.parse(req.body);
-    if (json.httpStatus === 400 && json.errorCode === "BAD_CLAIMS") {
-        return false; // user rso is invalid, should we delete the user as well?
-    } else if (isMaintenance(json)) return false;
-
-    prices = { version: gameVersion };
-    for (const offer of json.Offers) {
-        prices[offer.OfferID] = offer.Cost[Object.keys(offer.Cost)[0]];
-    }
-
-    prices.timestamp = Date.now();
-
-    saveSkinsJSON();
-
+    
     return true;
+}
+
+// Collect prices from storefront data (SingleItemStoreOffers, bundles, etc.)
+// Called whenever a user fetches their shop
+export const addPricesFromShop = (shopJson) => {
+    if (!config.fetchSkinPrices) return;
+    
+    let newPrices = 0;
+    const vpCurrencyId = "85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741"; // VP currency UUID
+    
+    // Initialize prices if needed
+    if (!prices || typeof prices !== 'object') {
+        prices = { timestamp: Date.now() };
+    }
+    
+    // Extract from SingleItemStoreOffers (daily shop items with full price data)
+    if (shopJson.SkinsPanelLayout?.SingleItemStoreOffers) {
+        for (const offer of shopJson.SkinsPanelLayout.SingleItemStoreOffers) {
+            if (offer.OfferID && offer.Cost && !prices[offer.OfferID]) {
+                // Get VP cost (most common currency)
+                const cost = offer.Cost[vpCurrencyId] || offer.Cost[Object.keys(offer.Cost)[0]];
+                if (cost) {
+                    prices[offer.OfferID] = cost;
+                    newPrices++;
+                }
+            }
+        }
+    }
+    
+    // Extract from bundles
+    if (shopJson.FeaturedBundle?.Bundles) {
+        for (const bundle of shopJson.FeaturedBundle.Bundles) {
+            if (bundle.ItemOffers) {
+                for (const itemOffer of bundle.ItemOffers) {
+                    const offer = itemOffer.Offer;
+                    if (offer?.OfferID && offer?.Cost && !prices[offer.OfferID]) {
+                        const cost = offer.Cost[vpCurrencyId] || offer.Cost[Object.keys(offer.Cost)[0]];
+                        if (cost) {
+                            prices[offer.OfferID] = cost;
+                            newPrices++;
+                        }
+                    }
+                }
+            }
+            // Also check Items array for base prices
+            if (bundle.Items) {
+                for (const item of bundle.Items) {
+                    if (item.Item?.ItemID && item.BasePrice && !prices[item.Item.ItemID]) {
+                        prices[item.Item.ItemID] = item.BasePrice;
+                        newPrices++;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Extract from night market if available
+    if (shopJson.BonusStore?.BonusStoreOffers) {
+        for (const bonusOffer of shopJson.BonusStore.BonusStoreOffers) {
+            const offer = bonusOffer.Offer;
+            if (offer?.OfferID && offer?.Cost && !prices[offer.OfferID]) {
+                const cost = offer.Cost[vpCurrencyId] || offer.Cost[Object.keys(offer.Cost)[0]];
+                if (cost) {
+                    prices[offer.OfferID] = cost;
+                    newPrices++;
+                }
+            }
+        }
+    }
+    
+    if (newPrices > 0) {
+        prices.timestamp = Date.now();
+        allSkinsCache = null; // invalidate since prices changed
+        console.log(`Added ${newPrices} new skin prices to cache! (Total: ${Object.keys(prices).length - 2} prices)`);
+        debouncedSaveSkinsJSON();
+        
+        // Notify other shards to reload the updated prices
+        if (client.shard) sendShardMessage({ type: "skinsReload" });
+    }
 }
 
 const getBundleList = async (gameVersion) => {
@@ -213,7 +311,7 @@ const getBundleList = async (gameVersion) => {
         }
     }
 
-    saveSkinsJSON();
+    // saveSkinsJSON() deferred to fetchData() caller
 }
 
 export const addBundleData = async (bundleData) => {
@@ -235,7 +333,7 @@ export const addBundleData = async (bundleData) => {
         bundle.basePrice = bundleData.basePrice;
         bundle.expires = bundleData.expires;
 
-        saveSkinsJSON();
+        debouncedSaveSkinsJSON();
     }
 }
 
@@ -259,7 +357,7 @@ const getRarities = async (gameVersion) => {
         }
     }
 
-    saveSkinsJSON();
+    // saveSkinsJSON() deferred to fetchData() caller
 
     return true;
 }
@@ -283,7 +381,7 @@ export const getBuddies = async (gameVersion) => {
         }
     }
 
-    saveSkinsJSON();
+    // saveSkinsJSON() deferred to fetchData() caller
 }
 
 export const getCards = async (gameVersion) => {
@@ -308,7 +406,7 @@ export const getCards = async (gameVersion) => {
         }
     }
 
-    saveSkinsJSON();
+    // saveSkinsJSON() deferred to fetchData() caller
 }
 
 export const getSprays = async (gameVersion) => {
@@ -329,7 +427,7 @@ export const getSprays = async (gameVersion) => {
         }
     }
 
-    saveSkinsJSON();
+    // saveSkinsJSON() deferred to fetchData() caller
 }
 
 export const getTitles = async (gameVersion) => {
@@ -350,7 +448,7 @@ export const getTitles = async (gameVersion) => {
         }
     }
 
-    saveSkinsJSON();
+    // saveSkinsJSON() deferred to fetchData() caller
 }
 
 export const fetchBattlepassInfo = async (gameVersion) => {
@@ -412,7 +510,7 @@ export const fetchBattlepassInfo = async (gameVersion) => {
         chapters: currentBattlepass.content.chapters
     }
 
-    saveSkinsJSON();
+    // saveSkinsJSON() deferred to fetchData() caller
 }
 
 export const getItem = async (uuid, type) => {
@@ -475,7 +573,13 @@ export const getRarity = async (uuid) => {
 }
 
 export const getAllSkins = async () => {
-    return await Promise.all(Object.values(skins).filter(o => typeof o === "object").map(skin => getSkin(skin.uuid, false)));
+    // Return cached result if skins haven't changed
+    if (allSkinsCache && allSkinsCacheVersion === (skins && skins.version)) {
+        return allSkinsCache;
+    }
+    allSkinsCache = await Promise.all(Object.values(skins).filter(o => typeof o === "object").map(skin => getSkin(skin.uuid, false)));
+    allSkinsCacheVersion = skins && skins.version;
+    return allSkinsCache;
 }
 
 export const searchSkin = async (query, locale, limit = 20, threshold = -5000) => {

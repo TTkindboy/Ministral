@@ -1,5 +1,5 @@
 import {rarityEmoji} from "../discord/emoji.js";
-import {ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField} from "discord.js";
+import {ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, PermissionsBitField} from "discord.js";
 import {getItem, getRarity} from "../valorant/cache.js";
 
 import https from "https";
@@ -343,7 +343,7 @@ class ProxyManager {
 
         // test for 1020 or rate limit
         const hostnameAndProxy = `${new URL(url).hostname} proxy=${proxy.host}:${proxy.port}`
-        if(req.statusCode === 403 && req.body === "error code: 1020" || checkRateLimit(req, hostnameAndProxy)) {
+        if(req.statusCode === 403 && req.body === "error code: 1020" || await checkRateLimit(req, hostnameAndProxy)) {
             console.error(`Proxy ${proxy.host}:${proxy.port} is dead!`);
             console.error(req);
             await this.proxyIsDead(proxy, hostname);
@@ -448,6 +448,11 @@ export const getRiotVersionData = () => {
     return riotVersionData;
 }
 
+export const setRiotVersionData = (data) => {
+    riotVersionData = data;
+    cachedRiotHeaders = null; // invalidate cached headers
+}
+
 export const fetchRiotVersionData = async () => {
     console.log("Fetching latest Valorant version number...");
 
@@ -461,6 +466,7 @@ export const fetchRiotVersionData = async () => {
 
     const json = JSON.parse(req.body);
     riotVersionData = json.data;
+    cachedRiotHeaders = null; // invalidate cached headers
 
     return riotVersionData;
 }
@@ -468,23 +474,45 @@ export const fetchRiotVersionData = async () => {
 // TODO: find out what how to automatically get the latest one of these
 const platformOsVersion = "10.0.19042.1.256.64bit";
 
-export const riotClientHeaders = () => {
+// Pre-compute the static X-Riot-ClientPlatform value (never changes at runtime)
+const clientPlatformBase64 = (() => {
     const clientPlatformData = {
         platformType: "PC",
         platformOS: "Windows",
         platformOSVersion: platformOsVersion,
         platformChipset: "Unknown",
+    };
+    const json = JSON.stringify(clientPlatformData, null, "\t");
+    return Buffer.from(json.replace(/\n/g, "\r\n")).toString("base64");
+})();
+
+// Cached headers object — invalidated when riotVersionData changes
+let cachedRiotHeaders = null;
+
+export const riotClientHeaders = () => {
+    if (cachedRiotHeaders) return cachedRiotHeaders;
+
+    // Get version data, with fallback if not yet loaded
+    let clientVersion = "release-09.00-shipping-0-0000000"; // fallback version
+    try {
+        const versionData = getRiotVersionData();
+        if (versionData && versionData.riotClientVersion) {
+            clientVersion = versionData.riotClientVersion;
+        }
+    } catch (e) {
+        console.warn("Version data not yet loaded, using fallback version for headers");
+        // Don't cache when using fallback — we'll recompute once version loads
+        return {
+            "X-Riot-ClientPlatform": clientPlatformBase64,
+            "X-Riot-ClientVersion": clientVersion,
+        };
     }
 
-    // JSON stringify prettyfied with 1 tab and \r\n, then base64 encode
-    const clientPlatformDataJson = JSON.stringify(clientPlatformData, null, "\t");
-    const clientPlatformDataBuffer = Buffer.from(clientPlatformDataJson.replace(/\n/g, "\r\n"));
-    const clientPlatformDataBase64 = clientPlatformDataBuffer.toString("base64");
-
-    return {
-        "X-Riot-ClientPlatform": clientPlatformDataBase64,
-        "X-Riot-ClientVersion": getRiotVersionData().riotClientVersion,
-    }
+    cachedRiotHeaders = {
+        "X-Riot-ClientPlatform": clientPlatformBase64,
+        "X-Riot-ClientVersion": clientVersion,
+    };
+    return cachedRiotHeaders;
 }
 
 export const parseSetCookie = (setCookie) => {
@@ -596,7 +624,9 @@ export const removeDupeAlerts = (alerts) => {
 }
 
 export const getPuuid = (id, account=null) => {
-    return getUser(id, account).puuid;
+    const user = getUser(id, account);
+    if (!user) return null;
+    return user.puuid;
 }
 
 export const isDefaultSkin = (skin) => skin.skinUuid === skin.defaultSkinUuid;
@@ -605,7 +635,7 @@ export const isDefaultSkin = (skin) => skin.skinUuid === skin.defaultSkinUuid;
 
 export const defer = async (interaction, ephemeral=false) => {
     // discord only sets deferred to true once the event is sent over ws, which doesn't happen immediately
-    await interaction.deferReply({ephemeral});
+    await interaction.deferReply({flags: ephemeral ? [MessageFlags.Ephemeral] : []});
     interaction.deferred = true;
 }
 
@@ -624,8 +654,6 @@ export const actionRow = (button) => new ActionRowBuilder().addComponents(button
 
 export const removeAlertButton = (id, uuid, buttonText) => new ButtonBuilder().setCustomId(`removealert/${uuid}/${id}/${Math.round(Math.random() * 100000)}`).setStyle(ButtonStyle.Danger).setLabel(buttonText).setEmoji("✖");
 export const removeAlertActionRow = (id, uuid, buttonText) => new ActionRowBuilder().addComponents(removeAlertButton(id, uuid, buttonText));
-
-export const retryAuthButton = (id, operationId, buttonText) => new ButtonBuilder().setCustomId(`retry_auth/${operationId}`).setStyle(ButtonStyle.Danger).setLabel(buttonText).setEmoji("🔄");
 
 export const externalEmojisAllowed = (channel) => !channel || !channel.guild || channel.permissionsFor(channel.guild.roles.everyone).has(PermissionsBitField.Flags.UseExternalEmojis);
 export const canCreateEmojis = (guild) => guild && guild.members.me && guild.members.me.permissions.has(PermissionsBitField.Flags.ManageEmojisAndStickers);
@@ -686,11 +714,6 @@ export const isToday = (timestamp) => isSameDay(timestamp, Date.now());
 export const isSameDay = (t1, t2) => {
     t1 = new Date(t1); t2 = new Date(t2);
     return t1.getUTCFullYear() === t2.getUTCFullYear() && t1.getUTCMonth() === t2.getUTCMonth() && t1.getUTCDate() === t2.getUTCDate();
-}
-
-export const ensureUsersFolder = () => {
-    if(!fs.existsSync("data")) fs.mkdirSync("data");
-    if(!fs.existsSync("data/users")) fs.mkdirSync("data/users");
 }
 
 export const findKeyOfValue = (obj, value) => Object.keys(obj).find(key => obj[key] === value);

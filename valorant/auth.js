@@ -5,15 +5,27 @@ import {
     extractTokensFromUri,
     tokenExpiry,
     decodeToken,
-    ensureUsersFolder, wait, getProxyManager
+    wait, getProxyManager
 } from "../misc/util.js";
 import config from "../misc/config.js";
-import fs from "fs";
 import {client} from "../discord/bot.js";
 import {addUser, deleteUser, getAccountWithPuuid, getUserJson, readUserJson, saveUser} from "./accountSwitcher.js";
 import {checkRateLimit, isRateLimited} from "../misc/rateLimit.js";
-import {queueCookiesLogin, queueUsernamePasswordLogin} from "./authQueue.js";
+import {queueCookiesLogin} from "./authQueue.js";
 import {waitForAuthQueueResponse} from "../discord/authManager.js";
+import {getAllUserIds} from "../misc/userDatabase.js";
+
+// Short-lived cache for getUser() lookups within a single tick/request cycle.
+// Call beginUserCacheScope() before a batch of operations, endUserCacheScope() after.
+let userCache = null;
+
+export const beginUserCacheScope = () => {
+    userCache = new Map();
+};
+
+export const endUserCacheScope = () => {
+    userCache = null;
+};
 
 export class User {
     constructor({id, puuid, auth, alerts=[], username, region, authFailures, lastFetchedData, lastNoticeSeen, lastSawEasterEgg}) {
@@ -30,38 +42,6 @@ export class User {
     }
 }
 
-export const transferUserDataFromOldUsersJson = () => {
-    if(!fs.existsSync("data/users.json")) return;
-    if(client.shard && client.shard.ids[0] !== 0) return;
-
-    console.log("Transferring user data from users.json to the new format...");
-    console.log("(The users.json file will be backed up as users.json.old, just in case)");
-
-    const usersJson = JSON.parse(fs.readFileSync("data/users.json", "utf-8"));
-
-    const alertsArray = fs.existsSync("data/alerts.json") ? JSON.parse(fs.readFileSync("data/alerts.json", "utf-8")) : [];
-    const alertsForUser = (id) => alertsArray.filter(a => a.id === id);
-
-    for(const id in usersJson) {
-        const userData = usersJson[id];
-        const user = new User({
-            id: id,
-            puuid: userData.puuid,
-            auth: {
-                rso: userData.rso,
-                idt: userData.idt,
-                ent: userData.ent,
-                cookies: userData.cookies,
-            },
-            alerts: alertsForUser(id).map(alert => {return {uuid: alert.uuid, channel_id: alert.channel_id}}),
-            username: userData.username,
-            region: userData.region
-        });
-        saveUser(user);
-    }
-    fs.renameSync("data/users.json", "data/users.json.old");
-}
-
 export const getUser = (id, account=null) => {
     if(id instanceof User) {
         const user = id;
@@ -72,18 +52,38 @@ export const getUser = (id, account=null) => {
         return userData && new User(userData);
     }
 
+    // Check short-lived cache if a scope is active
+    const cacheKey = `${id}:${account ?? ''}`;
+    if (userCache) {
+        const cached = userCache.get(cacheKey);
+        if (cached !== undefined) return cached;
+    }
+
     try {
         const userData = getUserJson(id, account);
-        return userData && new User(userData);
+        const result = userData && new User(userData);
+        if (userCache) userCache.set(cacheKey, result);
+        return result;
     } catch(e) {
+        if (userCache) userCache.set(cacheKey, null);
         return null;
     }
 }
 
-const userFilenameRegex = /\d+\.json/
+/**
+ * Invalidate a specific user in the cache (call after saveUser or auth changes).
+ */
+export const invalidateUserCache = (id) => {
+    if (!userCache) return;
+    for (const key of userCache.keys()) {
+        if (key.startsWith(`${id}:`)) userCache.delete(key);
+    }
+}
+
 export const getUserList = () => {
-    ensureUsersFolder();
-    return fs.readdirSync("data/users").filter(filename => userFilenameRegex.test(filename)).map(filename => filename.replace(".json", ""));
+    const userIds = getAllUserIds();
+    console.log(`[getUserList] Retrieved ${userIds.length} users from database`);
+    return userIds;
 }
 
 export const authUser = async (id, account=null) => {
@@ -92,154 +92,29 @@ export const authUser = async (id, account=null) => {
     if(!user || !user.auth || !user.auth.rso) return {success: false};
 
     const rsoExpiry = tokenExpiry(user.auth.rso);
-    if(rsoExpiry - Date.now() > 10_000) return {success: true};
-
-    return await refreshToken(id, account);
-}
-
-export const redeemUsernamePassword = async (id, login, password) => {
-
-    let rateLimit = isRateLimited("auth.riotgames.com");
-    if(rateLimit) return {success: false, rateLimit: rateLimit};
-
-    const proxyManager = getProxyManager();
-    const proxy = await proxyManager.getProxy("auth.riotgames.com");
-    const agent = await proxy?.createAgent("auth.riotgames.com");
-
-    // prepare cookies for auth request
-    const req1 = await fetch("https://auth.riotgames.com/api/v1/authorization", {
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/json',
-            'user-agent': await getUserAgent()
-        },
-        body: JSON.stringify({
-            "client_id": "riot-client",
-            "code_challenge": "",
-            "code_challenge_method": "",
-            "acr_values": "",
-            "claims": "",
-            "nonce": "69420",
-            "redirect_uri": "http://localhost/redirect",
-            "response_type": "token id_token",
-            "scope": "openid link ban lol_region"
-        }),
-        proxy: agent
-    });
-    console.assert(req1.statusCode === 200, `Auth Request Cookies status code is ${req1.statusCode}!`, req1);
-
-    rateLimit = checkRateLimit(req1, "auth.riotgames.com");
-    if(rateLimit) return {success: false, rateLimit: rateLimit};
-
-    if(detectCloudflareBlock(req1)) return {success: false, rateLimit: "cloudflare"};
-
-    let cookies = parseSetCookie(req1.headers["set-cookie"]);
-
-    // get access token
-    const req2 = await fetch("https://auth.riotgames.com/api/v1/authorization", {
-        method: "PUT",
-        headers: {
-            'Content-Type': 'application/json',
-            'user-agent': await getUserAgent(),
-            'cookie': stringifyCookies(cookies)
-        },
-        body: JSON.stringify({
-            'type': 'auth',
-            'username': login,
-            'password': password,
-            'remember': true
-        }),
-        proxy: agent
-    });
-    console.assert(req2.statusCode === 200, `Auth status code is ${req2.statusCode}!`, req2);
-
-    rateLimit = checkRateLimit(req2, "auth.riotgames.com")
-    if(rateLimit) return {success: false, rateLimit: rateLimit};
-
-    if(detectCloudflareBlock(req2)) return {success: false, rateLimit: "cloudflare"};
-
-    cookies = {
-        ...cookies,
-        ...parseSetCookie(req2.headers['set-cookie'])
-    };
-
-    const json2 = JSON.parse(req2.body);
-    if(json2.type === 'error') {
-        if(json2.error === "auth_failure") console.error("Authentication failure!", json2);
-        else console.error("Unknown auth error!", JSON.stringify(json2, null, 2));
+    const timeRemaining = rsoExpiry - Date.now();
+    const minutesRemaining = Math.floor(timeRemaining / 60000);
+    
+    // Check if auto-refresh is enabled
+    if(!config.autoRefreshTokens) {
+        // No auto-refresh: only check if token is still valid (not expired)
+        if(timeRemaining > 0) {
+            console.log(`[authUser] Token valid for ${minutesRemaining} more minutes (auto-refresh disabled) (${user.username})`);
+            return {success: true};
+        }
+        console.log(`[authUser] Token expired, cannot proceed (auto-refresh disabled) (${user.username})`);
         return {success: false};
     }
-
-    if(json2.type === 'response') {
-        const user = await processAuthResponse(id, {login, password, cookies}, json2.response.parameters.uri);
-        addUser(user);
+    
+    // Auto-refresh enabled: refresh if below buffer threshold
+    const bufferMs = (config.tokenRefreshBufferMinutes || 5) * 60 * 1000;
+    if(timeRemaining > bufferMs) {
+        console.log(`[authUser] Token valid for ${minutesRemaining} more minutes (${user.username})`);
         return {success: true};
-    } else if(json2.type === 'multifactor') { // 2FA
-        const user = new User({id});
-        user.auth = {
-            ...user.auth,
-            waiting2FA: Date.now(),
-            cookies: cookies
-        }
-
-        if(config.storePasswords) {
-            user.auth.login = login;
-            user.auth.password = btoa(password);
-        }
-
-        addUser(user);
-        return {success: false, mfa: true, method: json2.multifactor.method, email: json2.multifactor.email};
     }
 
-    return {success: false};
-}
-
-export const redeem2FACode = async (id, code) => {
-    let rateLimit = isRateLimited("auth.riotgames.com");
-    if(rateLimit) return {success: false, rateLimit: rateLimit};
-
-    let user = getUser(id);
-
-    const req = await fetch("https://auth.riotgames.com/api/v1/authorization", {
-        method: "PUT",
-        headers: {
-            'Content-Type': 'application/json',
-            'user-agent': await getUserAgent(),
-            'cookie': stringifyCookies(user.auth.cookies)
-        },
-        body: JSON.stringify({
-            'type': 'multifactor',
-            'code': code.toString(),
-            'rememberDevice': true
-        })
-    });
-    console.assert(req.statusCode === 200, `2FA status code is ${req.statusCode}!`, req);
-
-    rateLimit = checkRateLimit(req, "auth.riotgames.com")
-    if(rateLimit) return {success: false, rateLimit: rateLimit};
-
-    deleteUser(id);
-
-    user.auth = {
-        ...user.auth,
-        cookies: {
-            ...user.auth.cookies,
-            ...parseSetCookie(req.headers['set-cookie'])
-        }
-    };
-
-    const json = JSON.parse(req.body);
-    if(json.error === "multifactor_attempt_failed" || json.type === "error") {
-        console.error("Authentication failure!", json);
-        return {success: false};
-    }
-
-    user = await processAuthResponse(id, {login: user.auth.login, password: atob(user.auth.password || ""), cookies: user.auth.cookies}, json.response.parameters.uri, user);
-
-    delete user.auth.waiting2FA;
-    addUser(user);
-
-    return {success: true};
+    console.log(`[authUser] Token expires in ${minutesRemaining} minutes, refreshing now (${user.username})`);
+    return await refreshToken(id, account);
 }
 
 const processAuthResponse = async (id, authData, redirect, user=null) => {
@@ -255,16 +130,7 @@ const processAuthResponse = async (id, authData, redirect, user=null) => {
         ...user.auth,
         rso: rso,
         idt: idt,
-    }
-
-    // save either cookies or login/password
-    if(authData.login && config.storePasswords && !user.auth.waiting2FA) { // don't store login/password for people with 2FA
-        user.auth.login = authData.login;
-        user.auth.password = btoa(authData.password);
-        delete user.auth.cookies;
-    } else {
-        user.auth.cookies = authData.cookies;
-        delete user.auth.login; delete user.auth.password;
+        cookies: authData.cookies
     }
 
     user.puuid = decodeToken(rso).sub;
@@ -339,7 +205,7 @@ export const getRegion = async (user) => {
 }
 
 export const redeemCookies = async (id, cookies) => {
-    let rateLimit = isRateLimited("auth.riotgames.com");
+    let rateLimit = await isRateLimited("auth.riotgames.com");
     if(rateLimit) return {success: false, rateLimit: rateLimit};
 
     const req = await fetch("https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&scope=account%20openid&nonce=1", {
@@ -348,14 +214,19 @@ export const redeemCookies = async (id, cookies) => {
             cookie: cookies
         }
     });
+    console.log(`[redeemCookies] Status: ${req.statusCode}, Location: ${req.headers.location}`);
     console.assert(req.statusCode === 303, `Cookie Reauth status code is ${req.statusCode}!`, req);
 
-    rateLimit = checkRateLimit(req, "auth.riotgames.com");
+    rateLimit = await checkRateLimit(req, "auth.riotgames.com");
     if(rateLimit) return {success: false, rateLimit: rateLimit};
 
     if(detectCloudflareBlock(req)) return {success: false, rateLimit: "cloudflare"};
 
-    if(req.headers.location.startsWith("/login")) return {success: false}; // invalid cookies
+    // invalid cookies → Riot redirects to login page (can be relative or full URL)
+    if(req.headers.location && (req.headers.location.startsWith("/login") || req.headers.location.includes("authenticate.riotgames.com/login"))) {
+        console.log(`[redeemCookies] Cookies are invalid, redirected to login page`);
+        return {success: false};
+    }
 
     cookies = {
         ...parseSetCookie(cookies),
@@ -375,16 +246,49 @@ export const refreshToken = async (id, account=null) => {
     let user = getUser(id, account);
     if(!user) return response;
 
-    if(user.auth.cookies) {
-        response = await queueCookiesLogin(id, stringifyCookies(user.auth.cookies));
-        if(response.inQueue) response = await waitForAuthQueueResponse(response);
-    }
-    if(!response.success && user.auth.login && user.auth.password) {
-        response = await queueUsernamePasswordLogin(id, user.auth.login, atob(user.auth.password));
-        if(response.inQueue) response = await waitForAuthQueueResponse(response);
+    // 1. Try refresh_token first (from code flow / offline_access)
+    if(user.auth.refresh_token) {
+        console.log(`[refreshToken] User has refresh_token, attempting refresh`);
+        try {
+            const tokenData = await refreshWithRefreshToken(user.auth.refresh_token);
+            if(tokenData && tokenData.access_token) {
+                user.auth.rso = tokenData.access_token;
+                if(tokenData.id_token) user.auth.idt = tokenData.id_token;
+                // Riot may rotate refresh tokens — always store the latest one
+                if(tokenData.refresh_token) {
+                    user.auth.refresh_token = tokenData.refresh_token;
+                    user.auth.refresh_token_obtained = Date.now();
+                }
+                // Re-fetch entitlements with the new access token
+                user.auth.ent = await getEntitlements(user);
+                user.lastFetchedData = Date.now();
+                user.authFailures = 0;
+                saveUser(user);
+                
+                const newExpiry = tokenExpiry(user.auth.rso);
+                const expiresIn = Math.floor((newExpiry - Date.now()) / 60000);
+                console.log(`[refreshToken] Refresh token success for ${user.username} — new token expires in ${expiresIn} minutes`);
+                return {success: true};
+            } else {
+                console.log(`[refreshToken] Refresh token failed, token may be revoked`);
+                user.auth.refresh_token = null; // clear invalid refresh token
+            }
+        } catch(e) {
+            console.error(`[refreshToken] Error using refresh token:`, e);
+            user.auth.refresh_token = null;
+        }
     }
 
-    if(!response.success && !response.mfa && !response.rateLimit) deleteUserAuth(user);
+    // 2. Fall back to cookie-based refresh
+    if(user.auth.cookies) {
+        console.log(`[refreshToken] User has cookies, attempting cookie refresh`);
+        response = await queueCookiesLogin(id, stringifyCookies(user.auth.cookies));
+        if(response.inQueue) response = await waitForAuthQueueResponse(response);
+    } else {
+        console.log(`[refreshToken] User has no cookies or refresh_token, cannot refresh`);
+    }
+
+    if(!response.success && !response.rateLimit) deleteUserAuth(user);
 
     return response;
 }
@@ -395,9 +299,6 @@ export const refreshToken = async (id, account=null) => {
 const getUserAgent = async () => {
     // temporary bypass for Riot adding hCaptcha (see github issue #93)
     return "ShooterGame/13 Windows/10.0.19043.1.256.64bit";
-    
-    if(!riotClientVersion) await fetchRiotClientVersion();
-    return `RiotClient/${riotClientVersion}.1234567 rso-auth (Windows;10;;Professional, x64)`;
 }
 
 const detectCloudflareBlock = (req) => {
@@ -413,4 +314,215 @@ const detectCloudflareBlock = (req) => {
 export const deleteUserAuth = (user) => {
     user.auth = null;
     saveUser(user);
+}
+
+/**
+ * Get token status information for a user
+ * Returns: { hasToken, hasRefreshToken, expiresAt, expiresInMinutes, needsRefresh }
+ */
+export const getTokenStatus = (id, account=null) => {
+    const user = getUser(id, account);
+    if(!user || !user.auth || !user.auth.rso) {
+        return { hasToken: false, hasRefreshToken: false };
+    }
+
+    const rsoExpiry = tokenExpiry(user.auth.rso);
+    const timeRemaining = rsoExpiry - Date.now();
+    const minutesRemaining = Math.floor(timeRemaining / 60000);
+    const expiresAt = new Date(rsoExpiry);
+    const needsRefresh = timeRemaining <= 30 * 60 * 1000; // Less than 30 minutes
+
+    const status = {
+        hasToken: true,
+        hasRefreshToken: !!user.auth.refresh_token,
+        hasCookies: !!user.auth.cookies,
+        expiresAt: expiresAt.toISOString(),
+        expiresInMinutes: minutesRemaining,
+        needsRefresh: needsRefresh,
+        canAutoRefresh: !!user.auth.refresh_token || !!user.auth.cookies
+    };
+
+    // Add refresh token age if available
+    if (user.auth.refresh_token && user.auth.refresh_token_obtained) {
+        const tokenAge = Date.now() - user.auth.refresh_token_obtained;
+        const daysOld = Math.floor(tokenAge / (1000 * 60 * 60 * 24));
+        const hoursOld = Math.floor((tokenAge % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        status.refreshTokenObtainedAt = new Date(user.auth.refresh_token_obtained).toISOString();
+        status.refreshTokenAge = `${daysOld}d ${hoursOld}h`;
+    }
+
+    return status;
+}
+
+// Web-based OAuth login flow
+// Generates an auth URL that user opens in browser, logs in, then pastes the redirect URL back
+
+export const generateWebAuthUrl = () => {
+    // Generate a random nonce for security
+    const nonce = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
+    const params = new URLSearchParams({
+        client_id: "riot-client",
+        redirect_uri: "http://localhost/redirect",
+        response_type: "code",
+        scope: "openid link ban lol_region account offline_access",
+        nonce: nonce
+    });
+    
+    return {
+        url: `https://auth.riotgames.com/authorize?${params.toString()}`,
+        nonce: nonce
+    };
+}
+
+/**
+ * Extract the authorization code from a callback URL.
+ * Code flow redirects to: http://localhost/redirect?code=XXXXX
+ */
+const extractCodeFromUri = (uri) => {
+    try {
+        const url = new URL(uri);
+        return url.searchParams.get("code");
+    } catch {
+        // Try regex fallback for malformed URLs
+        const match = uri.match(/[?&]code=([^&]+)/);
+        return match ? match[1] : null;
+    }
+}
+
+/**
+ * Exchange an authorization code for access_token, id_token, and refresh_token
+ * via a server-to-server POST to the Riot token endpoint.
+ */
+const exchangeCodeForTokens = async (code) => {
+    const req = await fetch("https://auth.riotgames.com/token", {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'user-agent': await getUserAgent()
+        },
+        body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code: code,
+            redirect_uri: "http://localhost/redirect",
+            client_id: "riot-client"
+        }).toString()
+    });
+
+    if (req.statusCode !== 200) {
+        console.error(`[exchangeCodeForTokens] Token exchange failed with status ${req.statusCode}:`, req.body);
+        return null;
+    }
+
+    const json = JSON.parse(req.body);
+    // json should contain: access_token, id_token, refresh_token, token_type, expires_in, scope
+    // Log available fields (without token values for security)
+    const fields = Object.keys(json).filter(k => !k.includes('token') && !k.includes('secret'));
+    console.log(`[exchangeCodeForTokens] Response fields: ${fields.join(', ')}`);
+    if (json.expires_in) console.log(`[exchangeCodeForTokens] Access token expires in ${json.expires_in} seconds (${Math.floor(json.expires_in / 60)} minutes)`);
+    return json;
+}
+
+/**
+ * Use a refresh token to obtain a new access_token (and possibly a rotated refresh_token).
+ * Returns the full token response or null on failure.
+ */
+export const refreshWithRefreshToken = async (refreshToken) => {
+    const req = await fetch("https://auth.riotgames.com/token", {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'user-agent': await getUserAgent()
+        },
+        body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+            client_id: "riot-client"
+        }).toString()
+    });
+
+    if (req.statusCode !== 200) {
+        console.error(`[refreshWithRefreshToken] Refresh failed with status ${req.statusCode}:`, req.body);
+        return null;
+    }
+
+    const json = JSON.parse(req.body);
+    // Log available fields to see if Riot returns refresh token expiry info
+    const fields = Object.keys(json).filter(k => !k.includes('token') && !k.includes('secret'));
+    console.log(`[refreshWithRefreshToken] Response fields: ${fields.join(', ')}`);
+    if (json.expires_in) console.log(`[refreshWithRefreshToken] New access token expires in ${json.expires_in} seconds (${Math.floor(json.expires_in / 60)} minutes)`);
+    return json;
+}
+
+export const redeemWebAuthUrl = async (id, callbackUrl) => {
+    try {
+        // Extract the authorization code from the callback URL
+        const code = extractCodeFromUri(callbackUrl);
+        
+        if (!code) {
+            return { success: false, error: "Could not extract authorization code from URL. Make sure you copied the full URL from the browser address bar." };
+        }
+
+        // Exchange the code for tokens server-to-server
+        const tokenData = await exchangeCodeForTokens(code);
+        if (!tokenData || !tokenData.access_token) {
+            return { success: false, error: "Failed to exchange authorization code for tokens. The code may have expired (they are single-use)." };
+        }
+
+        const rso = tokenData.access_token;
+        const idt = tokenData.id_token;
+        const refresh_token = tokenData.refresh_token; // long-lived, from offline_access scope
+
+        // Create a new user with the tokens
+        const user = new User({ id });
+        user.auth = {
+            rso: rso,
+            idt: idt,
+            refresh_token: refresh_token || null,
+            refresh_token_obtained: refresh_token ? Date.now() : null
+        };
+
+        user.puuid = decodeToken(rso).sub;
+
+        // Check if this account already exists
+        const existingAccount = getAccountWithPuuid(id, user.puuid);
+        if (existingAccount) {
+            user.username = existingAccount.username;
+            user.region = existingAccount.region;
+            if (existingAccount.auth) user.auth.ent = existingAccount.auth.ent;
+        }
+
+        // Get username from userinfo
+        const userInfo = await getUserInfo(user);
+        if (!userInfo || !userInfo.username) {
+            return { success: false, error: "Could not fetch user info. The token may be invalid or expired." };
+        }
+        user.username = userInfo.username;
+
+        // Get entitlements token
+        if (!user.auth.ent) {
+            user.auth.ent = await getEntitlements(user);
+        }
+
+        // Get region
+        if (!user.region) {
+            user.region = await getRegion(user);
+        }
+
+        if (refresh_token) {
+            console.log(`[redeemWebAuthUrl] Code flow login successful for ${user.username} (has refresh token - auto-refresh enabled)`);
+        } else {
+            console.log(`[redeemWebAuthUrl] Code flow login successful for ${user.username} (no refresh token returned)`);
+        }
+
+        user.lastFetchedData = Date.now();
+        user.authFailures = 0;
+
+        addUser(user);
+
+        return { success: true, username: user.username };
+    } catch (e) {
+        console.error("Error redeeming web auth URL:", e);
+        return { success: false, error: e.message || "Unknown error occurred" };
+    }
 }

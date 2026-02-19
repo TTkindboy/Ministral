@@ -63,8 +63,18 @@ const getOrCreateEmoji = async (channel, name, filenameOrUrl) => {
         }
     }
 
-    // couldn't find usable emoji, create it
-    if(guild) return addEmojiToCache(await createEmoji(guild, name, filenameOrUrl));
+    // couldn't find usable emoji, try to create it only in the configured server
+    if(config.useEmojisFromServer) {
+        try {
+            const emojiGuild = await client.guilds.fetch(config.useEmojisFromServer);
+            if(emojiGuild) return addEmojiToCache(await createEmoji(emojiGuild, name, filenameOrUrl));
+        } catch(e) {
+            console.error(`Failed to create emoji in useEmojisFromServer guild: ${e.message}`);
+        }
+    } else {
+        // No emoji server configured - log notice instead of creating emojis everywhere
+        console.log(`Emoji ${name} not found. Configure 'useEmojisFromServer' in config.json to use custom emojis.`);
+    }
 }
 
 const emojiInGuild = (guild, name) => {
@@ -73,7 +83,11 @@ const emojiInGuild = (guild, name) => {
 
 const createEmoji = async (guild, name, filenameOrUrl) => {
     if(!guild || !name || !filenameOrUrl) return;
-    if(!canCreateEmojis(guild)) return console.log(`Don't have permission to create emoji ${name} in guild ${guild.name}!`);
+    if(!canCreateEmojis(guild)) {
+        console.log(`Don't have permission to create emoji ${name} in guild ${guild.name}!`);
+        console.log(`Make sure the bot has 'Manage Emojis and Stickers' permission in that server.`);
+        return;
+    }
 
     await updateEmojiCache(guild);
     if(guild.emojis.cache.filter(e => !e.animated).size >= maxEmojis(guild))
@@ -84,7 +98,8 @@ const createEmoji = async (guild, name, filenameOrUrl) => {
         const attachment = await resolveFilenameOrUrl(filenameOrUrl)
         return await guild.emojis.create({name, attachment});
     } catch(e) {
-        console.error(`Could not create ${name} emoji in ${guild.name}! Either I don't have the right role or there are no more emoji slots`);
+        console.error(`Could not create ${name} emoji in ${guild.name}!`);
+        console.error(`Make sure the bot has 'Manage Emojis and Stickers' permission and there are available emoji slots.`);
         console.error(`${e.name}: ${e.message}`);
     }
 }

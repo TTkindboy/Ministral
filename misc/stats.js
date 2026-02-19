@@ -9,37 +9,63 @@ let overallStats = {
     shopsIncluded: 0,
     items: {}
 };
+let statsLoaded = false;
+let statsDirty = false;
+let saveDebounceTimer = null;
+const SAVE_DEBOUNCE_MS = 5000; // batch saves within 5 seconds
 
 export const loadStats = (filename="data/stats.json") => {
     if(!config.trackStoreStats) return;
+    if(statsLoaded) return; // already loaded, no need to re-read from disk
     try {
         const obj = JSON.parse(fs.readFileSync(filename).toString());
 
         if(!obj.fileVersion) transferStatsFromV1(obj);
         else stats = obj;
 
-        saveStats(filename);
-
         calculateOverallStats();
     } catch(e) {}
+    statsLoaded = true;
 }
 
 const saveStats = (filename="data/stats.json") => {
+    const dir = filename.substring(0, filename.lastIndexOf("/"));
+    if (dir && !fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
     fs.writeFileSync(filename, JSON.stringify(stats, null, 2));
+    statsDirty = false;
+}
+
+const debouncedSaveStats = () => {
+    statsDirty = true;
+    if(saveDebounceTimer) return; // already scheduled
+    saveDebounceTimer = setTimeout(() => {
+        saveDebounceTimer = null;
+        if(statsDirty) saveStats();
+    }, SAVE_DEBOUNCE_MS);
+}
+
+// Ensure stats are flushed to disk (call on shutdown or forced save)
+export const flushStats = () => {
+    if(saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = null;
+    }
+    if(statsDirty) saveStats();
 }
 
 export const calculateOverallStats = () => {
-    cleanupStats();
-
     overallStats = {
         shopsIncluded: 0,
         items: {}
     }
     let items = {};
+    let needsCleanup = false;
 
     for(let dateString in stats.stats) {
         if(config.statsExpirationDays && daysAgo(dateString) > config.statsExpirationDays) {
-            // delete stats.stats[dateString];
+            needsCleanup = true;
             continue;
         }
         const dayStats = stats.stats[dateString];
@@ -52,6 +78,11 @@ export const calculateOverallStats = () => {
                 items[item] = dayStats.items[item];
             }
         }
+    }
+
+    // Clean up expired entries lazily
+    if(needsCleanup) {
+        cleanupStats();
     }
 
     const sortedItems = Object.entries(items).sort(([,a], [,b]) => b - a);
@@ -103,7 +134,7 @@ export const addStore = (puuid, items) => {
     }
     todayStats.shopsIncluded++;
 
-    saveStats();
+    debouncedSaveStats();
 
     calculateOverallStats();
 }
@@ -117,7 +148,7 @@ const cleanupStats = () => {
         }
     }
 
-    saveStats();
+    debouncedSaveStats();
 }
 
 const formatDate = (date) => {

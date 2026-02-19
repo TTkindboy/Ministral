@@ -1,7 +1,8 @@
 import {loadConfig} from "./misc/config.js";
 import {startBot} from "./discord/bot.js";
 import {loadLogger} from "./misc/logger.js";
-import {transferUserDataFromOldUsersJson} from "./valorant/auth.js";
+import {initRedis} from "./misc/redisQueue.js"
+import {initUserDatabase} from "./misc/userDatabase.js";
 
 /* TODO list:
  * (done) Balance
@@ -20,6 +21,17 @@ import {transferUserDataFromOldUsersJson} from "./valorant/auth.js";
 const config = loadConfig();
 if(config) {
     loadLogger();
-    transferUserDataFromOldUsersJson();
-    startBot();
+
+    if (!initUserDatabase()) {
+        console.error("User database initialization failed. Cannot start bot.");
+        process.exit(1);
+    }
+    
+    // Initialize Redis if enabled
+    initRedis().then(() => {
+        startBot();
+    }).catch(err => {
+        console.error("Failed to initialize Redis, continuing without it:", err);
+        startBot();
+    });
 }

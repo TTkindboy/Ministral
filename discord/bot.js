@@ -3,6 +3,7 @@ import {
     GatewayIntentBits,
     ActionRowBuilder,
     MessageFlagsBitField,
+    MessageFlags,
     StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder,
     ApplicationCommandOptionType,
@@ -37,14 +38,16 @@ import {
     renderProfile,
     renderCompetitiveMatchHistory
 } from "./embed.js";
-import { authUser, getUser, getUserList, getRegion, getUserInfo } from "../valorant/auth.js";
-import { getBalance } from "../valorant/shop.js";
-import { getSkin, fetchData, searchSkin, searchBundle, getBundle, clearCache } from "../valorant/cache.js";
+import { authUser, getUser, getUserList, getRegion, getUserInfo, generateWebAuthUrl, redeemWebAuthUrl } from "../valorant/auth.js";
+import { getBalance, clearShopMemoryCache } from "../valorant/shop.js";
+import { getSkin, fetchData, searchSkin, searchBundle, getBundle, clearCache, loadSkinsJSON, flushSkinsJSON } from "../valorant/cache.js";
 import {
     addAlert,
     alertExists,
     alertsPerChannelPerGuild,
+    canAccessChannel,
     checkAlerts,
+    debugCheckAlerts,
     fetchAlerts,
     filteredAlertsForUser,
     removeAlert,
@@ -52,9 +55,9 @@ import {
 } from "./alerts.js";
 import { RadEmoji, VPEmoji, KCEmoji } from "./emoji.js";
 import { queueCookiesLogin, startAuthQueue, } from "../valorant/authQueue.js";
-import { login2FA, loginUsernamePassword, retryFailedOperation, waitForAuthQueueResponse } from "./authManager.js";
+import { waitForAuthQueueResponse } from "./authManager.js";
 import { renderBattlepassProgress } from "../valorant/battlepass.js";
-import { getOverallStats, getStatsFor } from "../misc/stats.js";
+import { getOverallStats, getStatsFor, flushStats } from "../misc/stats.js";
 import {
     canSendMessages,
     defer,
@@ -100,12 +103,43 @@ export const client = new Client({
 });
 const cronTasks = [];
 
-client.on("ready", async () => {
+// Add error handlers for the Discord client
+client.on("error", (error) => {
+    console.error("[Discord Client] Error:", error);
+});
+
+client.on("warn", (warning) => {
+    console.warn("[Discord Client] Warning:", warning);
+});
+
+client.on("disconnect", () => {
+    console.warn(`[Discord Client] Disconnected at ${new Date().toISOString()}`);
+});
+
+client.on("clientReady", async () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
+    // Fetch version data FIRST (required for API headers)
+    // Only shard 0 fetches, others wait for broadcast
+    if (!client.shard || client.shard.ids[0] === 0) {
+        await fetchRiotVersionData();
+        console.log("Fetched latest Riot user-agent!");
+        
+        // Broadcast to other shards if using sharding
+        if (client.shard) {
+            const {getRiotVersionData} = await import("../misc/util.js");
+            const {sendShardMessage} = await import("../misc/shardMessage.js");
+            const versionData = getRiotVersionData();
+            await sendShardMessage({type: "riotVersionData", data: versionData});
+        }
+    } else {
+        console.log("Waiting for Riot version data from shard 0...");
+        // Version data will be received via shard message
+    }
+    
     console.log("Loading skins...");
     fetchData().then(() => console.log("Skins loaded!"));
-    fetchRiotVersionData().then(() => console.log("Fetched latest Riot user-agent!"));
+    
     initProxyManager().then(() => {
         if (getProxyManager().enabled) {
             console.log(`Proxy manager loaded ${getProxyManager().allProxies.length} proxies!`);
@@ -149,8 +183,13 @@ export const scheduleTasks = () => {
     // check alerts every day at 00:00:10 GMT
     if (config.refreshSkins) cronTasks.push(cron.schedule(config.refreshSkins, checkAlerts, { timezone: "GMT" }));
 
-    // check for new valorant version every 15mins
-    if (config.checkGameVersion) cronTasks.push(cron.schedule(config.checkGameVersion, () => fetchData(null, true)));
+    // check for new valorant version every 15mins (only on shard 0, then broadcasts to others)
+    if (config.checkGameVersion && (!client.shard || client.shard.ids[0] === 0)) {
+        cronTasks.push(cron.schedule(config.checkGameVersion, () => fetchData(null, true)));
+    }
+
+    // reload skin prices from disk every 30mins (for sharding to sync price updates)
+    if (config.refreshPrices) cronTasks.push(cron.schedule(config.refreshPrices, () => loadSkinsJSON()));
 
     // if login queue is enabled, process an item every 3 seconds
     if (config.useLoginQueue && config.loginQueueInterval) startAuthQueue();
@@ -158,8 +197,19 @@ export const scheduleTasks = () => {
     // if send console to discord channel is enabled, send console output every 10 seconds
     if (config.logToChannel && config.logFrequency) cronTasks.push(cron.schedule(config.logFrequency, sendConsoleOutput));
 
-    // check for a new riot client version (new user agent) every 15mins
-    if (config.updateUserAgent) cronTasks.push(cron.schedule(config.updateUserAgent, fetchRiotVersionData));
+    // check for a new riot client version (new user agent) every 15mins (only on shard 0, then broadcasts to others)
+    if (config.updateUserAgent && (!client.shard || client.shard.ids[0] === 0)) {
+        cronTasks.push(cron.schedule(config.updateUserAgent, async () => {
+            await fetchRiotVersionData();
+            // Broadcast to other shards if using sharding
+            if (client.shard) {
+                const {getRiotVersionData} = await import("../misc/util.js");
+                const {sendShardMessage} = await import("../misc/shardMessage.js");
+                const versionData = getRiotVersionData();
+                await sendShardMessage({type: "riotVersionData", data: versionData});
+            }
+        }));
+    }
 }
 
 export const destroyTasks = () => {
@@ -167,6 +217,9 @@ export const destroyTasks = () => {
     for (const task of cronTasks)
         task.stop();
     cronTasks.length = 0;
+    // Flush any pending debounced writes to disk
+    flushStats();
+    flushSkinsJSON();
 }
 
 const settingsChoices = [];
@@ -234,41 +287,15 @@ const commands = [
     },
     {
         name: "login",
-        description: "Log in with your Riot username/password!",
-        options: [
-            {
-                type: ApplicationCommandOptionType.String,
-                name: "username",
-                description: "Your Riot username",
-                required: true
-            },
-            {
-                type: ApplicationCommandOptionType.String,
-                name: "password",
-                description: "Your Riot password",
-                required: true
-            },
-        ]
+        description: "Log in to your Riot account via browser."
     },
     {
         name: "update",
         description: "Update your username/region in the bot.",
     },
     {
-        name: "2fa",
-        description: "Enter your 2FA code if needed",
-        options: [{
-            type: ApplicationCommandOptionType.Integer,
-            name: "code",
-            description: "The 2FA Code",
-            required: true,
-            minValue: 0,
-            maxValue: 999999
-        }]
-    },
-    {
         name: "cookies",
-        description: "Log in with your cookies. Useful if you have 2FA or if you use Google/Facebook to log in.",
+        description: "Log in with your cookies. Useful if you use Google/Facebook to log in.",
         options: [{
             type: ApplicationCommandOptionType.String,
             name: "cookies",
@@ -493,6 +520,7 @@ client.on("messageCreate", async (message) => {
                 await message.channel.send("Deleting all files in data/shopCache...");
                 fs.rmSync("data/shopCache", { force: true, recursive: true });
                 fs.mkdirSync("data/shopCache");
+                clearShopMemoryCache();
 
                 // delete skins.json and reset skin cache
                 await message.channel.send("Deleting skins.json and resetting skin cache...");
@@ -581,6 +609,32 @@ client.on("messageCreate", async (message) => {
                 await sendShardMessage({ type: "checkAlerts" });
                 await message.reply("Told shard 0 to start checking alerts!");
             }
+        } else if (content === "!debugalerts") {
+            if (!client.shard || client.shard.ids.includes(0)) {
+                await message.reply("Starting debug alert check (dry run)... Check the console for detailed output.");
+                const debugOutput = await debugCheckAlerts();
+                // Split output if too long for Discord (2000 char limit)
+                const chunks = [];
+                const lines = debugOutput.split('\n');
+                let currentChunk = '```\n';
+                
+                for(const line of lines) {
+                    if(currentChunk.length + line.length + 5 > 1990) { // 5 for \n```
+                        chunks.push(currentChunk + '\n```');
+                        currentChunk = '```\n' + line + '\n';
+                    } else {
+                        currentChunk += line + '\n';
+                    }
+                }
+                if(currentChunk.length > 4) chunks.push(currentChunk + '\n```');
+                
+                for(const chunk of chunks) {
+                    await message.channel.send(chunk);
+                }
+            } else {
+                await sendShardMessage({ type: "debugCheckAlerts" });
+                await message.reply("Told shard 0 to start debug checking alerts!");
+            }
         } else if (content === "!stop skinpeek") {
             return client.destroy();
         } else if (content === "!update") {
@@ -635,7 +689,7 @@ client.on("interactionCreate", async (interaction) => {
     else if (!areAllShardsReady()) maintenanceMessage = s(interaction).info.SHARDS_LOADING;
     if (maintenanceMessage) {
         if (interaction.isAutocomplete()) return await interaction.respond([{ name: maintenanceMessage, value: maintenanceMessage }]);
-        return await interaction.reply({ content: maintenanceMessage, ephemeral: true });
+        return await interaction.reply({ content: maintenanceMessage, flags: [MessageFlags.Ephemeral] });
     }
 
     registerInteractionLocale(interaction);
@@ -664,7 +718,7 @@ client.on("interactionCreate", async (interaction) => {
                     }
                     else if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -679,7 +733,7 @@ client.on("interactionCreate", async (interaction) => {
                 case "bundles": {
                     if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -706,7 +760,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (searchResults.length === 0) {
                         return await interaction.followUp({
                             embeds: [basicEmbed(s(interaction).error.BUNDLE_NOT_FOUND)],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
                     } else if (searchResults.length === 1 || nameMatchesExactly(interaction) || nameMatchesExactly()) { // check both localized and english
                         const bundle = searchResults[0].obj;
@@ -748,7 +802,7 @@ client.on("interactionCreate", async (interaction) => {
                 case "nightmarket": {
                     if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -763,7 +817,7 @@ client.on("interactionCreate", async (interaction) => {
                 case "balance": {
                     if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -799,7 +853,7 @@ client.on("interactionCreate", async (interaction) => {
                 case "alert": {
                     if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     const channel = interaction.channel || await fetchChannel(interaction.channelId);
@@ -832,12 +886,21 @@ client.on("interactionCreate", async (interaction) => {
                         return await interaction.followUp({
                             embeds: [basicEmbed(s(interaction).error.DUPLICATE_ALERT.f({ s: await skinNameAndEmoji(skin, interaction.channel, interaction), c: otherAlert.channel_id }))],
                             components: [removeAlertActionRow(interaction.user.id, skin.uuid, s(interaction).info.REMOVE_ALERT_BUTTON)],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
                     } else if (filteredResults.length === 1 ||
                         l(filteredResults[0].obj.names, interaction.locale).toLowerCase() === searchQuery.toLowerCase() ||
                         l(filteredResults[0].obj.names).toLowerCase() === searchQuery.toLowerCase()) {
                         const skin = filteredResults[0].obj;
+
+                        // Check if we can access the channel before adding the alert
+                        const canAccess = await canAccessChannel(interaction.channelId);
+                        if (!canAccess) {
+                            return await interaction.followUp({
+                                embeds: [basicEmbed(s(interaction).error.ALERT_NO_PERMS)],
+                                flags: [MessageFlags.Ephemeral]
+                            });
+                        }
 
                         addAlert(interaction.user.id, {
                             uuid: skin.uuid,
@@ -869,7 +932,7 @@ client.on("interactionCreate", async (interaction) => {
                 case "alerts": {
                     if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -882,7 +945,7 @@ client.on("interactionCreate", async (interaction) => {
                 case "update": {
                     if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true,
+                        flags: [MessageFlags.Ephemeral],
                     });
 
                     const id = interaction.user.id;
@@ -910,7 +973,7 @@ client.on("interactionCreate", async (interaction) => {
                 case "testalerts": {
                     if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -925,33 +988,35 @@ client.on("interactionCreate", async (interaction) => {
                     break;
                 }
                 case "login": {
-                    await defer(interaction, true);
-
                     const json = readUserJson(interaction.user.id);
                     if (json && json.accounts.length >= config.maxAccountsPerUser) {
-                        return await interaction.followUp({
-                            embeds: [basicEmbed(s(interaction).error.TOO_MANY_ACCOUNTS.f({ n: config.maxAccountsPerUser }))]
-                        })
+                        return await interaction.reply({
+                            embeds: [basicEmbed(s(interaction).error.TOO_MANY_ACCOUNTS.f({ n: config.maxAccountsPerUser }))],
+                        flags: [MessageFlags.Ephemeral]
+                        });
                     }
 
-                    const username = interaction.options.get("username").value;
-                    const password = interaction.options.get("password").value;
+                    const { url } = generateWebAuthUrl();
 
-                    await loginUsernamePassword(interaction, username, password);
+                    const loginButton = new ButtonBuilder()
+                        .setCustomId(`webauth/${interaction.user.id}`)
+                        .setLabel(s(interaction).info.LOGIN_BUTTON)
+                        .setStyle(ButtonStyle.Primary)
+                        .setEmoji("📋");
 
-                    break;
-                }
-                case "2fa": {
-                    if (!valorantUser || !valorantUser.auth || !valorantUser.auth.waiting2FA) return await interaction.reply({
-                        embeds: [basicEmbed(s(interaction).error.UNEXPECTED_2FA)],
-                        ephemeral: true
+                    const embed = {
+                        title: s(interaction).info.LOGIN_TITLE,
+                        description: s(interaction).info.LOGIN_DESCRIPTION.f({url: url}),
+                        color: VAL_COLOR_1,
+                        image: { url: "https://cdn.discordapp.com/attachments/951836162312527872/1473414714947010751/ezgif.com-optiwebp.webp" },
+                        footer: { text: s(interaction).info.LOGIN_FOOTER }
+                    };
+
+                    await interaction.reply({
+                        embeds: [embed],
+                        components: [new ActionRowBuilder().addComponents(loginButton)],
+                        flags: [MessageFlags.Ephemeral]
                     });
-
-                    await defer(interaction, true);
-
-                    const code = interaction.options.get("code").value.toString().padStart(6, '0');
-
-                    await login2FA(interaction, code);
 
                     break;
                 }
@@ -975,7 +1040,7 @@ client.on("interactionCreate", async (interaction) => {
 
                     await interaction.followUp({
                         embeds: [embed],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     break;
@@ -985,7 +1050,7 @@ client.on("interactionCreate", async (interaction) => {
                     const accountCount = getNumberOfAccounts(interaction.user.id);
                     if (accountCount === 0) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     const targetAccount = interaction.options.get("account") && interaction.options.get("account").value;
@@ -994,12 +1059,12 @@ client.on("interactionCreate", async (interaction) => {
 
                         if (targetIndex === null) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.ACCOUNT_NOT_FOUND)],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
 
                         if (targetIndex > accountCount) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.ACCOUNT_NUMBER_TOO_HIGH.f({ n: accountCount }))],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
 
                         const usernameOfDeleted = deleteUser(interaction.user.id, targetIndex);
@@ -1013,7 +1078,7 @@ client.on("interactionCreate", async (interaction) => {
 
                         await interaction.reply({
                             embeds: [basicEmbed(s(interaction).info.ACCOUNT_DELETED)],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
                     }
                     break;
@@ -1036,7 +1101,7 @@ client.on("interactionCreate", async (interaction) => {
                     }
                     else if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -1052,7 +1117,7 @@ client.on("interactionCreate", async (interaction) => {
                 case "battlepass": {
                     if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -1114,7 +1179,7 @@ client.on("interactionCreate", async (interaction) => {
                     const accountCount = getNumberOfAccounts(interaction.user.id);
                     if (accountCount === 0) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     const targetAccount = interaction.options.get("account").value;
@@ -1123,17 +1188,17 @@ client.on("interactionCreate", async (interaction) => {
                     const valorantUser = switchAccount(interaction.user.id, targetIndex);
                     if (targetIndex === null) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.ACCOUNT_NOT_FOUND)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     if (targetIndex === userJson.currentAccount) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).info.ACCOUNT_ALREADY_SELECTED.f({ u: valorantUser.username }, interaction, false))],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     if (targetIndex > accountCount) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.ACCOUNT_NUMBER_TOO_HIGH.f({ n: accountCount }))],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
 
@@ -1147,7 +1212,7 @@ client.on("interactionCreate", async (interaction) => {
                     const userJson = readUserJson(interaction.user.id);
                     if (!userJson) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await interaction.reply(accountsListEmbed(interaction, userJson));
@@ -1165,7 +1230,7 @@ client.on("interactionCreate", async (interaction) => {
                 case "valstatus": {
                     if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
                     await defer(interaction);
 
@@ -1180,14 +1245,14 @@ client.on("interactionCreate", async (interaction) => {
                         const guildCounts = await client.shard.fetchClientValues('guilds.cache.size');
                         guildCount = guildCounts.reduce((acc, guildCount) => acc + guildCount, 0);
 
-                        const userCounts = await client.shard.broadcastEval(c => c.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0));
+                        const userCounts = await client.shard.broadcastEval(c => c.guilds.cache.reduce((acc, guild) => acc + (guild.memberCount || 0), 0));
                         userCount = userCounts.reduce((acc, guildCount) => acc + guildCount, 0);
                     } else {
                         guildCount = client.guilds.cache.size;
 
                         userCount = 0;
                         for (const guild of client.guilds.cache.values())
-                            userCount += guild.memberCount;
+                            userCount += (guild.memberCount || 0);
                     }
 
                     const registeredUserCount = getUserList().length;
@@ -1214,7 +1279,7 @@ client.on("interactionCreate", async (interaction) => {
                     }
                     else if (!valorantUser) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -1245,7 +1310,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (interaction.message.interaction.user.id !== interaction.user.id) {
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_ALERT)],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
                     }
 
@@ -1256,8 +1321,17 @@ client.on("interactionCreate", async (interaction) => {
                     if (otherAlert) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.DUPLICATE_ALERT.f({ s: await skinNameAndEmoji(skin, interaction.channel, interaction), c: otherAlert.channel_id }))],
                         components: [removeAlertActionRow(interaction.user.id, otherAlert.uuid, s(interaction).info.REMOVE_ALERT_BUTTON)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
+
+                    // Check if we can access the channel before adding the alert
+                    const canAccess = await canAccessChannel(interaction.channelId);
+                    if (!canAccess) {
+                        return await interaction.reply({
+                            embeds: [basicEmbed(s(interaction).error.ALERT_NO_PERMS)],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
 
                     addAlert(interaction.user.id, {
                         id: interaction.user.id,
@@ -1276,7 +1350,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (interaction.message.interaction.user.id !== interaction.user.id) {
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_STATS)],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
                     }
 
@@ -1295,7 +1369,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (interaction.message.interaction.user.id !== interaction.user.id) {
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_BUNDLE)],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
                     }
 
@@ -1349,7 +1423,7 @@ client.on("interactionCreate", async (interaction) => {
                                 .setValue(`chromas/${chromas.uuid}/${skinUuid}`))
                     }
 
-                    await interaction.reply({ components: [new ActionRowBuilder().addComponents(levelSelector)], ephemeral: true })
+                    await interaction.reply({ components: [new ActionRowBuilder().addComponents(levelSelector)], flags: [MessageFlags.Ephemeral] })
                     break;
                 }
                 case "get-level-video": {
@@ -1357,14 +1431,11 @@ client.on("interactionCreate", async (interaction) => {
                     const rawSkin = await getSkin(skinUuid);
                     const skin = rawSkin[type].filter(x => x.uuid === uuid);
                     const name = l(skin[0].displayName, interaction)
-                    const baseLink = "https://embed.sypnex.net/";
-                    let link;
-                    if(skin[0].streamedVideo)
-                        config.videoViewerWithSite ? link = baseLink + `s?link=${skin[0].streamedVideo}&title=${encodeURI(client.user.username)}` : link = skin[0].streamedVideo
-                    else
-                        config.imageViewerWithSite ? link = baseLink + `d?link=${skin[0].displayIcon}&title=${encodeURI(client.user.username)}` : link = skin[0].displayIcon
+                    
+                    // Use direct video/image links
+                    const link = skin[0].streamedVideo || skin[0].displayIcon;
 
-                    await interaction.reply({ content: `\u200b[${name}](${link})`, ephemeral: true })
+                    await interaction.reply({ content: `\u200b[${name}](${link})`, flags: [MessageFlags.Ephemeral] })
                 }
             }
         } catch (e) {
@@ -1378,7 +1449,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (id !== interaction.user.id) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_ALERT)],
-                    ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                 });
 
                 const success = removeAlert(id, uuid);
@@ -1388,7 +1459,7 @@ client.on("interactionCreate", async (interaction) => {
                     const channel = interaction.channel || await fetchChannel(interaction.channelId);
                     await interaction.reply({
                         embeds: [basicEmbed(s(interaction).info.ALERT_REMOVED.f({ s: await skinNameAndEmoji(skin, channel, interaction) }))],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     if (interaction.message.flags.has(MessageFlagsBitField.Flags.Ephemeral)) return; // message is ephemeral
@@ -1402,18 +1473,14 @@ client.on("interactionCreate", async (interaction) => {
                         await interaction.update({ components: [actionRow] }).catch(() => { });
                     }
                 } else {
-                    await interaction.reply({ embeds: [basicEmbed(s(interaction).error.GHOST_ALERT)], ephemeral: true });
+                    await interaction.reply({ embeds: [basicEmbed(s(interaction).error.GHOST_ALERT)], flags: [MessageFlags.Ephemeral] });
                 }
-            } else if (interaction.customId.startsWith("retry_auth")) {
-                await interaction.deferReply({ ephemeral: true });
-                const [, operationIndex] = interaction.customId.split('/');
-                await retryFailedOperation(interaction, parseInt(operationIndex));
             } else if (interaction.customId.startsWith("changealertspage")) {
                 const [, id, pageIndex] = interaction.customId.split('/');
 
                 if (id !== interaction.user.id) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_ALERT)],
-                    ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                 });
 
                 const emojiString = await VPEmoji(interaction);
@@ -1423,7 +1490,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (id !== interaction.user.id) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_STATS)],
-                    ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                 });
 
                 await interaction.update(await allStatsEmbed(interaction, await getOverallStats(), parseInt(pageIndex)));
@@ -1482,7 +1549,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (id !== interaction.user.id) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_BUNDLE)],
-                    ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                 });
 
                 const bundle = await getBundle(uuid);
@@ -1497,7 +1564,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (id !== interaction.user.id && !getSetting(id, "othersCanUseAccountButtons")) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_GENERIC)],
-                    ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                 });
 
                 if (!canSendMessages(interaction.channel)) return await interaction.reply({
@@ -1527,7 +1594,7 @@ client.on("interactionCreate", async (interaction) => {
                     const success = switchAccount(id, parseInt(accountIndex));
                     if (!success) return await interaction.followUp({
                         embeds: [basicEmbed(s(interaction).error.ACCOUNT_NOT_FOUND)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
                 }
 
@@ -1553,6 +1620,32 @@ client.on("interactionCreate", async (interaction) => {
 
 
                 await message.edit(newMessage);
+            } else if (interaction.customId.startsWith("webauth/")) {
+                // Web auth button - show modal to paste callback URL
+                const [, odId] = interaction.customId.split('/');
+
+                if (odId !== interaction.user.id) {
+                    return await interaction.reply({
+                        embeds: [basicEmbed("**That's not your login button!** Use `/login` to start your own login.")],
+                        flags: [MessageFlags.Ephemeral]
+                    });
+                }
+
+                const modal = new ModalBuilder()
+                    .setCustomId(`webauth_callback/${interaction.user.id}`)
+                    .setTitle("Paste your login URL");
+
+                const urlInput = new TextInputBuilder()
+                    .setCustomId("callback_url")
+                    .setLabel("Paste the URL from your browser here")
+                    .setPlaceholder("http://localhost/redirect?code=...")
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setRequired(true);
+
+                const actionRow = new ActionRowBuilder().addComponents(urlInput);
+                modal.addComponents(actionRow);
+
+                await interaction.showModal(modal);
             } else if (interaction.customId.startsWith("gotopage")) {
                 let [, pageId, userId, max] = interaction.customId.split('/');
                 let weaponTypeIndex
@@ -1562,12 +1655,12 @@ client.on("interactionCreate", async (interaction) => {
                     if (pageId === 'changestatspage'){
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_STATS)],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
                     }else if (pageId === 'changealertspage'){
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_ALERT)],
-                            ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                         });
                     }
                 }
@@ -1594,7 +1687,42 @@ client.on("interactionCreate", async (interaction) => {
         }
     } else if (interaction.isModalSubmit()){
         try {
-            if (interaction.customId.startsWith("gotopage")) {
+            if (interaction.customId.startsWith("webauth_callback/")) {
+                // Web auth modal submission - process the callback URL
+                const [, odId] = interaction.customId.split('/');
+
+                if (odId !== interaction.user.id) {
+                    return await interaction.reply({
+                        embeds: [basicEmbed("**That's not your login!** Use `/login` to start your own login.")],
+                        flags: [MessageFlags.Ephemeral]
+                    });
+                }
+
+                await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+
+                const callbackUrl = interaction.fields.getTextInputValue("callback_url");
+
+                // Validate that it looks like a callback URL (code flow uses ?code= query param)
+                if (!callbackUrl.includes("localhost/redirect") || !callbackUrl.includes("code=")) {
+                    return await interaction.editReply({
+                        embeds: [basicEmbed("**Invalid URL!** Make sure you copied the entire URL from your browser's address bar.\n\nIt should look like:\n`http://localhost/redirect?code=...`")]
+                    });
+                }
+
+                const result = await redeemWebAuthUrl(interaction.user.id, callbackUrl);
+
+                if (result.success) {
+                    console.log(`${interaction.user.tag} logged in as ${result.username} using web auth`);
+                    await interaction.editReply({
+                        embeds: [basicEmbed(s(interaction).info.LOGGED_IN.f({ u: result.username }))]
+                    });
+                } else {
+                    console.log(`${interaction.user.tag} web auth login failed: ${result.error}`);
+                    await interaction.editReply({
+                        embeds: [basicEmbed(`**Login failed!** ${result.error}`)]
+                    });
+                }
+            } else if (interaction.customId.startsWith("gotopage")) {
                 let [, pageId, userId, max] = interaction.customId.split('/');
                 let weaponTypeIndex
                 if(pageId === 'clwpage') [, pageId, weaponTypeIndex, userId, max] = interaction.customId.split('/');
@@ -1603,12 +1731,12 @@ client.on("interactionCreate", async (interaction) => {
                 if(isNaN(Number(pageIndex))){
                     return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_A_NUMBER)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
                 }else if(Number(pageIndex) > max || Number(pageIndex) <= 0){
                     return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.INVALID_PAGE_NUMBER.f({max: max}))],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
                 }
 
@@ -1702,9 +1830,17 @@ client.on("interactionCreate", async (interaction) => {
 const handleError = async (e, interaction) => {
     const message = s(interaction).error.GENERIC_ERROR.f({ e: e.message });
     try {
-        const embed = basicEmbed(message);
-        if (interaction.deferred) await interaction.followUp({ embeds: [embed], ephemeral: true });
-        else await interaction.reply({ embeds: [embed], ephemeral: true });
+        // Check if interaction is still valid and can be responded to
+        if (!interaction.replied && !interaction.deferred) {
+            // Interaction hasn't been acknowledged yet
+            const embed = basicEmbed(message);
+            await interaction.reply({ embeds: [embed], flags: [MessageFlags.Ephemeral] }).catch(() => {});
+        } else if (interaction.deferred) {
+            // Interaction was deferred, use followUp
+            const embed = basicEmbed(message);
+            await interaction.followUp({ embeds: [embed], flags: [MessageFlags.Ephemeral] }).catch(() => {});
+        }
+        // If interaction was already replied to, silently fail
         console.error(e);
     } catch (e2) {
         console.error("There was a problem while trying to handle an error!\nHere's the original error:");
@@ -1718,6 +1854,12 @@ const handleError = async (e, interaction) => {
 process.on("uncaughtException", (err) => {
     console.error("Uncaught exception!");
     console.error(err.stack || err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+    console.error("Unhandled promise rejection!");
+    console.error("Reason:", reason);
+    console.error("Promise:", promise);
 });
 
 export const startBot = () => {

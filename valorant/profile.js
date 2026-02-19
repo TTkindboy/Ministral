@@ -88,9 +88,23 @@ export const fetchMatchHistory = async (interaction, user, mode="competitive") =
 
         for (let i = 0; i < matchHistory.data.length; i++) {
             const match = matchHistory.data[i];
+            
+            // Skip matches with incomplete data
+            if (!match || !match.metadata || !match.players || !match.players.all_players || !match.teams) {
+                console.log(`Skipping match ${i} due to incomplete data`);
+                continue;
+            }
+            
             const data = {metadata: {}, player: {}, teams: {}};
             const matchMMR = mmrHistory.data.find(item => item.match_id === match.metadata.matchid);
             const player = match.players.all_players.find(player => player.puuid === user.puuid);
+            
+            // Skip if player not found in match
+            if (!player || !player.stats || !player.assets) {
+                console.log(`Skipping match ${i} - player data not found`);
+                continue;
+            }
+            
             const playerPosition = match.players.all_players.slice().sort((a, b) => b.stats.score - a.stats.score).findIndex(player => player.puuid === user.puuid)+1
 
             data.player.hs_percent = Math.ceil(player.stats.headshots/(player.stats.headshots+player.stats.bodyshots+player.stats.legshots)*100);
