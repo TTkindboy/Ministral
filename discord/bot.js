@@ -155,8 +155,8 @@ client.on("clientReady", async () => {
     if (config.autoDeployCommands && (!client.shard || client.shard.ids[0] === 0)) {
         const currentCommands = await client.application.commands.fetch();
 
-        let shouldDeploy = currentCommands.size !== commands.length;
-        if (!shouldDeploy) for (const command of commands) {
+        let shouldDeploy = currentCommands.size !== globalCommands.length;
+        if (!shouldDeploy) for (const command of globalCommands) {
             try {
                 const correspondingCommand = currentCommands.find(c => c.equals(command));
                 if (!correspondingCommand) shouldDeploy = true;
@@ -167,8 +167,8 @@ client.on("clientReady", async () => {
         }
 
         if (shouldDeploy) {
-            console.log("Slash commands are different! Deploying the new ones globally...");
-            await client.application.commands.set(commands);
+            console.log("Slash commands are different! Deploying the new ones globally (guild + user installs)...");
+            await client.application.commands.set(globalCommands);
             console.log("Slash commands deployed!");
         }
     }
@@ -425,6 +425,12 @@ const commands = [
     }
 ];
 
+// Commands with integration_types and contexts for global deployment (guild + user installs)
+const globalCommands = commands.map(cmd => ({ ...cmd, integration_types: [0, 1], contexts: [0, 1, 2] }));
+
+// Commands for user-install-only deployment
+const userInstallCommands = commands.map(cmd => ({ ...cmd, integration_types: [1], contexts: [1, 2] }));
+
 client.on("messageCreate", async (message) => {
     try {
         let isAdmin = false;
@@ -455,11 +461,17 @@ client.on("messageCreate", async (message) => {
 
             await message.reply("Deployed in guild!");
         } else if (content === "!deploy global") {
-            console.log("Deploying commands...");
+            console.log("Deploying commands globally (guild + user installs)...");
 
-            await client.application.commands.set(commands).then(() => console.log("Commands deployed globally!"));
+            await client.application.commands.set(globalCommands).then(() => console.log("Commands deployed globally (guild + user installs)!"));
 
-            await message.reply("Deployed globally!");
+            await message.reply("Deployed globally (guild + user installs)!");
+        } else if (content === "!deploy user") {
+            console.log("Deploying commands for user installs only...");
+
+            await client.application.commands.set(userInstallCommands).then(() => console.log("Commands deployed for user installs only!"));
+
+            await message.reply("Deployed for user installs only!");
         } else if (content.startsWith("!undeploy")) {
             console.log("Undeploying commands...");
 

@@ -901,7 +901,7 @@ export const botInfoEmbed = (interaction, client, guildCount, userCount, registe
         },
         {
             name: s(interaction).info.INFO_SOURCE,
-            value: "[SkinPeek](https://github.com/giorgi-o/SkinPeek) by [Giorgio](https://github.com/giorgi-o)",
+            value: "[Fork o' SkinPeek](https://github.com/mistralwz/Ministral)!",
             inline: true
         }
     ];
@@ -911,8 +911,8 @@ export const botInfoEmbed = (interaction, client, guildCount, userCount, registe
         inline: true
     });
     if(interaction.client.shard) fields.push({
-        name: "Running on shard",
-        value: interaction.client.shard.ids.join(' ') || "No shard id...?",
+        name: "Running on",
+        value: "Shard " + interaction.client.shard.ids.join(', ') || "No shard id...?",
         inline: true
     });
     if(status) fields.push({

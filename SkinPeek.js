@@ -10,12 +10,11 @@ import {initUserDatabase} from "./misc/userDatabase.js";
  * (done) Skin notifier/reminder
  * (done) Auto check for new valorant version every 15 minutes
  * (done) See current bundles
- * Password encryptor
- * Inspect weapon skin (all 4 levels + videos + radianite upgrade price)
- * Option to send shop automatically every day
- * More options in config.json
- * Simple analytics to see how many servers the bot is in
- * Admin commands (delete user, see/edit everyone's alerts, etc.)
+ * (done) Inspect weapon skin (all 4 levels + videos + radianite upgrade price)
+ * (done) Option to send shop automatically every day
+ * (done) More options in config.json
+ * (done) Simple analytics to see how many servers the bot is in
+ * (done) Admin commands (delete user, see/edit everyone's alerts, etc.)
  */
 
 const config = loadConfig();
