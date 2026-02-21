@@ -14,6 +14,9 @@ let gameVersion;
 let weapons, skins, rarities, buddies, sprays, cards, titles, bundles, battlepass;
 let prices = { timestamp: null };
 
+// Inverted index: uuid → price, built from bundle items for O(1) fallback in getPrice()
+let bundleItemPrices = {};
+
 let skinsSaveDirty = false;
 let skinsSaveTimer = null;
 const SKINS_SAVE_DEBOUNCE_MS = 3000;
@@ -30,6 +33,7 @@ export const clearCache = () => {
     weapons = skins = rarities = buddies = sprays = cards = titles = bundles = battlepass = null;
     prices = { timestamp: null };
     allSkinsCache = null;
+    bundleItemPrices = {};
     dataFullyLoaded = false;
 }
 
@@ -59,6 +63,7 @@ export const loadSkinsJSON = async (filename = "data/skins.json") => {
     cards = jsonData.cards;
     titles = jsonData.titles;
     battlepass = jsonData.battlepass;
+    buildBundleItemPrices();
 }
 
 export const saveSkinsJSON = (filename = "data/skins.json") => {
@@ -286,6 +291,17 @@ export const addPricesFromShop = (shopJson) => {
     }
 }
 
+const buildBundleItemPrices = () => {
+    bundleItemPrices = {};
+    if (!bundles) return;
+    for (const bundle of Object.values(bundles)) {
+        if (!bundle.items) continue;
+        for (const item of bundle.items) {
+            if (item.uuid && item.price) bundleItemPrices[item.uuid] = item.price;
+        }
+    }
+}
+
 const getBundleList = async (gameVersion) => {
     console.log("Fetching valorant bundle list...");
 
@@ -296,6 +312,7 @@ const getBundleList = async (gameVersion) => {
     console.assert(json.status === 200, `Valorant bundles data status code is ${json.status}!`, json);
 
     bundles = { version: gameVersion };
+    bundleItemPrices = {}; // items are all null at this point; index rebuilt via addBundleData()
     for (const bundle of json.data) {
         bundles[bundle.uuid] = {
             uuid: bundle.uuid,
@@ -332,6 +349,11 @@ export const addBundleData = async (bundleData) => {
         bundle.price = bundleData.price;
         bundle.basePrice = bundleData.basePrice;
         bundle.expires = bundleData.expires;
+
+        // Update inverted price index for this bundle's items
+        for (const item of bundle.items) {
+            if (item.uuid && item.price) bundleItemPrices[item.uuid] = item.price;
+        }
 
         debouncedSaveSkinsJSON();
     }
@@ -556,12 +578,8 @@ export const getPrice = async (uuid) => {
 
     if (prices[uuid]) return prices[uuid];
 
-    if (!bundles) await fetchData([bundles]); // todo rewrite this part
-    const bundle = Object.values(bundles).find(bundle => bundle.items?.find(item => item.uuid === uuid));
-    if (bundle) {
-        const bundleItem = bundle.items.find(item => item.uuid === uuid);
-        return bundleItem.price || null;
-    }
+    if (!bundles) await fetchData([bundles]);
+    if (bundleItemPrices[uuid]) return bundleItemPrices[uuid];
 
     return null;
 
