@@ -600,6 +600,13 @@ export const searchSkin = async (query, locale, limit = 20, threshold = -5000) =
 
 export const getBundle = async (uuid) => {
     await fetchData([bundles]);
+    if(bundles[uuid]) return bundles[uuid];
+
+    // UUID not in cache — bundle list is likely stale (new Riot bundle). Force a re-fetch.
+    console.log(`[getBundle] UUID ${uuid} not found in bundle cache, forcing re-fetch...`);
+    bundles = null;
+    dataFullyLoaded = false;
+    await fetchData([bundles]);
     return bundles[uuid];
 }
 

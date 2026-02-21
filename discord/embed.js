@@ -267,11 +267,15 @@ export const renderBundles = async (bundles, interaction, VPemoji) => {
 
     if(bundles.length === 1) {
         const bundle = await getBundle(bundles[0].uuid);
+        if(!bundle) {
+            console.error(`[renderBundles] Bundle UUID not found in cache: ${bundles[0].uuid}`);
+            return basicEmbed(s(interaction).error.GENERIC_ERROR);
+        }
 
         const renderedBundle = await renderBundle(bundle, interaction, VPemoji, false);
         const titleEmbed = renderedBundle.embeds[0];
         titleEmbed.title = s(interaction).info.BUNDLE_HEADER.f({b: titleEmbed.title});
-        titleEmbed.description += ` *(${s(interaction).info.EXPIRES.f({t: bundle.expires})})*`;
+        if(bundle.expires) titleEmbed.description += ` *(${s(interaction).info.EXPIRES.f({t: bundle.expires})})*`;
 
         return renderedBundle;
     }
@@ -286,12 +290,16 @@ export const renderBundles = async (bundles, interaction, VPemoji) => {
 
     for(const bundleData of bundles) {
         const bundle = await getBundle(bundleData.uuid);
+        if(!bundle) {
+            console.error(`[renderBundles] Bundle UUID not found in cache: ${bundleData.uuid}`);
+            continue;
+        }
 
         const subName = bundle.subNames ? l(bundle.subNames, interaction) + "\n" : "";
         const slantedDescription = bundle.descriptions ? "*" + l(bundle.descriptions, interaction) + "*\n" : "";
         const embed = {
             title: s(interaction).info.BUNDLE_NAME.f({b: l(bundle.names, interaction)}),
-            description: `${subName}${slantedDescription}${VPemoji} **${bundle.price || s(interaction).info.FREE}** - ${s(interaction).info.EXPIRES.f({t:bundle.expires})}`,
+            description: `${subName}${slantedDescription}${VPemoji} **${bundle.price || s(interaction).info.FREE}**${bundle.expires ? ` - ${s(interaction).info.EXPIRES.f({t:bundle.expires})}` : ""}`,
             color: VAL_COLOR_2,
             thumbnail: {
                 url: bundle.icon
@@ -901,7 +909,7 @@ export const botInfoEmbed = (interaction, client, guildCount, userCount, registe
         },
         {
             name: s(interaction).info.INFO_SOURCE,
-            value: "[**`mistralwz/Ministral`**](https://github.com/mistralwz/Ministral)",
+            value: "[`mistralwz/Ministral`](https://github.com/mistralwz/Ministral)",
             inline: true
         }
     ];
