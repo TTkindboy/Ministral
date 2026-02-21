@@ -88,6 +88,9 @@ const prepareStatements = () => {
         getAccountsByUserId: db.prepare(`SELECT * FROM accounts WHERE userId = ?`),
         // Targeted single-account update (avoids rewriting all accounts)
         updateSingleAccount: db.prepare(`UPDATE accounts SET username = ?, region = ?, auth = ?, alerts = ?, authFailures = ?, lastFetchedData = ?, lastNoticeSeen = ?, lastSawEasterEgg = ?, updatedAt = ? WHERE puuid = ?`),
+        // Only users that have at least one account with alerts, or a dailyShop setting
+        getUserIdsWithAlertsOrDailyShop: db.prepare(`SELECT DISTINCT u.id FROM users u LEFT JOIN accounts a ON a.userId = u.id WHERE (a.alerts IS NOT NULL AND a.alerts != '[]') OR (u.settings LIKE '%"dailyShop"%')`),
+
     };
 };
 
@@ -191,6 +194,14 @@ export const getAccountByPuuid = (puuid) => {
 
 export const getAllUserIds = () => {
     return stmts.getAllUserIds.all().map(row => row.id);
+};
+
+/**
+ * Returns only user IDs that have at least one account with non-empty alerts,
+ * or a dailyShop setting configured. Skips completely inactive users.
+ */
+export const getUserIdsWithAlertsOrDailyShop = () => {
+    return stmts.getUserIdsWithAlertsOrDailyShop.all().map(row => row.id);
 };
 
 export const deleteAccountFromDb = (puuid) => {

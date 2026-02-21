@@ -13,7 +13,7 @@ import {addUser, deleteUser, getAccountWithPuuid, getUserJson, readUserJson, sav
 import {checkRateLimit, isRateLimited} from "../misc/rateLimit.js";
 import {queueCookiesLogin} from "./authQueue.js";
 import {waitForAuthQueueResponse} from "../discord/authManager.js";
-import {getAllUserIds} from "../misc/userDatabase.js";
+import {getAllUserIds, getUserIdsWithAlertsOrDailyShop} from "../misc/userDatabase.js";
 
 // Short-lived cache for getUser() lookups within a single tick/request cycle.
 // Call beginUserCacheScope() before a batch of operations, endUserCacheScope() after.
@@ -83,6 +83,16 @@ export const invalidateUserCache = (id) => {
 export const getUserList = () => {
     const userIds = getAllUserIds();
     if(config.logUrls) console.log(`[getUserList] Retrieved ${userIds.length} users from database`);
+    return userIds;
+}
+
+/**
+ * Like getUserList(), but only returns users that have alerts or dailyShop configured.
+ * Used by checkAlerts() to skip inactive users entirely.
+ */
+export const getAlertUserList = () => {
+    const userIds = getUserIdsWithAlertsOrDailyShop();
+    if(config.logUrls) console.log(`[getAlertUserList] Retrieved ${userIds.length} active alert users from database`);
     return userIds;
 }
 

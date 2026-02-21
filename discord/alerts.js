@@ -8,7 +8,7 @@ import {
     wait,
     removeAlertButton
 } from "../misc/util.js";
-import {authUser, deleteUserAuth, getUser, getUserList, beginUserCacheScope, endUserCacheScope, invalidateUserCache} from "../valorant/auth.js";
+import {authUser, deleteUserAuth, getUser, getUserList, getAlertUserList, beginUserCacheScope, endUserCacheScope, invalidateUserCache} from "../valorant/auth.js";
 import {getOffers} from "../valorant/shop.js";
 import {getSkin} from "../valorant/cache.js";
 import {alertsPageEmbed, authFailureMessage, basicEmbed, renderOffers, VAL_COLOR_1, skinEmbed} from "./embed.js";
@@ -145,7 +145,7 @@ export const checkAlerts = async () => {
     try {
         let shouldWait = false;
 
-        for(const id of getUserList()) {
+        for(const id of getAlertUserList()) {
             try {
                 let credsExpiredAlerts = false;
 
