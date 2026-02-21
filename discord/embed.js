@@ -114,7 +114,7 @@ export const renderOffers = async (shop, interaction, valorantUser, VPemoji, oth
     for(const uuid of shop.offers) {
         const skin = await getSkin(uuid);
         const price = isDefaultSkin(skin) ? "0" : skin.price; // force render price for defaults
-        const embed = await skinEmbed(skin.uuid, price, interaction, VPemoji);
+        const embed = await skinEmbed(skin, price, interaction, VPemoji);
         embeds.push(embed);
     }
 
@@ -382,7 +382,7 @@ export const renderNightMarket = async (market, interaction, valorantUser, emoji
     for(const offer of market.offers) {
         const skin = await getSkin(offer.uuid);
 
-        const embed = await skinEmbed(skin.uuid, skin.price, interaction, emoji);
+        const embed = await skinEmbed(skin, skin.price, interaction, emoji);
         embed.description = `${emoji} **${offer.nmPrice}**\n${emoji} ~~${offer.realPrice}~~ (-${offer.percent}%)`;
 
         embeds.push(embed);
@@ -578,8 +578,8 @@ const bundleItemEmbed = async (item, interaction, VPemojiString) => {
     }
 }
 
-export const skinEmbed = async (uuid, price, interactionOrId, VPemojiString, channel = null) => {
-    const skin = await getSkin(uuid);
+export const skinEmbed = async (skinOrUuid, price, interactionOrId, VPemojiString, channel = null) => {
+    const skin = skinOrUuid && typeof skinOrUuid === "object" ? skinOrUuid : await getSkin(skinOrUuid);
     const colorMap = {
       '0cebb8be-46d7-c12a-d306-e9907bfc5a25': 0x009984,
       'e046854e-406c-37f4-6607-19a9ba8426fc': 0xf99358,

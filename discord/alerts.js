@@ -327,7 +327,7 @@ export const sendAlert = async (id, account, alerts, expires, tryOnOtherShard=tr
                 });
                 buttons.push(removeAlertButton(id, alert.uuid, s(valorantUser).info.REMOVE_ALERT_BUTTON))
             } else {
-                message.embeds.push(await skinEmbed(alert.uuid, skin.price, id, await VPEmoji(id, channel), channel))
+                message.embeds.push(await skinEmbed(skin, skin.price, id, await VPEmoji(id, channel), channel))
                 let skinName = l(skin.names, id)
                 if (skinName.length > 80) skinName = skinName.slice(0, 76) + " ...";
                 buttons.push(removeAlertButton(id, alert.uuid, skinName))
