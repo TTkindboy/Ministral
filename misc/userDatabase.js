@@ -6,6 +6,7 @@ let db = null;
 
 // Pre-prepared statements (initialized once, reused for all queries)
 let stmts = {};
+let saveUserToDbInTransaction = null;
 
 const safeJsonParse = (value, fallback, context) => {
     try {
@@ -26,6 +27,8 @@ export const initUserDatabase = (dbPath = "data/users.db") => {
         createTables();
         // Prepare all statements once
         prepareStatements();
+        // Precompile reusable write transaction (avoids allocating a new wrapper on each save)
+        saveUserToDbInTransaction = db.transaction(saveUserToDbTransaction);
         localLog(`User database initialized at ${dbPath}`);
         return true;
     } catch (e) {
@@ -155,7 +158,7 @@ export const saveUserToDb = (user) => {
     if (db.inTransaction) {
         saveUserToDbTransaction(user);
     } else {
-        db.transaction(() => saveUserToDbTransaction(user))();
+        saveUserToDbInTransaction(user);
     }
 };
 
