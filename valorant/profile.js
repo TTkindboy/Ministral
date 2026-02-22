@@ -1,12 +1,9 @@
 import config from "../misc/config.js";
 import unofficialValorantApi from "unofficial-valorant-api";
 let VAPI;
-if(config.HDevToken === undefined){
-    setTimeout(() => {
-        VAPI = new unofficialValorantApi(config.HDevToken) // It was starting without config
-    }, 10000);
-}else{
-    VAPI = new unofficialValorantApi(config.HDevToken)
+const getVAPI = () => {
+    if(!VAPI && config.HDevToken) VAPI = new unofficialValorantApi(config.HDevToken);
+    return VAPI;
 }
 import { ordinalSuffix } from "../misc/util.js";
 import {s} from "../misc/languages.js"
@@ -42,12 +39,13 @@ const progress = (user, type, shouldBeDeleted=false) => {
 }
 
 export const getAccountInfo = async (user, interaction) => {
+    if(!getVAPI()) return {success: false, error: "API client is not initialized yet. Please try again in a moment."};
     let cache = getCache(user, 'account');
     if(cache.success) return cache;
     if(progress(user, 'acc') || progress(user, 'mmr')) return {success: false, error: s(interaction).error.WAIT_FOR_PREVIUS_REQUEST}
-    const accountData = await VAPI.getAccountByPUUID({puuid: user.puuid, force: true});
+    const accountData = await getVAPI().getAccountByPUUID({puuid: user.puuid, force: true});
     console.log(`Checked ACCData for ${user.id} R:${accountData?.ratelimits?.remaining} Reset: in ${accountData?.ratelimits?.reset} seconds`)
-    const mmrData = await VAPI.getMMRByPUUID({version: "v2",region: user.region, puuid: user.puuid});
+    const mmrData = await getVAPI().getMMRByPUUID({version: "v2",region: user.region, puuid: user.puuid});
     console.log(`Checked MMRData for ${user.id} R:${mmrData?.ratelimits?.remaining} Reset: in ${mmrData?.ratelimits?.reset} seconds`)
 
     setTimeout(() => {
@@ -69,18 +67,19 @@ export const getAccountInfo = async (user, interaction) => {
 
 
 export const fetchMatchHistory = async (interaction, user, mode="competitive") => {
+    if(!getVAPI()) return {success: false, error: "API client is not initialized yet. Please try again in a moment."};
     let cache = getCache(user,'matches');
     if(cache.success) return cache;
 
     if(progress(user, 'matches') || mode==="competitive" && progress(user, 'mmrHistory')) return {success: false, error: s(interaction).error.WAIT_FOR_PREVIUS_REQUEST}
-    const matchHistory = await VAPI.getMatchesByPUUID({puuid: user.puuid, region: user.region, filter: mode});
+    const matchHistory = await getVAPI().getMatchesByPUUID({puuid: user.puuid, region: user.region, filter: mode});
     console.log(`Checked match history for ${user.id} R:${matchHistory?.ratelimits?.remaining} Reset: in ${matchHistory?.ratelimits?.reset} seconds`)
     setTimeout(() => {progress(user, 'matches', true);}, 5000);
     if(matchHistory.error) return {success: false, error: matchHistory.error[0].message};
     else if(matchHistory.data.length === 0) return {success: false, error: s(interaction).error.NO_MATCH_DATA.f({m: mode})}
     let mmrHistory;
     if(mode === "competitive") {
-        mmrHistory = await VAPI.getMMRHistoryByPUUID({puuid: user.puuid, region: user.region})
+        mmrHistory = await getVAPI().getMMRHistoryByPUUID({puuid: user.puuid, region: user.region})
         console.log(`Checked MMRHistory for ${user.id} R:${mmrHistory?.ratelimits?.remaining} Reset: in ${mmrHistory?.ratelimits?.reset} seconds`)
         setTimeout(() => {progress(user, 'mmrHistory', true);}, 1000);
         if(mmrHistory.error) return {success: false, error: mmrHistory.error[0].message};
@@ -100,7 +99,7 @@ export const fetchMatchHistory = async (interaction, user, mode="competitive") =
             const player = match.players.all_players.find(player => player.puuid === user.puuid);
             
             // Skip if player not found in match
-            if (!player || !player.stats || !player.assets) {
+            if (!player || !player.stats || !player.assets || !player.team) {
                 console.log(`Skipping match ${i} - player data not found`);
                 continue;
             }
@@ -120,8 +119,10 @@ export const fetchMatchHistory = async (interaction, user, mode="competitive") =
             data.metadata.map = match.metadata.map;
             data.metadata.game_start = match.metadata.game_start;
             data.metadata.game_length = match.metadata.game_length;
-            data.metadata.pt_round_won = match.teams[player.team.toLowerCase()].rounds_won;
-            data.metadata.et_round_won = match.teams[player.team.toLowerCase()].rounds_lost;
+            const teamKey = player.team.toLowerCase();
+            const teamData = match.teams[teamKey];
+            data.metadata.pt_round_won = teamData?.rounds_won ?? null;
+            data.metadata.et_round_won = teamData?.rounds_lost ?? null;
             data.teams = match.teams
 
             if(matchMMR){
