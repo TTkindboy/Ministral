@@ -75,7 +75,7 @@ const loadCompetitiveTiers = async () => {
             competitiveTiersCache[tier.tier] = {
                 name: tier.tierName === "Unused"
                     ? "Unranked"
-                    : tier.tierName.replace("_", " "),   // e.g. "GOLD 3"
+                    : tier.tierName.replaceAll("_", " "),   // e.g. "GOLD 3"
                 color: "#" + (tier.color ?? "000000").slice(0, 6),
                 icon: tier.largeIcon ?? tier.smallIcon ?? null,
             };
@@ -86,10 +86,14 @@ const loadCompetitiveTiers = async () => {
     }
 };
 
-/** Invalidate static caches (call when skins/version reloads). */
+/** Invalidate all static caches (call when skins/version reloads). */
 export const clearLiveGameCache = () => {
     agentsCache = null;
     competitiveTiersCache = null;
+    mapImagesCache = null;
+    mapNamesCache = null;
+    seasonsCache = null;
+    currentSeasonId = null;
 };
 
 /** Resolve agent UUID → {name, icon, role} */
@@ -172,6 +176,7 @@ export const resolveMapImage = async (mapId) => {
 // ──────────────────────────────────────────────
 
 let seasonsCache = null;
+let currentSeasonId = null;  // UUID of the currently active act (populated by loadSeasons)
 
 /**
  * Derive a short act label from the season's assetPath.
@@ -194,10 +199,18 @@ const loadSeasons = async () => {
         const req = await fetch("https://valorant-api.com/v1/seasons");
         if (req.statusCode === 200) {
             const { data } = JSON.parse(req.body);
+            const now = Date.now();
             for (const s of data) {
                 if (s.type === "EAresSeasonType::Act") {
                     const label = actLabelFromPath(s.assetPath);
                     if (label) seasonsCache.set(s.uuid, label);
+                    // Detect the currently active act so parseMMRData can
+                    // distinguish "unranked this season" from "old season rank".
+                    if (s.startTime && s.endTime) {
+                        const start = new Date(s.startTime).getTime();
+                        const end   = new Date(s.endTime).getTime();
+                        if (now >= start && now <= end) currentSeasonId = s.uuid;
+                    }
                 }
             }
         }
@@ -263,7 +276,7 @@ const SINGLE_TEAM_QUEUES = new Set(["deathmatch"]);
  * Extract {currentTier, currentRR, peakTier, wins, games, winRate} from
  * the raw pd/mmr/v1/players response JSON.
  */
-export const parseMMRData = (mmrJson) => {
+export const parseMMRData = (mmrJson, knownCurrentSeasonId = null) => {
     const empty = { currentTier: 0, currentRR: 0, peakTier: 0, wins: 0, games: 0, winRate: null };
     if (!mmrJson) return empty;
 
@@ -284,6 +297,20 @@ export const parseMMRData = (mmrJson) => {
         if (!currentTier) currentTier = seasonal[latest.SeasonID].CompetitiveTier ?? 0;
     }
 
+    // If we know the current season and the player's last game was in a
+    // different (older) season, show their current-season rank instead.
+    // A player who hasn't played ranked this act should appear as Unranked.
+    if (knownCurrentSeasonId && latest?.SeasonID && latest.SeasonID !== knownCurrentSeasonId) {
+        const thisSeasonInfo = seasonal[knownCurrentSeasonId];
+        if (!thisSeasonInfo || (thisSeasonInfo.NumberOfGames ?? 0) === 0) {
+            currentTier = 0;
+            currentRR   = 0;
+        } else {
+            currentTier = thisSeasonInfo.CompetitiveTier ?? 0;
+            currentRR   = thisSeasonInfo.RankedRating    ?? 0;
+        }
+    }
+
     // Peak rank — scan all seasons, remember which season achieved it
     let peakTier = 0;
     let peakSeasonId = null;
@@ -295,10 +322,13 @@ export const parseMMRData = (mmrJson) => {
         }
     }
 
-    // Get wins/games from the season of the latest update
-    if (latest?.SeasonID && seasonal[latest.SeasonID]) {
-        wins  = seasonal[latest.SeasonID].NumberOfWinsWithPlacements ?? 0;
-        games = seasonal[latest.SeasonID].NumberOfGames ?? 0;
+    // Wins/games from the current season when known, otherwise the latest update's season
+    const statsSeasonId = (knownCurrentSeasonId && seasonal[knownCurrentSeasonId])
+        ? knownCurrentSeasonId
+        : latest?.SeasonID;
+    if (statsSeasonId && seasonal[statsSeasonId]) {
+        wins  = seasonal[statsSeasonId].NumberOfWinsWithPlacements ?? 0;
+        games = seasonal[statsSeasonId].NumberOfGames ?? 0;
     }
 
     const winRate = games > 0 ? Math.round((wins / games) * 100) : null;
@@ -336,6 +366,10 @@ export const getPreGameData = async (id, account = null) => {
 
     const { MatchID: matchId } = JSON.parse(playerResp.body);
 
+    // Ensure the map-name cache is warm before resolveMapName is called below.
+    // fetchLiveGame pre-warms this, but guard here too for direct callers.
+    await loadMapImages();
+
     // Fetch match data
     const matchResp = await fetch(
         `${base}/pregame/v1/matches/${matchId}`,
@@ -349,15 +383,18 @@ export const getPreGameData = async (id, account = null) => {
     const matchJson = JSON.parse(matchResp.body);
 
     const mapId    = matchJson.MapID ?? "";
-    const queueId  = matchJson.GameConfig?.GameMode?.toLowerCase()
-        .replace("https://valorant.playvalorant.com/json_documents/modes/", "")
-        .replace(".json", "") ?? "";
+    // GameConfig.GameMode is a URL like ".../modes/competitive.json".
+    // Split on "/" and strip the extension rather than replacing a hardcoded
+    // prefix — this is robust to any URL path changes Riot may make.
+    const rawMode  = matchJson.GameConfig?.GameMode ?? "";
+    const queueId  = rawMode
+        ? rawMode.split("/").pop().replace(/\.json$/i, "").toLowerCase()
+        : "";
 
-    const rawPlayers = (matchJson.AllyTeam?.Players ?? []).map((p, idx) => ({
+    const rawPlayers = (matchJson.AllyTeam?.Players ?? []).map((p) => ({
         puuid:    p.Subject,
         teamId:   "Ally",
         isAlly:   true,
-        allyIndex: idx + 1,
         agentId:  p.CharacterID ?? null,
         incognito: p.PlayerIdentity?.Incognito ?? false,
         accountLevel: p.PlayerIdentity?.AccountLevel ?? null,
@@ -407,6 +444,9 @@ export const getInGameData = async (id, account = null) => {
 
     const { MatchID: matchId } = JSON.parse(playerResp.body);
 
+    // Ensure the map-name cache is warm before resolveMapName is called below.
+    await loadMapImages();
+
     // Fetch match data
     const matchResp = await fetch(
         `${base}/core-game/v1/matches/${matchId}`,
@@ -424,11 +464,10 @@ export const getInGameData = async (id, account = null) => {
     const userTeamId  = matchJson.Players
         .find(p => p.Subject === user.puuid)?.TeamID ?? null;
 
-    const rawPlayers = matchJson.Players.map((p, idx) => ({
+    const rawPlayers = matchJson.Players.map((p) => ({
         puuid:    p.Subject,
         teamId:   p.TeamID,
         isAlly:   p.TeamID === userTeamId,
-        allyIndex: idx + 1,
         agentId:  p.CharacterID ?? null,
         incognito: p.PlayerIdentity?.Incognito ?? false,
         accountLevel: p.PlayerIdentity?.AccountLevel ?? null,
@@ -471,7 +510,7 @@ const fetchPlayerMMRs = async (user, puuids) => {
     const out = new Map();
     for (let i = 0; i < puuids.length; i++) {
         const raw = results[i].status === "fulfilled" ? results[i].value : null;
-        out.set(puuids[i], parseMMRData(raw));
+        out.set(puuids[i], parseMMRData(raw, currentSeasonId));
     }
     return out;
 };
@@ -520,7 +559,9 @@ const fetchCompetitiveUpdates = async (user, puuid) => {
         if (resp.statusCode !== 200) return [];
         const json = JSON.parse(resp.body);
         return (json.Matches ?? []).slice(0, 3).map(m => ({
-            win: (m.RankedRatingEarned ?? 0) > 0,
+            // >= 0 rather than > 0: Valorant has no draws, so 0 RR is a
+            // placement match where RR hasn't been awarded yet — not a loss.
+            win: (m.RankedRatingEarned ?? 0) >= 0,
         }));
     } catch {
         return [];
