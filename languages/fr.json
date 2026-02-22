@@ -55,22 +55,6 @@
     "INVALID_WEB_AUTH_URL": "**URL invalide!** Assurez-vous d'avoir copié l'URL entière de la barre d'adresse de votre navigateur après la page de connexion.\nElle devrait commencer par `http://localhost/redirect#access_token=...`",
     "WEB_AUTH_FAILED": "**La connexion a échoué!** {e}"
   },
-    "livegame": {
-      "EMBED_TITLE": "⚔️ Partie en cours・{mapName}",
-      "EMBED_FOOTER": "{stateLabel}・{queueName}",
-      "NOT_IN_MATCH_TITLE": "Pas dans une partie",
-      "NOT_IN_MATCH_DESC": "Vous ne semblez pas être dans un salon de pré-partie ou une partie en cours.\n\nAssurez-vous d'être en **sélection d'agent** ou **en jeu** et réessayez.",
-      "LIVE_GAME_FOOTER": "Partie en cours",
-      "MAINTENANCE_TITLE": "Maintenance VALORANT",
-      "MAINTENANCE_DESC": "Les serveurs VALORANT sont actuellement en maintenance. Réessayez plus tard.",
-      "RATE_LIMITED_TITLE": "Limite atteinte",
-      "RATE_LIMITED_DESC": "Vous êtes actuellement limité. Veuillez patienter et réessayer.",
-      "LOGIN_REQUIRED_TITLE": "Connexion requise",
-      "LOGIN_REQUIRED_DESC": "Impossible de vérifier votre compte VALORANT. Veuillez vous reconnecter avec `/login`.",
-      "REFRESH_BUTTON": "Rafraîchir",
-      "ENEMY_TEAM_DIVIDER": "── Équipe adverse ──",
-      "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
-    },
   "info":{
     "SHOP_HEADER": "Boutique du jour pour **{u}** (nouvelle boutique <t:{t}:R>)",
     "ACCESSORY_SHOP_HEADER": "Boutique d'accessoires pour **{u}** (nouvelle boutique <t:{t}:R>)",
@@ -224,6 +208,22 @@
     "AVERAGE_COMBAT_SCORE": "Acs",
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
+  },
+  "livegame": {
+    "EMBED_TITLE": "⚔️ Partie en cours・{mapName}",
+    "EMBED_FOOTER": "{stateLabel}・{queueName}",
+    "NOT_IN_MATCH_TITLE": "Pas dans une partie",
+    "NOT_IN_MATCH_DESC": "Vous ne semblez pas être dans un salon de pré-partie ou une partie en cours.\n\nAssurez-vous d'être en **sélection d'agent** ou **en jeu** et réessayez.",
+    "LIVE_GAME_FOOTER": "Partie en cours",
+    "MAINTENANCE_TITLE": "Maintenance VALORANT",
+    "MAINTENANCE_DESC": "Les serveurs VALORANT sont actuellement en maintenance. Réessayez plus tard.",
+    "RATE_LIMITED_TITLE": "Limite atteinte",
+    "RATE_LIMITED_DESC": "Vous êtes actuellement limité. Veuillez patienter et réessayer.",
+    "LOGIN_REQUIRED_TITLE": "Connexion requise",
+    "LOGIN_REQUIRED_DESC": "Impossible de vérifier votre compte VALORANT. Veuillez vous reconnecter avec `/login`.",
+    "REFRESH_BUTTON": "Rafraîchir",
+    "ENEMY_TEAM_DIVIDER": "── Équipe adverse ──",
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   },
   "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **Problème avec l'alerte quotidienne de la boutique**\n\n{perms}\n\n**Canal :** <#{c}>\n**Raison :** {r}\n\nVeuillez utiliser `/settings` pour configurer votre alerte quotidienne de boutique dans un canal auquel j'ai accès, ou désactivez-la si vous ne souhaitez plus recevoir de mises à jour automatiques de la boutique.",
   "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Canal d'alerte de skin inaccessible**\n\n{perms}\n\n**Canal :** <#{c}>\n**Raison :** {r}\n\n✅ **J'ai automatiquement déplacé {n} alerte(s) vers ce canal de DM** pour que vous ne manquiez aucune alerte.\n\nSi vous souhaitez configurer des alertes dans un autre canal du serveur, veuillez utiliser à nouveau `/alert` dans ce canal.",

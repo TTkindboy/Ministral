@@ -1,6 +1,6 @@
 {
   "translation_by": "ShimadaNanaki",
-  "error":{
+  "error": {
     "NOT_REGISTERED": "**Botにあなたのアカウントが登録されていません！** `/login` を試してみてください。",
     "NOT_REGISTERED_OTHER": "**そのユーザーはボットに登録されていません！**",
     "INVALID_PASSWORD": "ユーザー名またはパスワードが無効です！",
@@ -28,8 +28,8 @@
     "OTHER_COLLECTION_DISABLED": "**{u} は他の人が自分のコレクションを見られるようにする機能を無効にしました！**",
     "OTHER_PROFILE_DISABLED": "**{u} は他の人が自分のプロフィールを見られるようにする機能を無効にしました！**",
     "STATS_DISABLED": "**現在、このボットのショップ統計は無効になっています！**",
-    "EMPTY_STATS":  "**表示するショップ統計がありません！**開始するには `/shop` を使用してください。",
-    "NO_STATS_FOR_SKIN":  "**そのスキンは過去 {d} 日間、誰のショップにも登場していません**！",
+    "EMPTY_STATS": "**表示するショップ統計がありません！**開始するには `/shop` を使用してください。",
+    "NO_STATS_FOR_SKIN": "**そのスキンは過去 {d} 日間、誰のショップにも登場していません**！",
     "NOT_UR_MESSAGE_STATS": "**それはあなたのメッセージではありません！**スキン統計を参照するには `/stats` を使用してください。",
     "NOT_UR_MESSAGE_BUNDLE": "**それはあなたのメッセージではありません！**バンドルを検索するには `/bundle` を使用してください。",
     "NOT_UR_MESSAGE_ALERT": "**それはあなたのメッセージではありません！**アラートを設定するには `/alert` を使用してください。",
@@ -58,7 +58,7 @@
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **スキン通知チャンネルにアクセスできません**\n\n{perms}\n\n**チャンネル:** <#{c}>\n**理由:** {r}\n\n✅ **{n} 件の通知をこのDMチャンネルに自動で移動しました**。見逃すことはありません。\n\n別のサーバーチャンネルで通知を設定したい場合は、そのチャンネルで `/alert` を再度使用してください。",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **スキン通知チャンネルにアクセスできません**\n\n{perms}\n\n**チャンネル:** <#{c}>\n**理由:** {r}\n\n`/alert` コマンドを使って、私が適切な権限を持つチャンネルで通知を再設定してください。"
   },
-  "info":{
+  "info": {
     "SHOP_HEADER": "**{u}** のデイリーショップ（新しいショップは <t:{t}:R>）",
     "ACCESSORY_SHOP_HEADER": "**{u}** のアクセサリーショップ（新しいショップは <t:{t}:R>）",
     "BUNDLE_HEADER": "注目のバンドル：**{b}**",
@@ -69,7 +69,7 @@
     "NO_BUNDLE_DATA": "Riotは過去の/未リリースのバンドルのデータを提供していません:(",
     "BUNDLE_NAME": "{b} コレクション",
     "BUNDLE_RELEASED": "リリース：<t:{t}:R>",
-    "EXPIRES": "<t:{t}:R> に期限切れ",
+    "EXPIRES": "<t:{t}:R> まで有効",
     "EXPIRED": "<t:{t}:R> に期限切れ",
     "PRICE": "価格：",
     "FREE": "無料",
@@ -146,15 +146,15 @@
     "INCIDENT_TYPE": "インシデント",
     "LAST_UPDATED": "最終更新：<t:{t}:R>",
     "UNHANDLED_COMMAND": "あなたは魔法使いですね、ハリー！",
-    "SELECT_SKIN_WITH_LEVEL":"ビデオを表示するスキンを選択してください：",
-    "SELECT_LEVEL_OF_SKIN":"スキンのレベルを選択してください：",
+    "SELECT_SKIN_WITH_LEVEL": "ビデオを表示するスキンを選択してください：",
+    "SELECT_LEVEL_OF_SKIN": "スキンのレベルを選択してください：",
     "SHARDS_LOADING": "ボットはまだ起動中です！数秒待ってからもう一度お試しください。（シャードの読み込み中...）",
     "NO_MORE_ACCESSORIES": "あなたはすでにすべてのカッコよさを手に入れています！ :sunglasses:",
     "PROFILE_PEAK_RANK": "最高ランク"
   },
   "battlepass": {
-    "CALCULATIONS_TITLE": "\uD83D\uDCC8 バトルパス進捗状況",
-    "FINISHED": "\uD83C\uDF89 おめでとうございます、バトルパスを完了しました！",
+    "CALCULATIONS_TITLE": "📈 バトルパス進捗状況",
+    "FINISHED": "🎉 おめでとうございます、バトルパスを完了しました！",
     "TIER_HEADER": "**{u}** のバトルパスティア：",
     "GENERAL_COL": "一般",
     "XP_COL": "XP",
@@ -163,13 +163,13 @@
     "TIER50_ROW": "ティア {t}",
     "WEEKLY_LEFT_ROW": "残りのウィークリー XP",
     "BP_PURCHASED": "バトルパスを購入しました！",
-    "GAMES_HEADER": "\uD83D\uDD2B 必要なゲーム数",
+    "GAMES_HEADER": "🔫 必要なゲーム数",
     "GAMEMODE_COL": "ゲームモード",
     "INCL_WEEKLIES_COL": "ウィークリーを含む",
     "NORMAL_ROW": "アンレート/コンペティティブ",
     "SPIKERUSH_ROW": "スパイクラッシュ",
     "ACT_END": "今Actはあと {d} 日で終了します",
-    "XP_HEADER": "\uD83D\uDCC5 必要な XP",
+    "XP_HEADER": "📅 必要な XP",
     "AVERAGE_COL": "平均",
     "DAILY_XP_ROW": "デイリーXP",
     "WEEKLY_XP_ROW": "ウィークリーXP",

@@ -1,6 +1,6 @@
 {
   "translation_by": "Wesley Nascimento (ZeusMode)",
-  "error":{
+  "error": {
     "NOT_REGISTERED": "**Você não está registrado com o bot!** Tente `/login`.",
     "NOT_REGISTERED_OTHER": "**Esse usuário não está registrado com o bot!**",
     "INVALID_PASSWORD": "username ou password inválidos!",
@@ -23,13 +23,13 @@
     "SKIN_NOT_FOUND": "**Não encontrei uma skin com esse nome!** Verifique a ortografia e tente novamente.",
     "BUNDLE_NOT_FOUND": "**Couldn't find a bundle with that name!** Verifique a ortografia e tente novamente.",
     "UNKNOWN_ITEM_TYPE": "**Tipo do item desconhecido!** `{t}`",
-    "MAINTENANCE": "**Servidores do VALORANTe estão em manutenção no momento!** Tente novamente mais tarde.",
+    "MAINTENANCE": "**Servidores de VALORANT estão em manutenção agora!** Tente novamente mais tarde.",
     "OTHER_SHOP_DISABLED": "**{u} desabilitou a capacidade de outros verem sua loja!**",
     "OTHER_COLLECTION_DISABLED": "**{u} desabilitou a capacidade de outros verem sua coleção!**",
     "OTHER_PROFILE_DISABLED": "**{u} desabilitou a capacidade de outros verem seu perfil!**",
     "STATS_DISABLED": "**Estatísticas da loja estão desabilitadas para este bot!**",
-    "EMPTY_STATS":  "**I have no shop stats to display!** use `/shop` to get started.",
-    "NO_STATS_FOR_SKIN":  "**That skin hasn't been in anyone's shop** in the past {d} days!",
+    "EMPTY_STATS": "**I have no shop stats to display!** use `/shop` to get started.",
+    "NO_STATS_FOR_SKIN": "**That skin hasn't been in anyone's shop** in the past {d} days!",
     "NOT_UR_MESSAGE_STATS": "**That's not your message!** Use `/stats` to browse skin stats.",
     "NOT_UR_MESSAGE_BUNDLE": "**Esta não é sua mensagem!** Use `/bundle` para procurar por pacotes.",
     "NOT_UR_MESSAGE_ALERT": "**Esta não é sua mensagem!** Use `/alert` para setar seu próprio alerta.",
@@ -58,11 +58,11 @@
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Canal de alerta de skin inacessível**\n\n{perms}\n\n**Canal:** <#{c}>\n**Motivo:** {r}\n\n✅ **Mudei automaticamente {n} alerta(s) para este canal de DM** para que você não perca nenhum alerta!\n\nSe quiser configurar alertas em outro canal do servidor, use `/alert` novamente nesse canal.",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Canal de alerta de skin inacessível**\n\n{perms}\n\n**Canal:** <#{c}>\n**Motivo:** {r}\n\nPor favor, configure seus alertas novamente em um canal onde eu tenha acesso usando o comando `/alert`."
   },
-  "info":{
+  "info": {
     "SHOP_HEADER": "Loja de hoje do **{u}** (nova loja <t:{t}:R>)",
     "ACCESSORY_SHOP_HEADER": "Loja de acessórios para **{u}** (nova loja <t:{t}:R>)",
     "BUNDLE_HEADER": "Pacote em destaque: **{b}**",
-    "BUNDLES_HEADER": "Pacotes em desque:",
+    "BUNDLES_HEADER": "Pacotes em destaque atualmente:",
     "BUNDLES_HEADER_DESC": "Use `/bundle` para inspecionar um pacote específico",
     "BUNDLE_CHOICE": "Qual pacote você gostaria de inspecionar?",
     "BUNDLE_CHOICE_PLACEHOLDER": "Selecione o pacote:",
@@ -74,7 +74,7 @@
     "PRICE": "Preço: ",
     "FREE": "Grátis",
     "MORE_ITEMS": "...e mais {n} itens",
-    "INFO_HEADER": ":pencil: Status",
+    "INFO_HEADER": ":pencil: Estatísticas",
     "INFO_SERVERS": "Servers",
     "INFO_MEMBERS": "Membros",
     "INFO_REGISTERED": "Registrado",
@@ -146,15 +146,15 @@
     "INCIDENT_TYPE": "incidente",
     "LAST_UPDATED": "Última atualização <t:{t}:R>",
     "UNHANDLED_COMMAND": "Você é um mago, harry!",
-    "SELECT_SKIN_WITH_LEVEL":"Selecione a skin para mostrar vídeo:",
-    "SELECT_LEVEL_OF_SKIN":"Selecione o nível da skin:",
+    "SELECT_SKIN_WITH_LEVEL": "Selecione a skin para mostrar vídeo:",
+    "SELECT_LEVEL_OF_SKIN": "Selecione o nível da skin:",
     "SHARDS_LOADING": "O bot ainda está iniciando! Aguarde alguns segundos e tente novamente. (Shards carregando...)",
     "NO_MORE_ACCESSORIES": "Você já tem todo o estilo! :sunglasses:",
     "PROFILE_PEAK_RANK": "Rank Máximo"
   },
   "battlepass": {
-    "CALCULATIONS_TITLE": "\uD83D\uDCC8 Cálculos do passe de batalha",
-    "FINISHED": "\uD83C\uDF89 Parabéns, você completou o passe de batalha!",
+    "CALCULATIONS_TITLE": "📈 Cálculos do passe de batalha",
+    "FINISHED": "🎉 Parabéns, você completou o passe de batalha!",
     "TIER_HEADER": "{u} nível do passe de batalha:",
     "GENERAL_COL": "Geral",
     "XP_COL": "XP",
@@ -163,13 +163,13 @@
     "TIER50_ROW": "Tier {t}",
     "WEEKLY_LEFT_ROW": "XP semanal restante",
     "BP_PURCHASED": "{u} comprou o passe de batalha!",
-    "GAMES_HEADER": "\uD83D\uDD2B Números de jogos necessários",
+    "GAMES_HEADER": "🔫 Números de jogos necessários",
     "GAMEMODE_COL": "Modo de jogo",
     "INCL_WEEKLIES_COL": "incluindo semanais",
     "NORMAL_ROW": "Normal/Competitivo",
     "SPIKERUSH_ROW": "Corrida da spike",
     "ACT_END": "Ato termina em {d} dias",
-    "XP_HEADER": "\uD83D\uDCC5 XP necessária",
+    "XP_HEADER": "📅 XP necessária",
     "AVERAGE_COL": "Média",
     "DAILY_XP_ROW": "XP Diária",
     "WEEKLY_XP_ROW": "XP Semanal",
@@ -207,8 +207,8 @@
   "match": {
     "COMPETITIVE": "Competitivo",
     "RANKED_RATING": "RR",
-    "AVERAGE_DAMAGE_ROUND": "Dpm",
-    "AVERAGE_COMBAT_SCORE": "Pmc",
+    "AVERAGE_DAMAGE_ROUND": "Dano/Rod",
+    "AVERAGE_COMBAT_SCORE": "Pontos/Rod",
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
   },
@@ -225,7 +225,7 @@
     "LOGIN_REQUIRED_TITLE": "Login Necessário",
     "LOGIN_REQUIRED_DESC": "Não foi possível verificar sua conta VALORANT. Por favor, faça login novamente com `/login`.",
     "REFRESH_BUTTON": "Atualizar",
-    "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
+    "ENEMY_TEAM_DIVIDER": "── Equipe Inimiga ──",
     "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   }
 }
