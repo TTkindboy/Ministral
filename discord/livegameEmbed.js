@@ -15,6 +15,7 @@
  * ─────────────────────────────────────────────────────────────────────────*/
 
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { s } from "../misc/languages.js";
 
 // ─── Colours ────────────────────────────────────────────────────────────────
 const COLOR_PREGAME = 0xFFB300;  // amber  — agent select
@@ -169,18 +170,18 @@ const buildPlayerFields = (players, isCompetitive) =>
  * • Two-team modes  → ally player fields, then a divider, then enemy fields.
  * • Single-team modes (deathmatch, …) → all players listed in `description`.
  */
-const buildGameEmbed = (data, allyPlayers, enemyPlayers) => {
+const buildGameEmbed = (data, allyPlayers, enemyPlayers, localeInput = null) => {
     const stateLabel   = STATE_LABEL[data.state] ?? "Live Game";
     const isPreGame    = data.state === "pregame";
     const isCompetitive = data.queueId === "competitive";
     const color        = isPreGame ? COLOR_PREGAME : COLOR_ALLY;
 
     const embed = {
-        title:     `⚔️ Live Game・${data.mapName}`,
+        title:     s(localeInput).livegame.EMBED_TITLE.f({ mapName: data.mapName }),
         color,
         thumbnail: data.queueIcon ? { url: data.queueIcon } : undefined,
         image:     data.mapImage  ? { url: data.mapImage }  : undefined,
-        footer:    { text: `${stateLabel}・${data.queueName}` },
+        footer:    { text: s(localeInput).livegame.EMBED_FOOTER.f({ stateLabel, queueName: data.queueName }) },
         timestamp: new Date().toISOString(),
     };
 
@@ -197,7 +198,7 @@ const buildGameEmbed = (data, allyPlayers, enemyPlayers) => {
         embed.fields = [
             ...allyFields,
             ...(enemyFields.length ? [
-                { name: "── Enemy Team ──", value: "\u200b", inline: false },
+                { name: s(localeInput).livegame.ENEMY_TEAM_DIVIDER, value: "\u200b", inline: false },
                 ...enemyFields,
             ] : []),
         ];
@@ -216,7 +217,7 @@ export const liveGameRefreshRow = (userId) =>
     new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`livegame/refresh/${userId}`)
-            .setLabel("Refresh")
+            .setLabel(s(userId).livegame.REFRESH_BUTTON)
             .setEmoji("🔄")
             .setStyle(ButtonStyle.Secondary)
     );
@@ -237,16 +238,16 @@ export const renderLiveGame = (liveGameData, userId, _isDM = false) => {
     if (state === "not_in_game") {
         return {
             embeds: [{
-                title:       "Not in a Match",
-                description: "You don't appear to be in a pre-game lobby or a live match right now.\n\nMake sure you're currently in **agent select** or **in-game** and try again.",
+                title:       s(userId).livegame.NOT_IN_MATCH_TITLE,
+                description: s(userId).livegame.NOT_IN_MATCH_DESC,
                 color:       0x616161,
-                footer:      { text: "Live Game" },
+                footer:      { text: s(userId).livegame.LIVE_GAME_FOOTER },
             }],
             components: [liveGameRefreshRow(userId)],
         };
     }
 
-    const embed = buildGameEmbed(liveGameData, allyPlayers, enemyPlayers);
+    const embed = buildGameEmbed(liveGameData, allyPlayers, enemyPlayers, userId);
 
     return {
         embeds:     [embed],
@@ -256,31 +257,40 @@ export const renderLiveGame = (liveGameData, userId, _isDM = false) => {
 
 /**
  * Render an error/auth-failure message for the livegame command.
+ *
+ * @param {object}       liveGameData
+ * @param {string|null}  userId  Discord user ID — when provided, includes a
+ *                               Refresh button so the user can retry.
  */
-export const renderLiveGameError = (liveGameData) => {
+export const renderLiveGameError = (liveGameData, userId = null) => {
+    const components = userId ? [liveGameRefreshRow(userId)] : [];
+
     if (liveGameData.maintenance) {
         return {
             embeds: [{
-                title:       "Valorant Maintenance",
-                description: "Valorant servers are currently under maintenance. Try again later.",
+                title:       s().livegame.MAINTENANCE_TITLE,
+                description: s().livegame.MAINTENANCE_DESC,
                 color:       0x616161,
             }],
+            components,
         };
     }
     if (liveGameData.rateLimit) {
         return {
             embeds: [{
-                title:       "Rate Limited",
-                description: "You are currently rate-limited. Please wait a moment and try again.",
+                title:       s().livegame.RATE_LIMITED_TITLE,
+                description: s().livegame.RATE_LIMITED_DESC,
                 color:       0xBF360C,
             }],
+            components,
         };
     }
     return {
         embeds: [{
-            title:       "Login Required",
-            description: "Could not verify your Valorant account. Please log in again with `/login`.",
+            title:       s().livegame.LOGIN_REQUIRED_TITLE,
+            description: s().livegame.LOGIN_REQUIRED_DESC,
             color:       0x616161,
         }],
+        components,
     };
 };

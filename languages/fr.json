@@ -23,7 +23,7 @@
     "SKIN_NOT_FOUND": "**Je n'ai pas pu trouver ce skin!** Vérifie le nom et réessaye.",
     "BUNDLE_NOT_FOUND": "**Je n'ai pas pu trouver cette collection!** Vérifie le nom et réessaye.",
     "UNKNOWN_ITEM_TYPE": "**Type d'item inconnu!** `{t}`",
-    "MAINTENANCE": "**Les serveurs Valorant sont en maintenance!** Réessaye plus tard.",
+    "MAINTENANCE": "**Les serveurs VALORANT sont en maintenance!** Réessaye plus tard.",
     "OTHER_SHOP_DISABLED": "**{u} a désactivé la fonctionnalité aux autres de voir sa boutique!**",
     "OTHER_COLLECTION_DISABLED": "**{u} a désactivé la fonctionnalité aux autres de voir sa collection!**",
     "OTHER_PROFILE_DISABLED": "**{u} a désactivé la fonctionnalité aux autres de voir son profil!**",
@@ -55,6 +55,22 @@
     "INVALID_WEB_AUTH_URL": "**URL invalide!** Assurez-vous d'avoir copié l'URL entière de la barre d'adresse de votre navigateur après la page de connexion.\nElle devrait commencer par `http://localhost/redirect#access_token=...`",
     "WEB_AUTH_FAILED": "**La connexion a échoué!** {e}"
   },
+    "livegame": {
+      "EMBED_TITLE": "⚔️ Partie en cours・{mapName}",
+      "EMBED_FOOTER": "{stateLabel}・{queueName}",
+      "NOT_IN_MATCH_TITLE": "Pas dans une partie",
+      "NOT_IN_MATCH_DESC": "Vous ne semblez pas être dans un salon de pré-partie ou une partie en cours.\n\nAssurez-vous d'être en **sélection d'agent** ou **en jeu** et réessayez.",
+      "LIVE_GAME_FOOTER": "Partie en cours",
+      "MAINTENANCE_TITLE": "Maintenance VALORANT",
+      "MAINTENANCE_DESC": "Les serveurs VALORANT sont actuellement en maintenance. Réessayez plus tard.",
+      "RATE_LIMITED_TITLE": "Limite atteinte",
+      "RATE_LIMITED_DESC": "Vous êtes actuellement limité. Veuillez patienter et réessayer.",
+      "LOGIN_REQUIRED_TITLE": "Connexion requise",
+      "LOGIN_REQUIRED_DESC": "Impossible de vérifier votre compte VALORANT. Veuillez vous reconnecter avec `/login`.",
+      "REFRESH_BUTTON": "Rafraîchir",
+      "ENEMY_TEAM_DIVIDER": "── Équipe adverse ──",
+      "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
+    },
   "info":{
     "SHOP_HEADER": "Boutique du jour pour **{u}** (nouvelle boutique <t:{t}:R>)",
     "ACCESSORY_SHOP_HEADER": "Boutique d'accessoires pour **{u}** (nouvelle boutique <t:{t}:R>)",

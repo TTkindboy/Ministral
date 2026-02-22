@@ -23,7 +23,7 @@
       "SKIN_NOT_FOUND": "**¡No se pudo encontrar un aspecto con ese nombre!** Revisa la ortografía y inténtalo de nuevo.",
       "BUNDLE_NOT_FOUND": "**¡No se pudo encontrar un paquete con ese nombre!** Revisa la ortografía y inténtalo de nuevo.",
       "UNKNOWN_ITEM_TYPE": "**¡Tipo de artículo desconocido!** `{t}`",
-      "MAINTENANCE": "**¡Los servidores de Valorant están fuera de servicio por mantenimiento!** Vuelva a intentarlo más tarde.",
+      "MAINTENANCE": "**¡Los servidores de VALORANT están fuera de servicio por mantenimiento!** Vuelva a intentarlo más tarde.",
       "OTHER_SHOP_DISABLED": "**¡{u} desactivó la capacidad de permitir que otros vean su tienda!**",
       "OTHER_COLLECTION_DISABLED": "**¡{u} desactivó la capacidad de permitir que otros vean su colección!**",
       "OTHER_PROFILE_DISABLED": "**¡{u} desactivó la capacidad de permitir que otros vean su perfil!**",
@@ -181,6 +181,22 @@
       "GUN_BUDDY": "Amuleto de arma",
       "CURRENCY": "Moneda",
       "SPRAY": "Spray"
+    },
+    "livegame": {
+      "EMBED_TITLE": "⚔️ Partida en vivo・{mapName}",
+      "EMBED_FOOTER": "{stateLabel}・{queueName}",
+      "NOT_IN_MATCH_TITLE": "No en una partida",
+      "NOT_IN_MATCH_DESC": "No pareces estar en un lobby de pre-partida o en una partida activa ahora mismo.\n\nAsegúrate de estar en **selección de agente** o **en partida** e inténtalo de nuevo.",
+      "LIVE_GAME_FOOTER": "Partida en vivo",
+      "MAINTENANCE_TITLE": "Mantenimiento ",
+      "MAINTENANCE_DESC": "Los servidores de VALORANT están en mantenimiento. Inténtalo más tarde.",
+      "RATE_LIMITED_TITLE": "Limitado",
+      "RATE_LIMITED_DESC": "Actualmente estás limitado. Espera un momento e inténtalo de nuevo.",
+      "LOGIN_REQUIRED_TITLE": "Inicio de sesión requerido",
+      "LOGIN_REQUIRED_DESC": "No se pudo verificar tu cuenta de VALORANT. Por favor inicia sesión de nuevo con `/login`.",
+      "REFRESH_BUTTON": "Actualizar",
+      "ENEMY_TEAM_DIVIDER": "── Equipo enemigo ──",
+      "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
     },
     "settings": {
       "TRUE": "Sí",

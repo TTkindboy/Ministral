@@ -212,4 +212,21 @@
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
   }
+  ,
+  "livegame": {
+    "EMBED_TITLE": "⚔️ Live Game・{mapName}",
+    "EMBED_FOOTER": "{stateLabel}・{queueName}",
+    "NOT_IN_MATCH_TITLE": "Not in a Match",
+    "NOT_IN_MATCH_DESC": "You don't appear to be in a pre-game lobby or a live match right now.\n\nMake sure you're currently in **agent select** or **in-game** and try again.",
+    "LIVE_GAME_FOOTER": "Live Game",
+    "MAINTENANCE_TITLE": "VALORANT Maintenance",
+    "MAINTENANCE_DESC": "VALORANT servers are currently under maintenance. Try again later.",
+    "RATE_LIMITED_TITLE": "Rate Limited",
+    "RATE_LIMITED_DESC": "You are currently rate-limited. Please wait a moment and try again.",
+    "LOGIN_REQUIRED_TITLE": "Login Required",
+    "LOGIN_REQUIRED_DESC": "Could not verify your VALORANT account. Please log in again with `/login`.",
+    "REFRESH_BUTTON": "Refresh",
+    "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
+  }
 }

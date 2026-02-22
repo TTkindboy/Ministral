@@ -23,7 +23,7 @@
     "SKIN_NOT_FOUND": "**Bu ada sahip bir kaplama bulamadım!** Yazılışını kontrol edin ve tekrar deneyin.",
     "BUNDLE_NOT_FOUND": "**Bu ada sahip bir koleksiyon bulamadım!** Yazılışını kontrol edin ve tekrar deneyin.",
     "UNKNOWN_ITEM_TYPE": "**Geçersiz öğe türü!** `{t}`",
-    "MAINTENANCE": "**Valorant sunucuları şu anda bakım nedeniyle kapalı!** Lütfen daha sonra tekrar deneyin.",
+    "MAINTENANCE": "**VALORANT sunucuları şu anda bakım nedeniyle kapalı!** Lütfen daha sonra tekrar deneyin.",
     "OTHER_SHOP_DISABLED": "**{u} Başkalarının mağazasına bakmasını istemediğinden bu özelliği devre dışı bıraktı!**",
     "OTHER_COLLECTION_DISABLED": "**{u} Başkalarının koleksiyonuna bakmasını istemediğinden bu özelliği devre dışı bıraktı!**",
     "OTHER_PROFILE_DISABLED": "**{u} Başkalarının profiline bakmasını istemediğinden bu özelliği devre dışı bıraktı!**",
@@ -198,6 +198,22 @@
     "othersCanViewProfile": "Başkalarının kullanıcı adınızla /profile kullanmasına izin verin",
     "othersCanUseAccountButtons": "Başkalarının /shop gibi komutlarda sizin hesap butonlarınızı kullanmasına izin verin",
     "locale": "Dil"
+  },
+  "livegame": {
+    "EMBED_TITLE": "⚔️ Canlı Oyun・{mapName}",
+    "EMBED_FOOTER": "{stateLabel}・{queueName}",
+    "NOT_IN_MATCH_TITLE": "Maçta değil",
+    "NOT_IN_MATCH_DESC": "Şu anda bir ön oyun lobisinde veya canlı bir maçta görünmüyorsun.\n\n**Ajan seçimi** veya **oyunda** olduğundan emin ol ve tekrar dene.",
+    "LIVE_GAME_FOOTER": "Canlı Oyun",
+    "MAINTENANCE_TITLE": "VALORANT Bakımı",
+    "MAINTENANCE_DESC": "VALORANT sunucuları şu anda bakımda. Daha sonra tekrar deneyin.",
+    "RATE_LIMITED_TITLE": "Limitli",
+    "RATE_LIMITED_DESC": "Şu anda limitlisin. Lütfen biraz bekle ve tekrar dene.",
+    "LOGIN_REQUIRED_TITLE": "Giriş gerekli",
+    "LOGIN_REQUIRED_DESC": "VALORANT hesabın doğrulanamadı. Lütfen `/login` ile tekrar giriş yap.",
+    "REFRESH_BUTTON": "Yenile",
+    "ENEMY_TEAM_DIVIDER": "── Rakip Takım ──",
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   },
   "modal": {
     "PAGE_TITLE": "Sayfa Gezgini",

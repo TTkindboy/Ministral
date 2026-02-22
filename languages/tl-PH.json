@@ -22,7 +22,7 @@
     "SKIN_NOT_FOUND": "**Walang skin na may ganyang pangalan!** Suriin ang pagbaybay at subukan muli.",
     "BUNDLE_NOT_FOUND": "**Walang bundle na may ganyang pangalan!** Suriin ang pagbaybay at subukan muli.",
     "UNKNOWN_ITEM_TYPE": "**Di-matukoy item type!** `{t}`",
-    "MAINTENANCE": "**Naka-maintenance ang mga Valorant Servers!** Subukan muli mamaya.",
+    "MAINTENANCE": "**Naka-maintenance ang mga VALORANT Servers!** Subukan muli mamaya.",
     "OTHER_SHOP_DISABLED": "**Dinisable ni {u} ang kakayahan na makita ng iba ang kanilang shop!**",
     "OTHER_COLLECTION_DISABLED": "**Dinisable ni {u} ang kakayahan na makita ng iba ang kanilang koleksyon!**",
     "OTHER_PROFILE_DISABLED": "**Dinisable ni {u} ang kakayahan na makita ng iba ang kanilang profile!**",
@@ -210,5 +210,21 @@
     "AVERAGE_COMBAT_SCORE": "Acs",
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
+  },
+  "livegame": {
+    "EMBED_TITLE": "⚔️ Live Game・{mapName}",
+    "EMBED_FOOTER": "{stateLabel}・{queueName}",
+    "NOT_IN_MATCH_TITLE": "Hindi nasa Laro",
+    "NOT_IN_MATCH_DESC": "Hindi ka mukhang nasa pre-game lobby o live match ngayon.\n\nSiguraduhing nasa **agent select** o **in-game** ka at subukan muli.",
+    "LIVE_GAME_FOOTER": "Live Game",
+    "MAINTENANCE_TITLE": "Maintenance ng VALORANT",
+    "MAINTENANCE_DESC": "Kasulukuyang nasa maintenance ang mga server ng VALORANT. Subukan muli mamaya.",
+    "RATE_LIMITED_TITLE": "Rate Limited",
+    "RATE_LIMITED_DESC": "Kasalukuyan kang rate-limited. Maghintay sandali at subukan muli.",
+    "LOGIN_REQUIRED_TITLE": "Kailangan Mag-login",
+    "LOGIN_REQUIRED_DESC": "Hindi ma-verify ang iyong VALORANT account. Mangyaring mag-login muli gamit ang `/login`.",
+    "REFRESH_BUTTON": "Refresh",
+    "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   }
 }

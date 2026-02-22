@@ -182,6 +182,22 @@
       "CURRENCY": "Währung",
       "SPRAY": "Spray"
     },
+    "livegame": {
+      "EMBED_TITLE": "⚔️ Live-Spiel・{mapName}",
+      "EMBED_FOOTER": "{stateLabel}・{queueName}",
+      "NOT_IN_MATCH_TITLE": "Nicht im Match",
+      "NOT_IN_MATCH_DESC": "Du scheinst gerade nicht in einer Pre-Match-Lobby oder einem laufenden Match zu sein.\n\nStelle sicher, dass du in der **Agentenauswahl** oder **im Spiel** bist und versuche es erneut.",
+      "LIVE_GAME_FOOTER": "Live-Spiel",
+      "MAINTENANCE_TITLE": "VALORANT Wartung",
+      "MAINTENANCE_DESC": "Die VALORANT-Server werden gerade gewartet. Versuche es später erneut.",
+      "RATE_LIMITED_TITLE": "Limit erreicht",
+      "RATE_LIMITED_DESC": "Du bist aktuell limitiert. Bitte warte einen Moment und versuche es erneut.",
+      "LOGIN_REQUIRED_TITLE": "Login erforderlich",
+      "LOGIN_REQUIRED_DESC": "Dein VALORANT-Account konnte nicht verifiziert werden. Bitte logge dich erneut mit `/login` ein.",
+      "REFRESH_BUTTON": "Aktualisieren",
+      "ENEMY_TEAM_DIVIDER": "── Gegnerteam ──",
+      "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
+    },
     "settings": {
       "TRUE": "Ja",
       "FALSE": "Nein",

@@ -23,7 +23,7 @@
     "SKIN_NOT_FOUND": "**根据名字找不到该皮肤!** 请检查你的拼写并重试.",
     "BUNDLE_NOT_FOUND": "**根据名字找不到该组合包!** 请检查你的拼写并重试.",
     "UNKNOWN_ITEM_TYPE": "**未知的物品类型!** `{t}`",
-    "MAINTENANCE": "**因为维护, Valorant服务器暂时关闭!** 请稍后重试.",
+    "MAINTENANCE": "**因为维护, VALORANT服务器暂时关闭!** 请稍后重试.",
     "OTHER_SHOP_DISABLED": "**{u} 禁用了其他人查看商店的功能!**",
     "OTHER_COLLECTION_DISABLED": "**{u} 禁用了其他人查看收藏的功能!**",
     "STATS_DISABLED": "**商店统计资讯已经对该bot停用!**",
@@ -85,7 +85,7 @@
     "INFO_SOURCE": "源代码",
     "NMARKET_HEADER": "**{u}** 的夜市 (结束于 <t:{t}:R>)",
     "WALLET_HEADER": "**{u}**的余额:",
-    "VPOINTS": "Valorant 特务币",
+    "VPOINTS": "VALORANT 特务币",
     "RADIANITE": "辐能点数",
     "KCREDIT": "王国币",
     "ALERT_HAPPENED": ":tada: <@{i}> **{s}** 在 **{u}**的每日商店!\n它将过期于 <t:{t}:R>.",
@@ -211,5 +211,21 @@
     "AVERAGE_COMBAT_SCORE": "平均战斗分数",
     "HS_PERCENT": "爆头率",
     "PERCENT": "%{v}"
+  },
+  "livegame": {
+    "EMBED_TITLE": "⚔️ 实况比赛・{mapName}",
+    "EMBED_FOOTER": "{stateLabel}・{queueName}",
+    "NOT_IN_MATCH_TITLE": "不在比赛中",
+    "NOT_IN_MATCH_DESC": "你当前似乎不在预赛大厅或正在进行的比赛中。\n\n请确保你处于 **选择干员** 或 **游戏中**，然后重试。",
+    "LIVE_GAME_FOOTER": "实况比赛",
+    "MAINTENANCE_TITLE": "VALORANT 维护中",
+    "MAINTENANCE_DESC": "VALORANT 服务器当前正在维护。请稍后再试。",
+    "RATE_LIMITED_TITLE": "请求受限",
+    "RATE_LIMITED_DESC": "你当前被限流。请稍等片刻再试。",
+    "LOGIN_REQUIRED_TITLE": "需要登录",
+    "LOGIN_REQUIRED_DESC": "无法验证你的 VALORANT 账户。请使用 `/login` 重新登录。",
+    "REFRESH_BUTTON": "刷新",
+    "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   }
 }

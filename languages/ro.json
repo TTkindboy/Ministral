@@ -23,7 +23,7 @@
       "SKIN_NOT_FOUND": "**Nu am putut gasi un skin cu acest nume!** Verificati punctuatia si incercati din nou.",
       "BUNDLE_NOT_FOUND": "**Nu am putut gasi un bundle cu acest nume!** Verificati punctuatia si incercati din nou .",
       "UNKNOWN_ITEM_TYPE": "**Tip de item necunoscut!** `{t}`",
-      "MAINTENANCE": "**Servere de Valorant sunt inacesibile pentru intrerire!** Incercati din nou mai tarziu.",
+      "MAINTENANCE": "**Servere de VALORANT sunt inacesibile pentru intrerire!** Incercati din nou mai tarziu.",
       "OTHER_SHOP_DISABLED": "**{u} a dezactivat posibilitatea ca alții să vadă magazinul lor!**",
       "OTHER_COLLECTION_DISABLED": "**{u} a dezactivat posibilitatea ca alții să vadă colecția lor!**",
       "OTHER_PROFILE_DISABLED": "**{u} a dezactivat posibilitatea ca alții să vadă profilul lor!**",
@@ -181,6 +181,22 @@
       "GUN_BUDDY": "Gun Buddy",
       "CURRENCY": "Monedă",
       "SPRAY": "Spray"
+    },
+    "livegame": {
+      "EMBED_TITLE": "⚔️ Joc live・{mapName}",
+      "EMBED_FOOTER": "{stateLabel}・{queueName}",
+      "NOT_IN_MATCH_TITLE": "Nu ești într-un meci",
+      "NOT_IN_MATCH_DESC": "Nu pari să fii într-un lobby de pre-joc sau într-un meci live acum.\n\nAsigură-te că ești în **selectare agent** sau **în joc** și încearcă din nou.",
+      "LIVE_GAME_FOOTER": "Joc live",
+      "MAINTENANCE_TITLE": "Mentenanță VALORANT",
+      "MAINTENANCE_DESC": "Serverele VALORANT sunt în mentenanță. Încearcă mai târziu.",
+      "RATE_LIMITED_TITLE": "Limitat",
+      "RATE_LIMITED_DESC": "Ești limitat. Așteaptă puțin și încearcă din nou.",
+      "LOGIN_REQUIRED_TITLE": "Autentificare necesară",
+      "LOGIN_REQUIRED_DESC": "Nu s-a putut verifica contul tău VALORANT. Autentifică-te din nou cu `/login`.",
+      "REFRESH_BUTTON": "Reîmprospătează",
+      "ENEMY_TEAM_DIVIDER": "── Echipa adversă ──",
+      "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
     },
     "settings": {
       "TRUE": "Da",

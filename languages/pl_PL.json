@@ -23,7 +23,7 @@
     "SKIN_NOT_FOUND": "**Nie mogę znaleźć skórki o takiej nazwie!** Sprawdź pisownię i spróbuj ponownie.",
     "BUNDLE_NOT_FOUND": "**Nie mogę znaleźć kolekcji o takiej nazwie!** Sprawdź pisownię i spróbuj ponownie.",
     "UNKNOWN_ITEM_TYPE": "**Nieprawidłowa nazwa przedmiotu.** `{t}`",
-    "MAINTENANCE": "**Serwery Valorant są obecnie niedostępne z powodu konserwacji!** Spróbuj ponownie później.",
+    "MAINTENANCE": "**Serwery VALORANT są obecnie niedostępne z powodu konserwacji!** Spróbuj ponownie później.",
     "OTHER_SHOP_DISABLED": "**{u} wyłączyli możliwość, aby inni mogli zobaczyć swój sklep!**",
     "OTHER_COLLECTION_DISABLED": "**{u} wyłączyli możliwość, aby inni mogli zobaczyć swoją kolekcję!**",
     "OTHER_PROFILE_DISABLED": "**{u} wyłączyli możliwość, aby inni mogli zobaczyć ich profil!**",
@@ -211,5 +211,21 @@
     "AVERAGE_COMBAT_SCORE": "Średni wynik walki",
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
+  },
+  "livegame": {
+    "EMBED_TITLE": "⚔️ Live Game・{mapName}",
+    "EMBED_FOOTER": "{stateLabel}・{queueName}",
+    "NOT_IN_MATCH_TITLE": "Nie w meczu",
+    "NOT_IN_MATCH_DESC": "Wygląda na to, że nie jesteś w lobby przedmeczowym ani w trwającym meczu.\n\nUpewnij się, że jesteś w **wyborze agenta** lub **w grze** i spróbuj ponownie.",
+    "LIVE_GAME_FOOTER": "Live Game",
+    "MAINTENANCE_TITLE": "Konserwacja VALORANT",
+    "MAINTENANCE_DESC": "Serwery VALORANT są obecnie w trakcie konserwacji. Spróbuj ponownie później.",
+    "RATE_LIMITED_TITLE": "Ograniczenie",
+    "RATE_LIMITED_DESC": "Obecnie jesteś rate-limited. Poczekaj chwilę i spróbuj ponownie.",
+    "LOGIN_REQUIRED_TITLE": "Wymagane logowanie",
+    "LOGIN_REQUIRED_DESC": "Nie można zweryfikować Twojego konta VALORANT. Zaloguj się ponownie przy użyciu `/login`.",
+    "REFRESH_BUTTON": "Odśwież",
+    "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   }
 }

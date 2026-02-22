@@ -23,7 +23,7 @@
     "SKIN_NOT_FOUND": "**その名前のスキンが見つかりませんでした！**スペルを確認してもう一度お試しください。",
     "BUNDLE_NOT_FOUND": "**その名前のバンドルが見つかりませんでした！**スペルを確認してもう一度お試しください。",
     "UNKNOWN_ITEM_TYPE": "**不明なアイテムタイプです！** `{t}`",
-    "MAINTENANCE": "**現在、Valorantサーバーはメンテナンス中です！**後ほどもう一度お試しください。",
+    "MAINTENANCE": "**現在、VALORANTサーバーはメンテナンス中です！**後ほどもう一度お試しください。",
     "OTHER_SHOP_DISABLED": "**{u} は他の人が自分のショップを見られるようにする機能を無効にしました！**",
     "OTHER_COLLECTION_DISABLED": "**{u} は他の人が自分のコレクションを見られるようにする機能を無効にしました！**",
     "OTHER_PROFILE_DISABLED": "**{u} は他の人が自分のプロフィールを見られるようにする機能を無効にしました！**",
@@ -181,6 +181,22 @@
     "GUN_BUDDY": "ガンバディー",
     "CURRENCY": "通貨",
     "SPRAY": "スプレー"
+  },
+  "livegame": {
+    "EMBED_TITLE": "⚔️ ライブゲーム・{mapName}",
+    "EMBED_FOOTER": "{stateLabel}・{queueName}",
+    "NOT_IN_MATCH_TITLE": "マッチ中ではありません",
+    "NOT_IN_MATCH_DESC": "現在、プリゲームロビーまたはライブマッチにいないようです。\n\n**エージェント選択**または**ゲーム中**であることを確認して、再度お試しください。",
+    "LIVE_GAME_FOOTER": "ライブゲーム",
+    "MAINTENANCE_TITLE": "VALORANTメンテナンス",
+    "MAINTENANCE_DESC": "VALORANTサーバーは現在メンテナンス中です。後ほど再度お試しください。",
+    "RATE_LIMITED_TITLE": "制限中",
+    "RATE_LIMITED_DESC": "現在制限されています。しばらく待ってから再度お試しください。",
+    "LOGIN_REQUIRED_TITLE": "ログインが必要です",
+    "LOGIN_REQUIRED_DESC": "VALORANTアカウントの認証ができませんでした。`/login`で再度ログインしてください。",
+    "REFRESH_BUTTON": "リフレッシュ",
+    "ENEMY_TEAM_DIVIDER": "── 敵チーム ──",
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   },
   "settings": {
     "TRUE": "はい",

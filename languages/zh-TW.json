@@ -23,7 +23,7 @@
     "SKIN_NOT_FOUND": "**找不到叫該名稱的造型！** 請檢查拼寫並重試。",
     "BUNDLE_NOT_FOUND": "**找不到叫該名稱的組合包！** 請檢查拼寫並重試。",
     "UNKNOWN_ITEM_TYPE": "**未知的物品類型！** `{t}`",
-    "MAINTENANCE": "**Valorant 伺服器目前正在維護中！** 請稍後再試。",
+    "MAINTENANCE": "**VALORANT 伺服器目前正在維護中！** 請稍後再試。",
     "OTHER_SHOP_DISABLED": "**{u} 停用了其他人查看其商店的功能！**",
     "OTHER_COLLECTION_DISABLED": "**{u} 停用了其他人查看其收藏的功能！**",
     "STATS_DISABLED": "**目前該機器人的商店統計資訊功能已停用！**",
@@ -211,5 +211,21 @@
     "AVERAGE_COMBAT_SCORE": "平均戰鬥分數",
     "HS_PERCENT": "爆頭率",
     "PERCENT": "%{v}"
+  },
+  "livegame": {
+    "EMBED_TITLE": "⚔️ Live Game・{mapName}",
+    "EMBED_FOOTER": "{stateLabel}・{queueName}",
+    "NOT_IN_MATCH_TITLE": "不在比賽中",
+    "NOT_IN_MATCH_DESC": "您目前似乎不在預賽大廳或進行中的比賽中。\n\n請確認您目前處於 **選擇特務** 或 **遊戲中**，然後再試一次。",
+    "LIVE_GAME_FOOTER": "Live Game",
+    "MAINTENANCE_TITLE": "VALORANT 維護中",
+    "MAINTENANCE_DESC": "VALORANT 伺服器目前正在維護中。請稍後再試。",
+    "RATE_LIMITED_TITLE": "請求受限",
+    "RATE_LIMITED_DESC": "您目前被限制請求。請稍候再試。",
+    "LOGIN_REQUIRED_TITLE": "需要登入",
+    "LOGIN_REQUIRED_DESC": "無法驗證您的 VALORANT 帳號。請使用 `/login` 重新登入。",
+    "REFRESH_BUTTON": "重新整理",
+    "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   }
 }

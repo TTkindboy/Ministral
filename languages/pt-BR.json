@@ -23,7 +23,7 @@
     "SKIN_NOT_FOUND": "**Não encontrei uma skin com esse nome!** Verifique a ortografia e tente novamente.",
     "BUNDLE_NOT_FOUND": "**Couldn't find a bundle with that name!** Verifique a ortografia e tente novamente.",
     "UNKNOWN_ITEM_TYPE": "**Tipo do item desconhecido!** `{t}`",
-    "MAINTENANCE": "**Servidores do valorante estão em manutenção no momento!** Tente novamente mais tarde.",
+    "MAINTENANCE": "**Servidores do VALORANTe estão em manutenção no momento!** Tente novamente mais tarde.",
     "OTHER_SHOP_DISABLED": "**{u} desabilitou a capacidade de outros verem sua loja!**",
     "OTHER_COLLECTION_DISABLED": "**{u} desabilitou a capacidade de outros verem sua coleção!**",
     "OTHER_PROFILE_DISABLED": "**{u} desabilitou a capacidade de outros verem seu perfil!**",
@@ -211,5 +211,21 @@
     "AVERAGE_COMBAT_SCORE": "Pmc",
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
+  },
+  "livegame": {
+    "EMBED_TITLE": "⚔️ Live Game・{mapName}",
+    "EMBED_FOOTER": "{stateLabel}・{queueName}",
+    "NOT_IN_MATCH_TITLE": "Não está em uma Partida",
+    "NOT_IN_MATCH_DESC": "Você não parece estar em um lobby de pré-jogo ou em uma partida ao vivo no momento.\n\nCertifique-se de que você está em **seletor de agente** ou **in-game** e tente novamente.",
+    "LIVE_GAME_FOOTER": "Live Game",
+    "MAINTENANCE_TITLE": "Manutenção do VALORANT",
+    "MAINTENANCE_DESC": "Os servidores VALORANT estão em manutenção no momento. Tente novamente mais tarde.",
+    "RATE_LIMITED_TITLE": "Limitado",
+    "RATE_LIMITED_DESC": "Você está sendo rate-limited no momento. Aguarde um momento e tente novamente.",
+    "LOGIN_REQUIRED_TITLE": "Login Necessário",
+    "LOGIN_REQUIRED_DESC": "Não foi possível verificar sua conta VALORANT. Por favor, faça login novamente com `/login`.",
+    "REFRESH_BUTTON": "Atualizar",
+    "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   }
 }

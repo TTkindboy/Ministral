@@ -23,7 +23,7 @@
       "SKIN_NOT_FOUND": "**ไม่พบสกิน!** ตรวจสอบตัวสะกดแล้วลองอีกครั้ง",
       "BUNDLE_NOT_FOUND": "**ไม่พบคอลเลคชั่น!** ตรวจสอบตัวสะกดแล้วลองอีกครั้ง",
       "UNKNOWN_ITEM_TYPE": "**ประเภทรายการที่ไม่รู้จัก!** `{t}`",
-      "MAINTENANCE": "**เซิร์ฟเวอร์ Valorant อยู่ระหว่างการอัพเดท!** ลองอีกครั้งในภายหลัง",
+      "MAINTENANCE": "**เซิร์ฟเวอร์ VALORANT อยู่ระหว่างการอัพเดท!** ลองอีกครั้งในภายหลัง",
       "OTHER_SHOP_DISABLED": "**{u} ได้ปิดไม่ให้ผู้อื่นเห็นร้านค้าของเขา!**",
       "OTHER_COLLECTION_DISABLED": "**{u} ได้ปิดไม่ให้ผู้อื่นเห็นสกินของเขา!**",
       "OTHER_PROFILE_DISABLED": "**{u} ได้ปิดไม่ให้ผู้อื่นเห็นโปรไฟล์ของเขา!**",
@@ -198,6 +198,22 @@
       "othersCanViewProfile": "อนุญาตให้ผู้อื่นใช้คำสั้ง /profile กับชื่อผู้ใช้ของคุณ",
       "othersCanUseAccountButtons": "อนุญาตให้ผู้อื่นกดปุ่มในคำสั่ง /shop ของคุณ",
       "locale": "ภาษา"
+    },
+    "livegame": {
+      "EMBED_TITLE": "⚔️ เกมสด・{mapName}",
+      "EMBED_FOOTER": "{stateLabel}・{queueName}",
+      "NOT_IN_MATCH_TITLE": "ไม่ได้อยู่ในเกม",
+      "NOT_IN_MATCH_DESC": "คุณไม่ได้อยู่ในล็อบบี้ก่อนเกมหรือเกมสดในขณะนี้\n\nโปรดตรวจสอบว่าคุณอยู่ใน **เลือกตัวละคร** หรือ **ในเกม** แล้วลองใหม่อีกครั้ง",
+      "LIVE_GAME_FOOTER": "เกมสด",
+      "MAINTENANCE_TITLE": "VALORANT Maintenance",
+      "MAINTENANCE_DESC": "เซิร์ฟเวอร์ VALORANT กำลังอยู่ในระหว่างการบำรุงรักษา กรุณาลองใหม่ภายหลัง",
+      "RATE_LIMITED_TITLE": "จำกัดการใช้งาน",
+      "RATE_LIMITED_DESC": "คุณถูกจำกัดการใช้งาน กรุณารอสักครู่แล้วลองใหม่",
+      "LOGIN_REQUIRED_TITLE": "ต้องเข้าสู่ระบบ",
+      "LOGIN_REQUIRED_DESC": "ไม่สามารถยืนยันบัญชี VALORANT ของคุณ กรุณาเข้าสู่ระบบใหม่ด้วย `/login`",
+      "REFRESH_BUTTON": "รีเฟรช",
+      "ENEMY_TEAM_DIVIDER": "── ทีมศัตรู ──",
+      "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
     },
     "modal": {
       "PAGE_TITLE": "เลือกหน้า",

@@ -199,6 +199,22 @@
       "othersCanUseAccountButtons": "Cho phép người khác nhấn nút trên /shop của bạn",
       "locale": "Ngôn ngữ"
     },
+    "livegame": {
+      "EMBED_TITLE": "⚔️ Trận đấu trực tiếp・{mapName}",
+      "EMBED_FOOTER": "{stateLabel}・{queueName}",
+      "NOT_IN_MATCH_TITLE": "Không trong trận đấu",
+      "NOT_IN_MATCH_DESC": "Bạn không có vẻ đang ở sảnh chờ hoặc trận đấu trực tiếp.\n\nHãy chắc chắn bạn đang ở **chọn agent** hoặc **trong trận** và thử lại.",
+      "LIVE_GAME_FOOTER": "Trận đấu trực tiếp",
+      "MAINTENANCE_TITLE": "Bảo trì VALORANT",
+      "MAINTENANCE_DESC": "Máy chủ VALORANT đang bảo trì. Vui lòng thử lại sau.",
+      "RATE_LIMITED_TITLE": "Giới hạn",
+      "RATE_LIMITED_DESC": "Bạn đang bị giới hạn. Vui lòng chờ và thử lại.",
+      "LOGIN_REQUIRED_TITLE": "Cần đăng nhập",
+      "LOGIN_REQUIRED_DESC": "Không thể xác minh tài khoản VALORANT của bạn. Vui lòng đăng nhập lại với `/login`.",
+      "REFRESH_BUTTON": "Làm mới",
+      "ENEMY_TEAM_DIVIDER": "── Đội địch ──",
+      "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
+    },
     "modal": {
       "PAGE_TITLE": "Điều hướng trang",
       "PAGE_INPUT_PLACEHOLDER": "Vui lòng chỉ nhập số.",

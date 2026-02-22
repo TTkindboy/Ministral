@@ -93,6 +93,8 @@ import fuzzysort from "fuzzysort";
 import { renderCollection, getSkins } from "../valorant/inventory.js";
 import { getLoadout } from "../valorant/inventory.js";
 import { getAccountInfo, fetchMatchHistory } from "../valorant/profile.js";
+import { fetchLiveGame } from "../valorant/livegame.js";
+import { renderLiveGame, renderLiveGameError } from "./livegameEmbed.js";
 import { spawn } from "child_process";
 import * as fs from "fs";
 
@@ -368,6 +370,10 @@ const commands = [
             description: "Optional: see someone else's collection!",
             required: false
         }]
+    },
+    {
+        name: "livegame",
+        description: "See your current Valorant match with player ranks and agents."
     },
     {
         name: "battlepass",
@@ -1267,6 +1273,26 @@ client.on("interactionCreate", async (interaction) => {
 
                     break;
                 }
+                case "livegame": {
+                    if (!valorantUser) return await interaction.reply({
+                        embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
+                        flags: [MessageFlags.Ephemeral]
+                    });
+
+                    await defer(interaction);
+
+                    const liveGameData = await fetchLiveGame(interaction.user.id);
+
+                    if (!liveGameData.success) {
+                        await interaction.followUp(renderLiveGameError(liveGameData, interaction.user.id));
+                    } else {
+                        await interaction.followUp(renderLiveGame(liveGameData, interaction.user.id, !interaction.guild));
+                    }
+
+                    console.log(`Handled /livegame for ${interaction.user.tag} — state: ${liveGameData.state ?? "error"}`);
+
+                    break;
+                }
                 case "profile": {
                     let targetUser = interaction.user;
 
@@ -1687,6 +1713,22 @@ client.on("interactionCreate", async (interaction) => {
                 const q1 = new ActionRowBuilder().addComponents(pageInput);
                 modal.addComponents(q1);
                 await interaction.showModal(modal);
+            } else if (interaction.customId.startsWith("livegame/refresh/")) {
+                const [, , targetId] = interaction.customId.split('/');
+
+                if (targetId !== interaction.user.id) return await interaction.reply({
+                    embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_GENERIC)],
+                    flags: [MessageFlags.Ephemeral]
+                });
+
+                await interaction.deferUpdate();
+
+                const liveGameData = await fetchLiveGame(interaction.user.id);
+                const payload = liveGameData.success
+                    ? renderLiveGame(liveGameData, interaction.user.id, !interaction.guild)
+                    : renderLiveGameError(liveGameData, interaction.user.id);
+
+                await interaction.editReply(payload);
             }
         } catch (e) {
             await handleError(e, interaction);
