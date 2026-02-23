@@ -61,7 +61,7 @@ import { getOverallStats, getStatsFor, flushStats } from "../misc/stats.js";
 import {
     canSendMessages,
     defer,
-    fetchChannel, fetchMaintenances, getProxyManager, initProxyManager,
+    fetchChannel, fetchMaintenances,
     removeAlertActionRow,
     skinNameAndEmoji,
     WeaponTypeUuid,
@@ -202,12 +202,7 @@ client.on("clientReady", async () => {
     }
     // Other shards skip warmEmojiCache() here — they receive the snapshot via "emojiCacheWarm" message
 
-    initProxyManager().then(() => {
-        if (getProxyManager().enabled) {
-            console.log(`Proxy manager loaded ${getProxyManager().allProxies.length} proxies!`);
-            // getProxyManager().loadForHostname("auth.riotgames.com").then(() => console.log("Loaded proxies for auth.riotgames.com!"));
-        }
-    });
+
 
     scheduleTasks();
 

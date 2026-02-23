@@ -67,7 +67,6 @@ export const loadConfig = (filename = "config.json", saveAfterLoad = true) => {
     applyConfig(loadedConfig, "useLoginQueue", false);
     applyConfig(loadedConfig, "loginQueueInterval", 3000);
     applyConfig(loadedConfig, "loginQueuePollRate", 2000);
-    applyConfig(loadedConfig, "loginRetryTimeout", 10 * 60 * 1000);
     applyConfig(loadedConfig, "authFailureStrikes", 2);
     applyConfig(loadedConfig, "maxAccountsPerUser", 5);
     applyConfig(loadedConfig, "autoRefreshTokens", true);
@@ -80,7 +79,6 @@ export const loadConfig = (filename = "config.json", saveAfterLoad = true) => {
     applyConfig(loadedConfig, "redisPort", 6379);
     applyConfig(loadedConfig, "redisPassword", "");
     applyConfig(loadedConfig, "redisDb", 0);
-    applyConfig(loadedConfig, "maxActiveProxies", 10);
     applyConfig(loadedConfig, "trackStoreStats", true);
     applyConfig(loadedConfig, "statsExpirationDays", 14);
     applyConfig(loadedConfig, "statsPerPage", 8);
