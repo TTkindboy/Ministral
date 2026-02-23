@@ -73,7 +73,6 @@ export const loadConfig = (filename = "config.json", saveAfterLoad = true) => {
     applyConfig(loadedConfig, "tokenRefreshBufferMinutes", 5);
     applyConfig(loadedConfig, "rateLimitBackoff", 60);
     applyConfig(loadedConfig, "rateLimitCap", 10 * 60);
-    applyConfig(loadedConfig, "useMultiqueue", false);
     applyConfig(loadedConfig, "shards", "auto");
     applyConfig(loadedConfig, "redisHost", "127.0.0.1");
     applyConfig(loadedConfig, "redisPort", 6379);

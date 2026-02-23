@@ -27,7 +27,6 @@
   "tokenRefreshBufferMinutes": 5,
   "rateLimitBackoff": "3600",
   "rateLimitCap": "3600",
-  "useMultiqueue": false,
   "shards": "auto",
   "redisHost": "127.0.0.1",
   "redisPort": 6379,

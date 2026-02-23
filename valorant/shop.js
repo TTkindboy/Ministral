@@ -14,19 +14,15 @@ import { addBundleData, getSkin, getSkinFromSkinUuid, addPricesFromShop } from "
 import { addStore } from "../misc/stats.js";
 import config from "../misc/config.js";
 import { deleteUser, saveUser } from "./accountSwitcher.js";
-import { mqGetShop, useMultiqueue } from "../misc/multiqueue.js";
-
 // In-memory shop cache to avoid repeated fs.readFileSync on every cache check
 const memoryShopCache = new Map();
 
 export const getShop = async (id, account = null) => {
-    if (useMultiqueue()) return await mqGetShop(id, account);
-
     const authSuccess = await authUser(id, account);
     if (!authSuccess.success) return authSuccess;
 
     const user = getUser(id, account);
-    if(config.logUrls) console.log(`Fetching shop for ${user.username}...`);
+    if (config.logUrls) console.log(`Fetching shop for ${user.username}...`);
 
     // https://github.com/techchrism/valorant-api-docs/blob/trunk/docs/Store/GET%20Store_GetStorefrontV2.md
     const req = await fetch(`https://pd.${userRegion(user)}.a.pvp.net/store/v3/storefront/${user.puuid}`, {
@@ -73,7 +69,7 @@ export const getShop = async (id, account = null) => {
 export const getOffers = async (id, account = null) => {
     const puuid = getPuuid(id, account);
     if (!puuid) return { success: false, error: "User not found" };
-    
+
     const shopCache = await getShopCache(puuid, "offers");
     if (shopCache) return { success: true, cached: true, ...shopCache.offers };
 
@@ -100,7 +96,7 @@ export const getOffers = async (id, account = null) => {
 export const getBundles = async (id, account = null) => {
     const puuid = getPuuid(id, account);
     if (!puuid) return { success: false, error: "User not found" };
-    
+
     const shopCache = await getShopCache(puuid, "bundles");
     if (shopCache) return { success: true, bundles: shopCache.bundles };
 
@@ -115,7 +111,7 @@ export const getBundles = async (id, account = null) => {
 export const getNightMarket = async (id, account = null) => {
     const puuid = getPuuid(id, account);
     if (!puuid) return { success: false, error: "User not found" };
-    
+
     const shopCache = await getShopCache(puuid, "night_market");
     if (shopCache) return { success: true, ...shopCache.night_market };
 
@@ -222,7 +218,7 @@ export const getShopCache = async (puuid, target = "offers", print = true) => {
 
         if (!shopCache) {
             // L2: Redis cache (cross-shard)
-            const {getShopData} = await import("../misc/redisQueue.js");
+            const { getShopData } = await import("../misc/redisQueue.js");
             const redisCache = await getShopData(puuid);
             if (redisCache) {
                 memoryShopCache.set(puuid, redisCache); // warm L1
@@ -299,7 +295,7 @@ const addShopCache = async (puuid, shopJson) => {
     memoryShopCache.set(puuid, shopCache);
 
     // L2: Redis (primary, cross-shard)
-    const {setShopData} = await import("../misc/redisQueue.js");
+    const { setShopData } = await import("../misc/redisQueue.js");
     setShopData(puuid, shopCache).catch(e => console.error(`Failed to write shop to Redis for ${puuid}:`, e.message));
 
     // L3: disk (legacy fallback)

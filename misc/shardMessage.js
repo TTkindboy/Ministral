@@ -3,8 +3,6 @@ import { loadConfig } from "./config.js";
 import { client, destroyTasks, scheduleTasks } from "../discord/bot.js";
 import { addMessagesToLog, localLog } from "./logger.js";
 import { loadSkinsJSON } from "../valorant/cache.js";
-import { handleMQRequest, handleMQResponse } from "./multiqueue.js";
-
 let allShardsReadyCb;
 let allShardsReadyPromise = new Promise(r => allShardsReadyCb = r);
 
@@ -96,12 +94,7 @@ const receiveShardMessage = async (message) => {
             allShardsReadyPromise = null;
             allShardsReadyCb();
             break;
-        case "mqrequest":
-            await handleMQRequest(message);
-            break;
-        case "mqresponse":
-            await handleMQResponse(message);
-            break;
+
         case "alert":
             await sendAlert(message.id, message.account, message.alerts, message.expires, false, message.alertsLength);
             break;
