@@ -53,16 +53,30 @@ export const sendConsoleOutput = () => {
         else if (channel) {
             while (messagesToLog.length) {
                 let s = "";
-                while (messagesToLog.length && s.length + messagesToLog[0].length < 2000)
+                while (messagesToLog.length && s.length + messagesToLog[0].length < 2000) {
                     s += messagesToLog.shift() + "\n";
+                }
 
-                channel.send(s);
+                if (s.length === 0 && messagesToLog.length > 0) {
+                    const longMessage = messagesToLog.shift();
+                    s = longMessage.substring(0, 1990) + "...\n";
+                    if (longMessage.length > 1990) {
+                        messagesToLog.unshift("..." + longMessage.substring(1990));
+                    }
+                }
+
+                if (s.trim().length > 0) {
+                    channel.send(s).catch(err => {
+                        oldError("Error when trying to send the console output to the channel!");
+                        oldError(err);
+                    });
+                }
             }
         }
 
         messagesToLog.length = 0;
     } catch (e) {
-        localError("Error when trying to send the console output to the channel!");
-        localError(e)
+        oldError("Error when trying to send the console output to the channel!");
+        oldError(e);
     }
 }

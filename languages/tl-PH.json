@@ -1,5 +1,6 @@
-{ "translation_by": "Astro",
-  "error":{
+{
+  "translation_by": "Astro",
+  "error": {
     "NOT_REGISTERED": "**Hindi ka naka-register sa bot!** Subukan ang `/login`.",
     "NOT_REGISTERED_OTHER": "**Ang user na 'yan ay hindi naka-register sa bot!**",
     "INVALID_PASSWORD": "Maling username o password!",
@@ -27,8 +28,8 @@
     "OTHER_COLLECTION_DISABLED": "**Dinisable ni {u} ang kakayahan na makita ng iba ang kanilang koleksyon!**",
     "OTHER_PROFILE_DISABLED": "**Dinisable ni {u} ang kakayahan na makita ng iba ang kanilang profile!**",
     "STATS_DISABLED": "**Ang shop statistics ay kasalukuyang disabled para sa bot na ito!**",
-    "EMPTY_STATS":  "**Wala akong shop stats na ipapakita!** gamitin ang `/shop` para magsimula.",
-    "NO_STATS_FOR_SKIN":  "**Ang skin na iyan ay hindi lumabas sa shop ng kahit sino** sa nakaraang {d} na araw!",
+    "EMPTY_STATS": "**Wala akong shop stats na ipapakita!** gamitin ang `/shop` para magsimula.",
+    "NO_STATS_FOR_SKIN": "**Ang skin na iyan ay hindi lumabas sa shop ng kahit sino** sa nakaraang {d} na araw!",
     "NOT_UR_MESSAGE_STATS": "**Hindi mo yan mensahe!** Gamitin ang `/stats` para tumingin ng skin stats.",
     "NOT_UR_MESSAGE_BUNDLE": "**Hindi mo yan mensahe!** Gamitin ang `/bundle` para hanapin ang bundles .",
     "NOT_UR_MESSAGE_ALERT": "**Hindi mo yan mensahe!** Gamitin ang `/alert` para gumawa ng iyong mga alerto .",
@@ -57,7 +58,7 @@
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Hindi ma-access ang skin alert channel**\n\n{perms}\n\n**Channel:** <#{c}>\n**Dahilan:** {r}\n\n✅ **Awtomatikong inilipat ko ang {n} alert(s) sa DM channel na ito** para hindi ka mawalan ng alerts!\n\nKung gusto mong mag-setup ng alerts sa ibang server channel, gamitin muli ang `/alert` sa channel na iyon.",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Hindi ma-access ang skin alert channel**\n\n{perms}\n\n**Channel:** <#{c}>\n**Dahilan:** {r}\n\nPakire-configure muli ang iyong alerts sa channel na may tamang access gamit ang command na `/alert`."
   },
-  "info":{
+  "info": {
     "SHOP_HEADER": "Daily shop ni **{u}** (new shop <t:{t}:R>)",
     "ACCESSORY_SHOP_HEADER": "Accessory shop ni **{u}** (bagong shop <t:{t}:R>)",
     "BUNDLE_HEADER": "Featured bundle: **{b}**",
@@ -84,7 +85,7 @@
     "INFO_SOURCE": "Source code",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **May problema sa Daily Shop Alert**\n\n{perms}\n\n**Channel:** <#{c}>\n**Dahilan:** {r}\n\nGamitin ang `/settings` para i-setup ang daily shop alert sa channel na may access ako, o i-disable ito kung ayaw mo nang automatic shop updates.",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Hindi ma-access ang skin alert channel**\n\n{perms}\n\n**Channel:** <#{c}>\n**Dahilan:** {r}\n\n✅ **Awtomatikong inilipat ko ang {n} alert(s) sa DM channel na ito** para hindi ka mawalan ng alerts!\n\nKung gusto mong mag-setup ng alerts sa ibang server channel, gamitin muli ang `/alert` sa channel na iyon.",
-    "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Hindi ma-access ang skin alert channel**\n\n{perms}\n\n**Channel:** <#{c}>\n**Dahilan:** {r}\n\nPakire-configure muli ang iyong alerts sa channel na may tamang access gamit ang command na `/alert`."
+    "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Hindi ma-access ang skin alert channel**\n\n{perms}\n\n**Channel:** <#{c}>\n**Dahilan:** {r}\n\nPakire-configure muli ang iyong alerts sa channel na may tamang access gamit ang command na `/alert`.",
     "NMARKET_HEADER": "Night Market ni**{u}** (ends <t:{t}:R>)",
     "WALLET_HEADER": "Wallet ni **{u}**:",
     "VPOINTS": "VALORANT Points",
@@ -148,8 +149,8 @@
     "INCIDENT_TYPE": "incident",
     "LAST_UPDATED": "Huling na-update <t:{t}:R>",
     "UNHANDLED_COMMAND": "Yer a wizard harry!",
-    "SELECT_SKIN_WITH_LEVEL":"Pumili ng skin para ipakita ang video:",
-    "SELECT_LEVEL_OF_SKIN":"Pumili ng level ng skin:",
+    "SELECT_SKIN_WITH_LEVEL": "Pumili ng skin para ipakita ang video:",
+    "SELECT_LEVEL_OF_SKIN": "Pumili ng level ng skin:",
     "SHARDS_LOADING": "Nagsisimula pa ang bot! Maghintay ng ilang segundo at subukan muli. (Naglo-load ang Shards...)",
     "NO_MORE_ACCESSORIES": "Mayroon ka na ng lahat ng swagger! :sunglasses:",
     "PROFILE_PEAK_RANK": "Pinakamataas na Rank"
