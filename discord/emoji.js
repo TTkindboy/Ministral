@@ -78,19 +78,22 @@ const getOrCreateEmoji = async (channel, name, filenameOrUrl) => {
     const emoji = emojiInGuild(guild, name);
     if (emoji && emoji.available) return addEmojiToCache(emoji);
 
-    // always check the configured emoji server first, regardless of externalEmojisAllowed —
+    // always check the configured emoji servers first, regardless of externalEmojisAllowed —
     // if the emoji lives there it's the authoritative source and should be used even when
     // the channel's guild has UseExternalEmojis disabled for @everyone
-    if (config.useEmojisFromServer) {
-        try {
-            const emojiGuild = await client.guilds.fetch(config.useEmojisFromServer);
-            if (!emojiGuild) console.error("useEmojisFromServer server not found! Either the ID is incorrect or I am not in that server anymore!");
-            else {
+    if (config.useEmojisFromServer && config.useEmojisFromServer.length > 0) {
+        for (const serverId of config.useEmojisFromServer) {
+            try {
+                const emojiGuild = await client.guilds.fetch(serverId);
+                if (!emojiGuild) {
+                    console.error(`useEmojisFromServer server ${serverId} not found! Either the ID is incorrect or I am not in that server anymore!`);
+                    continue;
+                }
                 await updateEmojiCache(emojiGuild);
                 const emoji = emojiInGuild(emojiGuild, name);
                 if (emoji && emoji.available) return addEmojiToCache(emoji);
-            }
-        } catch (e) { }
+            } catch (e) { }
+        }
     }
 
     // check in other guilds (only when external emojis are usable in this channel)
@@ -114,22 +117,31 @@ const getOrCreateEmoji = async (channel, name, filenameOrUrl) => {
         negativeCache[name] = Date.now() + NEGATIVE_CACHE_TTL;
     }
 
-    // couldn't find usable emoji, try to create it only in the configured server;
+    // couldn't find usable emoji, try to create it in the configured servers;
     // use pendingCreations to prevent duplicate uploads from concurrent requests
-    if (config.useEmojisFromServer) {
+    if (config.useEmojisFromServer && config.useEmojisFromServer.length > 0) {
         if (pendingCreations[name]) return addEmojiToCache(await pendingCreations[name]);
-        try {
-            const emojiGuild = await client.guilds.fetch(config.useEmojisFromServer);
-            if (emojiGuild) {
-                pendingCreations[name] = createEmoji(emojiGuild, name, filenameOrUrl);
-                const created = await pendingCreations[name];
-                delete pendingCreations[name];
-                return addEmojiToCache(created);
+
+        let createdEmoji = null;
+        for (const serverId of config.useEmojisFromServer) {
+            try {
+                const emojiGuild = await client.guilds.fetch(serverId);
+                if (emojiGuild) {
+                    pendingCreations[name] = createEmoji(emojiGuild, name, filenameOrUrl);
+                    const created = await pendingCreations[name];
+
+                    if (created) {
+                        createdEmoji = created;
+                        break;
+                    }
+                }
+            } catch (e) {
+                console.error(`Failed to create emoji in useEmojisFromServer guild ${serverId}: ${e.message}`);
             }
-        } catch (e) {
-            delete pendingCreations[name];
-            console.error(`Failed to create emoji in useEmojisFromServer guild: ${e.message}`);
         }
+
+        delete pendingCreations[name];
+        if (createdEmoji) return addEmojiToCache(createdEmoji);
     } else {
         // No emoji server configured - log notice instead of creating emojis everywhere
         console.log(`Emoji ${name} not found. Configure 'useEmojisFromServer' in config.json to use custom emojis.`);
@@ -154,8 +166,10 @@ const createEmoji = async (guild, name, filenameOrUrl) => {
     }
 
     await updateEmojiCache(guild);
-    if (guild.emojis.cache.filter(e => !e.animated).size >= maxEmojis(guild))
-        return console.log(`Emoji limit of ${maxEmojis(guild)} reached for ${guild.name} while uploading ${name}!`);
+    if (guild.emojis.cache.filter(e => !e.animated).size >= maxEmojis(guild)) {
+        console.log(`Emoji limit of ${maxEmojis(guild)} reached for ${guild.name} while uploading ${name}!`);
+        return null;
+    }
 
     console.log(`Uploading emoji ${name} in ${guild.name}...`);
     try {
@@ -201,15 +215,29 @@ const addEmojiToCache = (emoji) => {
  * Returns a plain-object snapshot of the cache for broadcasting.
  */
 export const warmEmojiCache = async () => {
-    if (!config.useEmojisFromServer) return null;
+    if (!config.useEmojisFromServer || config.useEmojisFromServer.length === 0) return null;
     try {
-        const emojiGuild = await client.guilds.fetch(config.useEmojisFromServer);
-        if (!emojiGuild) return null;
-        await updateEmojiCache(emojiGuild);
-        for (const emoji of emojiGuild.emojis.cache.values()) {
-            if (emoji.available) addEmojiToCache(emoji);
+        let totalWarmed = 0;
+        let lastEmojiGuildName = "";
+
+        for (const serverId of config.useEmojisFromServer) {
+            try {
+                const emojiGuild = await client.guilds.fetch(serverId);
+                if (!emojiGuild) continue;
+
+                await updateEmojiCache(emojiGuild);
+                for (const emoji of emojiGuild.emojis.cache.values()) {
+                    if (emoji.available) addEmojiToCache(emoji);
+                }
+
+                lastEmojiGuildName = emojiGuild.name;
+                totalWarmed++;
+            } catch (innerError) {
+                console.error(`Failed to warm emoji cache for server ${serverId}: ${innerError.message}`);
+            }
         }
-        console.log(`Warmed emoji cache with ${Object.keys(emojiCache).length} emojis from ${emojiGuild.name}`);
+
+        if (totalWarmed > 0) console.log(`Warmed emoji cache with ${Object.keys(emojiCache).length} emojis from custom emoji servers (latest: ${lastEmojiGuildName})`);
 
         // Return serializable snapshot: { name -> { id, name, animated, guildId } }
         const snapshot = {};

@@ -52,7 +52,18 @@ export const loadConfig = (filename = "config.json", saveAfterLoad = true) => {
     applyConfig(loadedConfig, "localiseText", true);
     applyConfig(loadedConfig, "localiseSkinNames", true);
     applyConfig(loadedConfig, "linkItemImage", true);
-    applyConfig(loadedConfig, "useEmojisFromServer", "");
+
+    // useEmojisFromServer can be an array of IDs or a comma-separated string
+    applyConfig(loadedConfig, "useEmojisFromServer", []);
+    if (typeof config.useEmojisFromServer === "string") {
+        config.useEmojisFromServer = config.useEmojisFromServer
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+    } else if (!Array.isArray(config.useEmojisFromServer)) {
+        config.useEmojisFromServer = [];
+    }
+
     applyConfig(loadedConfig, "refreshSkins", "10 0 0 * * *");
     applyConfig(loadedConfig, "checkGameVersion", "*/15 * * * *");
     applyConfig(loadedConfig, "refreshPrices", "*/30 * * * *");

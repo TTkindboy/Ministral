@@ -7,7 +7,7 @@
   "localiseText": false,
   "localiseSkinNames": true,
   "linkItemImage": true,
-  "useEmojisFromServer": "",
+  "useEmojisFromServer": [],
   "refreshSkins": "0 0 * * *",
   "checkGameVersion": "*/90 * * * *",
   "refreshPrices": "*/30 * * * *",
