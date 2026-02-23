@@ -4,7 +4,7 @@
     "NOT_REGISTERED": "**Kamu tidak terdaftar di bot ini!** gunakan `/login`.",
     "NOT_REGISTERED_OTHER": "**Pengguna itu tidak terdaftar di bot ini!**",
     "INVALID_PASSWORD": "Username atau password salah!",
-    "INVALID_COOKIES": "waduh, gagal nih, apakah format cookies mu sudah benar???",
+    "INVALID_COOKIES": "**Waduh, gagal nih!** Apakah format cookies mu sudah benar?",
     "LOGIN_RATELIMIT": "**Terlalu banyak orang yang login di saat yang bersamaan!**, dan RIOT tidak akan senang!\nSilahkan coba lagi nanti.",
     "LOGIN_RATELIMIT_UNTIL": "**Terlalu banyak orang yang login di saat yang bersamaan!**, dan RIOT tidak akan senang!\nSilahkan coba lagi nanti <t:{t}:R>.",
     "FORGET_FORGOTTEN": "Aku gabisa melupakan kamu kalau kamu belum terdaftar!",
@@ -20,8 +20,8 @@
     "AUTH_ERROR_ALERTS_HAPPENED": "**<@{u}> Tidak bisa cek alert mu!** Apakah kamu ganti password?\nCoba `/login` lagi.",
     "AUTH_ERROR_RETRY_EXPIRED": "**Operasi retry tidak diketahui**, apakah kamu tunggu terlalu lama? Coba `/login` lagi.",
     "AUTH_ERROR_GENERIC": "**Ada error saat autentikasi**, kayaknya kamu sudah logout. Coba `/login` lagi.",
-    "SKIN_NOT_FOUND": "**gabisa nemu skin dengan nama itu** yakin nama skinnya udah bener??",
-    "BUNDLE_NOT_FOUND": "**gak nemu nih bundle dengan nama itu!** yakin nama bundle nya udah bener?.",
+    "SKIN_NOT_FOUND": "**Gak nemu skin dengan nama itu!** Coba cek spelling nya ya.",
+    "BUNDLE_NOT_FOUND": "**Gak nemu bundle dengan nama itu!** Coba cek spelling nya ya.",
     "UNKNOWN_ITEM_TYPE": "**Unknown item type!** `{t}`",
     "MAINTENANCE": "**Server VALORANT lagi down untuk maintenance!** coba lagi nanti.",
     "OTHER_SHOP_DISABLED": "**{u} gak ngebolehin buat liat store nya!**",
@@ -39,6 +39,9 @@
     "DUPLICATE_ALERT": "kamu sudah menambahkan alert untuk skin **{s}** in <#{c}>!",
     "GHOST_ALERT": "Alert itu tidak ada lagi!",
     "ALERT_NO_PERMS": "**Saya tidak punya izin yang diperlukan!** Apakah saya punya role yang tepat?\nPastikan saya bisa `Lihat Saluran`, `Kirim Pesan`, dan `Sematkan Tautan` di saluran ini.",
+    "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **Masalah dengan Pemberitahuan Toko Harian**\n\n{perms}\n\n**Saluran:** <#{c}>\n**Alasan:** {r}\n\nSilakan gunakan `/settings` untuk mengatur pemberitahuan toko harian Anda di saluran yang dapat saya akses, atau nonaktifkan jika Anda tidak lagi menginginkan pembaruan toko otomatis.",
+    "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Saluran Pemberitahuan Skin Tidak Dapat Diakses**\n\n{perms}\n\n**Saluran:** <#{c}>\n**Alasan:** {r}\n\n✅ **Saya telah secara otomatis memindahkan {n} pemberitahuan ke saluran DM ini** sehingga Anda tidak akan melewatkan pemberitahuan apa pun!\n\nJika Anda ingin mengatur pemberitahuan di saluran server lain, silakan gunakan `/alert` lagi di saluran tersebut.",
+    "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Saluran Pemberitahuan Skin Tidak Dapat Diakses**\n\n{perms}\n\n**Saluran:** <#{c}>\n**Alasan:** {r}\n\nSilakan atur pemberitahuan Anda lagi di saluran yang dapat saya akses menggunakan perintah `/alert`.",
     "GENERIC_NO_PERMS": "**Saya tidak punya izin untuk melakukan itu di saluran ini!** Apakah saya punya role yang tepat?\nPastikan saya bisa `Lihat Saluran`, `Kirim Pesan`, dan `Sematkan Tautan` di saluran ini.",
     "NO_NMARKET": "**Tidak ada Night Market sekarang!**",
     "NO_NMARKET_WITH_DATE": "**Tidak ada Night Market sekarang!** Night Market selanjutnya dalam <t:{t}:R>.",
@@ -129,7 +132,7 @@
     "ACCESSORY_SHOP_SWITCH_BUTTON": "Shop aksesori",
     "DAILY_SHOP_SWITCH_BUTTON": "Shop skin",
     "NIGHT_MARKET_BUTTON": "Night.Market",
-    "BATTLEPASS_BUTTON": "Passe Pertempuran",
+    "BATTLEPASS_BUTTON": "Battlepass",
     "COLLECTION_BUTTON": "Koleksi",
     "COMPETITIVE_HISTORY_BUTTON": "Riwayat Pertandingan Competitive",
     "RETURN_BUTTON": "Kembali",
@@ -209,11 +212,11 @@
     "PERCENT": "%{v}"
   },
   "livegame": {
-    "EMBED_TITLE": "⚔️ Permainan Hidup・{mapName}",
+    "EMBED_TITLE": "⚔️ Live Game・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
     "NOT_IN_MATCH_TITLE": "Tidak dalam Pertandingan",
     "NOT_IN_MATCH_DESC": "Kamu tidak dalam lobi pra-pertandingan atau pertandingan hidup sekarang.\n\nPastikan kamu di **agent select** atau **in-game** dan coba lagi.",
-    "LIVE_GAME_FOOTER": "Permainan Hidup",
+    "LIVE_GAME_FOOTER": "Live Game",
     "MAINTENANCE_TITLE": "Maintenance VALORANT",
     "MAINTENANCE_DESC": "Server VALORANT sedang dalam perawatan. Coba lagi nanti.",
     "RATE_LIMITED_TITLE": "Dibatasi",
@@ -223,8 +226,5 @@
     "REFRESH_BUTTON": "Segarkan",
     "ENEMY_TEAM_DIVIDER": "── Tim Musuh ──",
     "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
-  },
-  "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **Masalah dengan Pemberitahuan Toko Harian**\n\n{perms}\n\n**Saluran:** <#{c}>\n**Alasan:** {r}\n\nSilakan gunakan `/settings` untuk mengatur pemberitahuan toko harian Anda di saluran yang dapat saya akses, atau nonaktifkan jika Anda tidak lagi menginginkan pembaruan toko otomatis.",
-  "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Saluran Pemberitahuan Skin Tidak Dapat Diakses**\n\n{perms}\n\n**Saluran:** <#{c}>\n**Alasan:** {r}\n\n✅ **Saya telah secara otomatis memindahkan {n} pemberitahuan ke saluran DM ini** sehingga Anda tidak akan melewatkan pemberitahuan apa pun!\n\nJika Anda ingin mengatur pemberitahuan di saluran server lain, silakan gunakan `/alert` lagi di saluran tersebut.",
-  "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Saluran Pemberitahuan Skin Tidak Dapat Diakses**\n\n{perms}\n\n**Saluran:** <#{c}>\n**Alasan:** {r}\n\nSilakan atur pemberitahuan Anda lagi di saluran yang dapat saya akses menggunakan perintah `/alert`."
+  }
 }

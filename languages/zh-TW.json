@@ -73,7 +73,7 @@
     "PRICE": "價格：",
     "FREE": "免費",
     "MORE_ITEMS": "...還有 {n} 個物品",
-    "INFO_HEADER": ":pencil: 資訊",
+    "INFO_HEADER": ":pencil: Info",
     "INFO_SERVERS": "伺服器",
     "INFO_MEMBERS": "成員",
     "INFO_REGISTERED": "註冊",
@@ -224,7 +224,7 @@
     "LOGIN_REQUIRED_TITLE": "需要登入",
     "LOGIN_REQUIRED_DESC": "無法驗證您的 VALORANT 帳號。請使用 `/login` 重新登入。",
     "REFRESH_BUTTON": "重新整理",
-    "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
+    "ENEMY_TEAM_DIVIDER": "── 敵方隊伍 ──",
     "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
   }
 }
