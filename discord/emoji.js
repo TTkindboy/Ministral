@@ -1,7 +1,7 @@
-import {asyncReadFile, canCreateEmojis, emojiToString, externalEmojisAllowed} from "../misc/util.js";
+import { asyncReadFile, canCreateEmojis, emojiToString, externalEmojisAllowed } from "../misc/util.js";
 import config from "../misc/config.js";
-import {client} from "./bot.js";
-import {s} from "../misc/languages.js";
+import { client } from "./bot.js";
+import { s } from "../misc/languages.js";
 
 const VPEmojiName = "ValPointsIcon";
 const VPEmojiFilename = "assets/vp.png"; // https://media.valorant-api.com/currencies/85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741/largeicon.png
@@ -25,9 +25,9 @@ const pendingCreations = {};
 const negativeCache = {};
 const NEGATIVE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-export const VPEmoji = async (interaction, channel=interaction.channel) => emojiToString(await getOrCreateEmoji(channel, VPEmojiName, VPEmojiFilename)) || s(interaction).info.PRICE;
-export const RadEmoji = async (interaction, channel=interaction.channel) => emojiToString(await getOrCreateEmoji(channel, RadEmojiName, RadEmojiFilename));
-export const KCEmoji = async (interaction, channel=interaction.channel) => emojiToString(await getOrCreateEmoji(channel, KCEmojiName, KCEmojiFilename));
+export const VPEmoji = async (interaction, channel = interaction.channel) => emojiToString(await getOrCreateEmoji(channel, VPEmojiName, VPEmojiFilename)) || s(interaction).info.PRICE;
+export const RadEmoji = async (interaction, channel = interaction.channel) => emojiToString(await getOrCreateEmoji(channel, RadEmojiName, RadEmojiFilename));
+export const KCEmoji = async (interaction, channel = interaction.channel) => emojiToString(await getOrCreateEmoji(channel, KCEmojiName, KCEmojiFilename));
 
 export const rarityEmoji = async (channel, name, icon) => emojiToString(await getOrCreateEmoji(channel, `${name}Rarity`, icon));
 
@@ -62,73 +62,71 @@ export const rankEmoji = async (channel, tier, iconUrl) => {
  *   - The guild already has locally-uploaded rarity emojis (same-name emojis previously added).
  */
 export const rarityEmojisAvailable = (channel) => {
-    if(externalEmojisAllowed(channel)) return true;
+    if (externalEmojisAllowed(channel)) return true;
     // External emojis are blocked — check if any rarity emoji already lives in this guild
     const guild = channel && channel.guild;
-    if(!guild) return true;
+    if (!guild) return true;
     return guild.emojis.cache.some(e => e.name && e.name.endsWith("Rarity") && e.available);
 };
 
 const getOrCreateEmoji = async (channel, name, filenameOrUrl) => {
-    if(!name || !filenameOrUrl) return;
+    if (!name || !filenameOrUrl) return;
 
     const guild = channel && channel.guild;
 
     // see if emoji exists already in the current guild
     const emoji = emojiInGuild(guild, name);
-    if(emoji && emoji.available) return addEmojiToCache(emoji);
+    if (emoji && emoji.available) return addEmojiToCache(emoji);
 
     // always check the configured emoji server first, regardless of externalEmojisAllowed —
     // if the emoji lives there it's the authoritative source and should be used even when
     // the channel's guild has UseExternalEmojis disabled for @everyone
-    if(config.useEmojisFromServer) {
+    if (config.useEmojisFromServer) {
         try {
             const emojiGuild = await client.guilds.fetch(config.useEmojisFromServer);
-            if(!emojiGuild) console.error("useEmojisFromServer server not found! Either the ID is incorrect or I am not in that server anymore!");
+            if (!emojiGuild) console.error("useEmojisFromServer server not found! Either the ID is incorrect or I am not in that server anymore!");
             else {
                 await updateEmojiCache(emojiGuild);
                 const emoji = emojiInGuild(emojiGuild, name);
-                if(emoji && emoji.available) return addEmojiToCache(emoji);
+                if (emoji && emoji.available) return addEmojiToCache(emoji);
             }
-        } catch(e) {}
+        } catch (e) { }
     }
 
     // check in other guilds (only when external emojis are usable in this channel)
     const externalAllowed = externalEmojisAllowed(channel);
-    if(externalAllowed) {
+    if (externalAllowed) {
         const cachedEmoji = emojiCache[name];
-        if(cachedEmoji) return cachedEmoji;
+        if (cachedEmoji) return cachedEmoji;
 
-        for(const otherGuild of client.guilds.cache.values()) {
+        for (const otherGuild of client.guilds.cache.values()) {
             const emoji = emojiInGuild(otherGuild, name);
-            if(emoji && emoji.available) return addEmojiToCache(emoji);
+            if (emoji && emoji.available) return addEmojiToCache(emoji);
         }
 
         // Skip broadcastEval if we recently confirmed this emoji doesn't exist
-        if(negativeCache[name] && Date.now() < negativeCache[name]) return null;
+        if (negativeCache[name] && Date.now() < negativeCache[name]) return null;
 
-        if(client.shard) {
-            const results = await channel.client.shard.broadcastEval(findEmoji, { context: { name } });
-            const emoji = results.find(e => e);
-            if(emoji) return addEmojiToCache(emoji);
-            // Cache the miss to avoid repeated broadcastEval for emojis that genuinely don't exist
-            negativeCache[name] = Date.now() + NEGATIVE_CACHE_TTL;
-        }
+        const results = await channel.client.shard.broadcastEval(findEmoji, { context: { name } });
+        const emoji = results.find(e => e);
+        if (emoji) return addEmojiToCache(emoji);
+        // Cache the miss to avoid repeated broadcastEval for emojis that genuinely don't exist
+        negativeCache[name] = Date.now() + NEGATIVE_CACHE_TTL;
     }
 
     // couldn't find usable emoji, try to create it only in the configured server;
     // use pendingCreations to prevent duplicate uploads from concurrent requests
-    if(config.useEmojisFromServer) {
-        if(pendingCreations[name]) return addEmojiToCache(await pendingCreations[name]);
+    if (config.useEmojisFromServer) {
+        if (pendingCreations[name]) return addEmojiToCache(await pendingCreations[name]);
         try {
             const emojiGuild = await client.guilds.fetch(config.useEmojisFromServer);
-            if(emojiGuild) {
+            if (emojiGuild) {
                 pendingCreations[name] = createEmoji(emojiGuild, name, filenameOrUrl);
                 const created = await pendingCreations[name];
                 delete pendingCreations[name];
                 return addEmojiToCache(created);
             }
-        } catch(e) {
+        } catch (e) {
             delete pendingCreations[name];
             console.error(`Failed to create emoji in useEmojisFromServer guild: ${e.message}`);
         }
@@ -143,27 +141,27 @@ const emojiInGuild = (guild, name) => {
 }
 
 const createEmoji = async (guild, name, filenameOrUrl) => {
-    if(!guild || !name || !filenameOrUrl) return;
+    if (!guild || !name || !filenameOrUrl) return;
     // guild.members.me is null when the guild was fetched via REST on a shard that
     // doesn't own it — fetch the bot's own member so the permission check is accurate.
-    if(!guild.members.me) {
-        try { await guild.members.fetchMe(); } catch(e) {}
+    if (!guild.members.me) {
+        try { await guild.members.fetchMe(); } catch (e) { }
     }
-    if(!canCreateEmojis(guild)) {
+    if (!canCreateEmojis(guild)) {
         console.log(`Don't have permission to create emoji ${name} in guild ${guild.name}!`);
         console.log(`Make sure the bot has 'Manage Emojis and Stickers' permission in that server.`);
         return;
     }
 
     await updateEmojiCache(guild);
-    if(guild.emojis.cache.filter(e => !e.animated).size >= maxEmojis(guild))
+    if (guild.emojis.cache.filter(e => !e.animated).size >= maxEmojis(guild))
         return console.log(`Emoji limit of ${maxEmojis(guild)} reached for ${guild.name} while uploading ${name}!`);
 
     console.log(`Uploading emoji ${name} in ${guild.name}...`);
     try {
         const attachment = await resolveFilenameOrUrl(filenameOrUrl)
-        return await guild.emojis.create({name, attachment});
-    } catch(e) {
+        return await guild.emojis.create({ name, attachment });
+    } catch (e) {
         console.error(`Could not create ${name} emoji in ${guild.name}!`);
         console.error(`Make sure the bot has 'Manage Emojis and Stickers' permission and there are available emoji slots.`);
         console.error(`${e.name}: ${e.message}`);
@@ -171,15 +169,15 @@ const createEmoji = async (guild, name, filenameOrUrl) => {
 }
 
 const resolveFilenameOrUrl = async (filenameOrUrl) => {
-    if(filenameOrUrl.startsWith("http"))
+    if (filenameOrUrl.startsWith("http"))
         return filenameOrUrl;
     return await asyncReadFile(filenameOrUrl);
 }
 
 const updateEmojiCache = async (guild) => {
-    if(!guild) return;
-    if(!lastEmojiFetch[guild.id]) lastEmojiFetch[guild.id] = 0;
-    if(Date.now() - lastEmojiFetch[guild.id] < config.emojiCacheExpiration) return; // don't update emoji cache multiple times per second
+    if (!guild) return;
+    if (!lastEmojiFetch[guild.id]) lastEmojiFetch[guild.id] = 0;
+    if (Date.now() - lastEmojiFetch[guild.id] < config.emojiCacheExpiration) return; // don't update emoji cache multiple times per second
 
     await guild.emojis.fetch();
 
@@ -188,7 +186,7 @@ const updateEmojiCache = async (guild) => {
 }
 
 const addEmojiToCache = (emoji) => {
-    if(emoji) {
+    if (emoji) {
         emojiCache[emoji.name] = emoji;
         // Clear any negative cache entry now that we have the real emoji
         delete negativeCache[emoji.name];
@@ -203,23 +201,23 @@ const addEmojiToCache = (emoji) => {
  * Returns a plain-object snapshot of the cache for broadcasting.
  */
 export const warmEmojiCache = async () => {
-    if(!config.useEmojisFromServer) return null;
+    if (!config.useEmojisFromServer) return null;
     try {
         const emojiGuild = await client.guilds.fetch(config.useEmojisFromServer);
-        if(!emojiGuild) return null;
+        if (!emojiGuild) return null;
         await updateEmojiCache(emojiGuild);
-        for(const emoji of emojiGuild.emojis.cache.values()) {
-            if(emoji.available) addEmojiToCache(emoji);
+        for (const emoji of emojiGuild.emojis.cache.values()) {
+            if (emoji.available) addEmojiToCache(emoji);
         }
         console.log(`Warmed emoji cache with ${Object.keys(emojiCache).length} emojis from ${emojiGuild.name}`);
 
         // Return serializable snapshot: { name -> { id, name, animated, guildId } }
         const snapshot = {};
-        for(const [name, emoji] of Object.entries(emojiCache)) {
-            if(emoji && emoji.id) snapshot[name] = { id: emoji.id, name: emoji.name, animated: emoji.animated, guildId: emoji.guild?.id };
+        for (const [name, emoji] of Object.entries(emojiCache)) {
+            if (emoji && emoji.id) snapshot[name] = { id: emoji.id, name: emoji.name, animated: emoji.animated, guildId: emoji.guild?.id };
         }
         return snapshot;
-    } catch(e) {
+    } catch (e) {
         console.error(`Failed to warm emoji cache: ${e.message}`);
         return null;
     }
@@ -230,16 +228,16 @@ export const warmEmojiCache = async () => {
  * Skips entries that are already cached locally.
  */
 export const populateEmojiCacheFromSnapshot = (snapshot) => {
-    if(!snapshot) return;
+    if (!snapshot) return;
     let added = 0;
-    for(const [name, data] of Object.entries(snapshot)) {
-        if(!emojiCache[name]) {
+    for (const [name, data] of Object.entries(snapshot)) {
+        if (!emojiCache[name]) {
             emojiCache[name] = data; // Store the plain object; emojiToString handles both GuildEmoji and plain objects
             delete negativeCache[name];
             added++;
         }
     }
-    if(added > 0) console.log(`Populated emoji cache from shard 0 broadcast (${added} emojis)`);
+    if (added > 0) console.log(`Populated emoji cache from shard 0 broadcast (${added} emojis)`);
 }
 
 const findEmoji = (c, { name }) => {
@@ -247,7 +245,7 @@ const findEmoji = (c, { name }) => {
 }
 
 const maxEmojis = (guild) => {
-    switch(guild.premiumTier) {
+    switch (guild.premiumTier) {
         case "NONE": return 50;
         case "TIER_1": return 100;
         case "TIER_2": return 150;

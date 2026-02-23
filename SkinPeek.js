@@ -1,36 +1,8 @@
-import {loadConfig} from "./misc/config.js";
-import {startBot} from "./discord/bot.js";
-import {loadLogger} from "./misc/logger.js";
-import {initRedis} from "./misc/redisQueue.js"
-import {initUserDatabase} from "./misc/userDatabase.js";
+import { isMainThread } from 'worker_threads';
+import { loadConfig } from "./misc/config.js";
 
-/* TODO list:
- * (done) Balance
- * (done) Auto fetch skins on startup
- * (done) Skin notifier/reminder
- * (done) Auto check for new valorant version every 15 minutes
- * (done) See current bundles
- * (done) Inspect weapon skin (all 4 levels + videos + radianite upgrade price)
- * (done) Option to send shop automatically every day
- * (done) More options in config.json
- * (done) Simple analytics to see how many servers the bot is in
- * (done) Admin commands (delete user, see/edit everyone's alerts, etc.)
- */
-
-const config = loadConfig();
-if(config) {
-    loadLogger();
-
-    if (!initUserDatabase()) {
-        console.error("User database initialization failed. Cannot start bot.");
-        process.exit(1);
-    }
-    
-    // Initialize Redis if enabled
-    initRedis().then(() => {
-        startBot();
-    }).catch(err => {
-        console.error("Failed to initialize Redis, continuing without it:", err);
-        startBot();
-    });
+if (isMainThread) {
+    import('./shardingLogic.js').then(module => module.startShardingManager());
+} else {
+    import('./botLogic.js').then(module => module.startBotWorker());
 }

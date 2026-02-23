@@ -91,24 +91,24 @@ const debouncedSaveSkinsJSON = () => {
     // Only shard 0 writes to disk — other shards keep in-memory state but
     // don't contend on the shared skins.json file. Shard 0 broadcasts
     // skinsReload when data changes so other shards pick up the new data.
-    if(client.shard && client.shard.ids[0] !== 0) return;
+    if (client.shard.ids[0] !== 0) return;
 
     skinsSaveDirty = true;
-    if(skinsSaveTimer) return;
+    if (skinsSaveTimer) return;
     skinsSaveTimer = setTimeout(() => {
         skinsSaveTimer = null;
-        if(skinsSaveDirty) saveSkinsJSON();
+        if (skinsSaveDirty) saveSkinsJSON();
     }, SKINS_SAVE_DEBOUNCE_MS);
 }
 
 // Force flush pending skins.json writes (call on shutdown, shard 0 only)
 export const flushSkinsJSON = () => {
-    if(client.shard && client.shard.ids[0] !== 0) return;
-    if(skinsSaveTimer) {
+    if (client.shard.ids[0] !== 0) return;
+    if (skinsSaveTimer) {
         clearTimeout(skinsSaveTimer);
         skinsSaveTimer = null;
     }
-    if(skinsSaveDirty) saveSkinsJSON();
+    if (skinsSaveDirty) saveSkinsJSON();
 }
 
 export const fetchData = async (types = null, checkVersion = false) => {
@@ -160,7 +160,7 @@ export const fetchData = async (types = null, checkVersion = false) => {
         saveSkinsJSON();
 
         // we fetched the skins, tell other shards to load them
-        if (client.shard) sendShardMessage({ type: "skinsReload" });
+        sendShardMessage({ type: "skinsReload" });
     } catch (e) {
         console.error("There was an error while trying to fetch skin data!");
         console.error(e);
@@ -226,7 +226,7 @@ const getPrices = async (gameVersion, id = null) => {
         prices = { version: gameVersion, timestamp: Date.now() };
         // saveSkinsJSON() deferred to fetchData() caller
     }
-    
+
     return true;
 }
 
@@ -234,15 +234,15 @@ const getPrices = async (gameVersion, id = null) => {
 // Called whenever a user fetches their shop
 export const addPricesFromShop = (shopJson) => {
     if (!config.fetchSkinPrices) return;
-    
+
     let newPrices = 0;
     const vpCurrencyId = "85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741"; // VP currency UUID
-    
+
     // Initialize prices if needed
     if (!prices || typeof prices !== 'object') {
         prices = { timestamp: Date.now() };
     }
-    
+
     // Extract from SingleItemStoreOffers (daily shop items with full price data)
     if (shopJson.SkinsPanelLayout?.SingleItemStoreOffers) {
         for (const offer of shopJson.SkinsPanelLayout.SingleItemStoreOffers) {
@@ -256,7 +256,7 @@ export const addPricesFromShop = (shopJson) => {
             }
         }
     }
-    
+
     // Extract from bundles
     if (shopJson.FeaturedBundle?.Bundles) {
         for (const bundle of shopJson.FeaturedBundle.Bundles) {
@@ -283,7 +283,7 @@ export const addPricesFromShop = (shopJson) => {
             }
         }
     }
-    
+
     // Extract from night market if available
     if (shopJson.BonusStore?.BonusStoreOffers) {
         for (const bonusOffer of shopJson.BonusStore.BonusStoreOffers) {
@@ -297,13 +297,13 @@ export const addPricesFromShop = (shopJson) => {
             }
         }
     }
-    
+
     if (newPrices > 0) {
         prices.timestamp = Date.now();
         allSkinsCache = null; // invalidate since prices changed
         console.log(`Added ${newPrices} new skin prices to cache! (Total: ${Object.keys(prices).length - 2} prices)`);
 
-        if (client.shard && client.shard.ids[0] !== 0) {
+        if (client.shard.ids[0] !== 0) {
             // Non-zero shards: send discovered prices to shard 0 for persistence
             const newPriceData = {};
             if (shopJson.SkinsPanelLayout?.SingleItemStoreOffers) {
@@ -317,7 +317,7 @@ export const addPricesFromShop = (shopJson) => {
         } else {
             // Shard 0 (or non-sharded): save to disk and notify other shards
             debouncedSaveSkinsJSON();
-            if (client.shard) sendShardMessage({ type: "skinsReload" });
+            sendShardMessage({ type: "skinsReload" });
         }
     }
 }
@@ -670,7 +670,7 @@ export const searchSkin = async (query, locale, limit = 20, threshold = -5000) =
 
 export const getBundle = async (uuid) => {
     await fetchData([bundles]);
-    if(bundles[uuid]) return bundles[uuid];
+    if (bundles[uuid]) return bundles[uuid];
 
     // UUID not in cache — bundle list is likely stale (new Riot bundle). Force a re-fetch.
     console.log(`[getBundle] UUID ${uuid} not found in bundle cache, forcing re-fetch...`);

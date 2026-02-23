@@ -1,15 +1,15 @@
-import {rarityEmoji} from "../discord/emoji.js";
-import {ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, PermissionsBitField} from "discord.js";
-import {getItem, getRarity} from "../valorant/cache.js";
+import { rarityEmoji } from "../discord/emoji.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, PermissionsBitField } from "discord.js";
+import { getItem, getRarity } from "../valorant/cache.js";
 
 import https from "https";
 import http from "http";
 import fs from "fs";
-import {DEFAULT_LANG, l, valToDiscLang} from "./languages.js";
-import {client} from "../discord/bot.js";
-import {getUser} from "../valorant/auth.js";
+import { DEFAULT_LANG, l, valToDiscLang } from "./languages.js";
+import { client } from "../discord/bot.js";
+import { getUser } from "../valorant/auth.js";
 import config from "./config.js";
-import {checkRateLimit} from "./rateLimit.js";
+import { checkRateLimit } from "./rateLimit.js";
 
 const tlsCiphers = [
     'TLS_CHACHA20_POLY1305_SHA256',
@@ -62,8 +62,8 @@ const channelGuildCache = new Map();
 const CHANNEL_GUILD_CACHE_TTL_MS = 10 * 60 * 1000;
 
 // all my homies hate node-fetch
-export const fetch = (url, options={}) => {
-    if(config.logUrls) console.log("Fetching url " + url.substring(0, 200) + (url.length > 200 ? "..." : ""));
+export const fetch = (url, options = {}) => {
+    if (config.logUrls) console.log("Fetching url " + url.substring(0, 200) + (url.length > 200 ? "..." : ""));
 
     return new Promise((resolve, reject) => {
         const hostname = new URL(url).hostname;
@@ -111,7 +111,7 @@ const ProxyType = {
 }
 
 class Proxy {
-    constructor({manager, type, host, port, username, password}) {
+    constructor({ manager, type, host, port, username, password }) {
         this.manager = manager;
         this.type = type || ProxyType.HTTPS;
         this.host = host;
@@ -123,60 +123,60 @@ class Proxy {
     }
 
     createAgent(hostname) {
-        if(this.type !== ProxyType.HTTPS) throw new Error("Unsupported proxy type " + this.type);
+        if (this.type !== ProxyType.HTTPS) throw new Error("Unsupported proxy type " + this.type);
 
         return new Promise((resolve, reject) => {
-        const headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-            "Host": hostname,
-        };
-        if(this.username && this.password) {
-            headers["Proxy-Authorization"] = "Basic " + Buffer.from(this.username + ":" + this.password).toString("base64");
-        }
-
-        const req = http.request({
-            host: this.host,
-            port: this.port,
-            method: "CONNECT",
-            path: hostname + ":443",
-            headers: headers,
-            timeout: 10,
-        });
-        console.log(`Sent proxy connection request to ${this.host}:${this.port} for ${hostname}`);
-
-        req.on("connect", (res, socket) => {
-            console.log(`Proxy ${this.host}:${this.port} connected to ${hostname}!`);
-            if (res.statusCode !== 200) {
-                reject(`Proxy ${this.host}:${this.port} returned status code ${res.statusCode}!`);
+            const headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+                "Host": hostname,
+            };
+            if (this.username && this.password) {
+                headers["Proxy-Authorization"] = "Basic " + Buffer.from(this.username + ":" + this.password).toString("base64");
             }
 
-            socket.on("error", err => {
-                console.error(`Proxy ${this.host}:${this.port} socket errored: ${err}`);
-                this.manager.proxyIsDead(this, hostname);
+            const req = http.request({
+                host: this.host,
+                port: this.port,
+                method: "CONNECT",
+                path: hostname + ":443",
+                headers: headers,
+                timeout: 10,
+            });
+            console.log(`Sent proxy connection request to ${this.host}:${this.port} for ${hostname}`);
+
+            req.on("connect", (res, socket) => {
+                console.log(`Proxy ${this.host}:${this.port} connected to ${hostname}!`);
+                if (res.statusCode !== 200) {
+                    reject(`Proxy ${this.host}:${this.port} returned status code ${res.statusCode}!`);
+                }
+
+                socket.on("error", err => {
+                    console.error(`Proxy ${this.host}:${this.port} socket errored: ${err}`);
+                    this.manager.proxyIsDead(this, hostname);
+                });
+
+                const agent = new https.Agent({ socket });
+                resolve(agent);
             });
 
-            const agent = new https.Agent({ socket });
-            resolve(agent);
-        });
+            req.on("error", err => {
+                reject(`Proxy ${this.host}:${this.port} errored: ${err}`);
+            });
 
-        req.on("error", err => {
-            reject(`Proxy ${this.host}:${this.port} errored: ${err}`);
-        });
-
-        req.end();
+            req.end();
         });
     }
 
     async test() {
-        const res = await fetch("https://api.ipify.org", {proxy: await this.createAgent("api.ipify.org")});
+        const res = await fetch("https://api.ipify.org", { proxy: await this.createAgent("api.ipify.org") });
 
-        if(res.statusCode !== 200) {
+        if (res.statusCode !== 200) {
             console.error(`Proxy ${this.host}:${this.port} returned status code ${res.statusCode}!`);
             return false;
         }
 
         const ip = res.body.trim();
-        if(!ip) {
+        if (!ip) {
             console.error(`Proxy ${this.host}:${this.port} returned no IP!`);
             return false;
         }
@@ -199,33 +199,33 @@ class ProxyManager {
     }
 
     async loadProxies() {
-        const proxyFile = await asyncReadFile("data/proxies.txt").catch(_ => {});
-        if(!proxyFile) return;
+        const proxyFile = await asyncReadFile("data/proxies.txt").catch(_ => { });
+        if (!proxyFile) return;
 
         let type = ProxyType.HTTPS;
         let username = null;
         let password = null;
 
         // for each line in proxies.txt
-        for(const line of proxyFile.toString().split("\n")) {
+        for (const line of proxyFile.toString().split("\n")) {
             const trimmed = line.trim();
-            if(!trimmed.length || trimmed.startsWith("#")) continue;
+            if (!trimmed.length || trimmed.startsWith("#")) continue;
 
             // split by colons
             const parts = trimmed.split(":");
-            if(parts.length < 2) continue;
+            if (parts.length < 2) continue;
 
             // first part is the proxy host
             const host = parts[0];
-            if(!host.length) continue;
+            if (!host.length) continue;
 
             // second part is the proxy port
             const port = parseInt(parts[1]);
-            if(isNaN(port)) continue;
+            if (isNaN(port)) continue;
 
             // third part is the proxy type
             type = parts[2]?.toLowerCase() || ProxyType.HTTPS;
-            if(type !== ProxyType.HTTPS) {
+            if (type !== ProxyType.HTTPS) {
                 console.error(`Unsupported proxy type ${type}!`);
                 type = ProxyType.HTTPS;
                 continue;
@@ -251,7 +251,7 @@ class ProxyManager {
     }
 
     async loadForHostname(hostname) {
-        if(!this.enabled) return;
+        if (!this.enabled) return;
 
         // called both to load the initial set of proxies for a hostname,
         // and to repopulate the list if the current set has an invalid one
@@ -263,11 +263,11 @@ class ProxyManager {
             this.deadProxies.push(proxy);
         }
 
-        for(const proxy of this.allProxies) {
-            if(!this.allProxies.length) break;
-            if(activeProxies.length >= config.maxActiveProxies) break;
-            if(activeProxies.includes(proxy)) continue;
-            if(this.deadProxies.includes(proxy)) continue;
+        for (const proxy of this.allProxies) {
+            if (!this.allProxies.length) break;
+            if (activeProxies.length >= config.maxActiveProxies) break;
+            if (activeProxies.includes(proxy)) continue;
+            if (this.deadProxies.includes(proxy)) continue;
 
             /*try {
                 const proxyWorks = await proxy.test();
@@ -285,21 +285,21 @@ class ProxyManager {
 
             let timedOut = false;
             const promise = proxy.test().then(proxyWorks => {
-                if(!proxyWorks) return Promise.reject(`Proxy ${proxy.host}:${proxy.port} failed!`);
-                if(timedOut) return Promise.reject();
+                if (!proxyWorks) return Promise.reject(`Proxy ${proxy.host}:${proxy.port} failed!`);
+                if (timedOut) return Promise.reject();
 
                 return proxy.createAgent(hostname);
             }).then((/*agent*/) => {
-                if(timedOut) return;
+                if (timedOut) return;
 
                 activeProxies.push(proxy);
             }).catch(err => {
-                if(err) console.error(err);
+                if (err) console.error(err);
                 proxyFailed(proxy);
             });
 
             const promiseWithTimeout = promiseTimeout(promise, 5000).then(res => {
-                if(res === null) {
+                if (res === null) {
                     timedOut = true;
                     console.error(`Proxy ${proxy.host}:${proxy.port} timed out!`);
                 }
@@ -309,7 +309,7 @@ class ProxyManager {
 
         await Promise.all(promises);
 
-        if(!activeProxies.length) {
+        if (!activeProxies.length) {
             console.error(`No working proxies found!`);
             return;
         }
@@ -321,16 +321,16 @@ class ProxyManager {
     }
 
     async getProxy(hostname) {
-        if(!this.enabled) return null;
+        if (!this.enabled) return null;
 
         const activeProxies = await this.loadForHostname(hostname);
-        if(!activeProxies?.length) return null;
+        if (!activeProxies?.length) return null;
 
         let proxy;
         do {
             proxy = activeProxies.shift();
-        } while(this.deadProxies.includes(proxy));
-        if(!proxy) return null;
+        } while (this.deadProxies.includes(proxy));
+        if (!proxy) return null;
 
         activeProxies.push(proxy);
         return proxy;
@@ -348,11 +348,11 @@ class ProxyManager {
 
     async fetch(url, options = {}) {
         // if(!this.enabled) return await fetch(url, options);
-        if(!this.enabled) return;
+        if (!this.enabled) return;
 
         const hostname = new URL(url).hostname;
         const proxy = await this.getProxy(hostname);
-        if(!proxy) return await fetch(url, options);
+        if (!proxy) return await fetch(url, options);
 
         const agent = await proxy.createAgent(hostname);
         const req = await fetch(url, {
@@ -362,7 +362,7 @@ class ProxyManager {
 
         // test for 1020 or rate limit
         const hostnameAndProxy = `${new URL(url).hostname} proxy=${proxy.host}:${proxy.port}`
-        if(req.statusCode === 403 && req.body === "error code: 1020" || await checkRateLimit(req, hostnameAndProxy)) {
+        if (req.statusCode === 403 && req.body === "error code: 1020" || await checkRateLimit(req, hostnameAndProxy)) {
             console.error(`Proxy ${proxy.host}:${proxy.port} is dead!`);
             console.error(req);
             await this.proxyIsDead(proxy, hostname);
@@ -380,7 +380,7 @@ export const getProxyManager = () => proxyManager;
 export const asyncReadFile = (path) => {
     return new Promise(((resolve, reject) => {
         fs.readFile(path, (err, data) => {
-            if(err) reject(err);
+            if (err) reject(err);
             else resolve(data);
         })
     }));
@@ -460,7 +460,7 @@ export const itemTypes = {
 let riotVersionData = null;
 
 export const getRiotVersionData = () => {
-    if(riotVersionData === null) {
+    if (riotVersionData === null) {
         throw "Tried to get Riot version data before it was loaded! Might be a race condition.";
     }
 
@@ -476,7 +476,7 @@ export const fetchRiotVersionData = async () => {
     console.log("Fetching latest Valorant version number...");
 
     const req = await fetch("https://valorant-api.com/v1/version");
-    if(req.statusCode !== 200) {
+    if (req.statusCode !== 200) {
         console.log(`Riot version data status code is ${req.statusCode}!`);
         console.log(req);
 
@@ -535,13 +535,13 @@ export const riotClientHeaders = () => {
 }
 
 export const parseSetCookie = (setCookie) => {
-    if(!setCookie) {
+    if (!setCookie) {
         console.error("Riot didn't return any cookies during the auth request! Cloudflare might have something to do with it...");
         return {};
     }
 
     const cookies = {};
-    for(const cookie of setCookie) {
+    for (const cookie of setCookie) {
         const sep = cookie.indexOf("=");
         cookies[cookie.slice(0, sep)] = cookie.slice(sep + 1, cookie.indexOf(';'));
     }
@@ -559,7 +559,7 @@ export const stringifyCookies = (cookies) => {
 export const extractTokensFromUri = (uri) => {
     // thx hamper for regex
     const match = uri.match(/access_token=((?:[a-zA-Z]|\d|\.|-|_)*).*id_token=((?:[a-zA-Z]|\d|\.|-|_)*).*expires_in=(\d*)/);
-    if(!match) return [null, null];
+    if (!match) return [null, null];
 
     const [, accessToken, idToken] = match;
     return [accessToken, idToken]
@@ -570,12 +570,12 @@ const MAX_TOKEN_CACHE_SIZE = 256;
 
 export const decodeToken = (token) => {
     const cached = tokenCache.get(token);
-    if(cached) return cached;
+    if (cached) return cached;
 
     const encodedPayload = token.split('.')[1];
     const decoded = JSON.parse(atob(encodedPayload));
 
-    if(tokenCache.size >= MAX_TOKEN_CACHE_SIZE) tokenCache.clear();
+    if (tokenCache.size >= MAX_TOKEN_CACHE_SIZE) tokenCache.clear();
     tokenCache.set(token, decoded);
 
     return decoded;
@@ -585,8 +585,8 @@ export const tokenExpiry = (token) => {
     return decodeToken(token).exp * 1000;
 }
 
-export const userRegion = ({region}) => {
-    if(!region || region === "latam" || region === "br") return "na";
+export const userRegion = ({ region }) => {
+    if (!region || region === "latam" || region === "br") return "na";
     return region;
 }
 
@@ -603,7 +603,7 @@ export const formatBundle = async (rawBundle) => {
 
     let price = 0;
     let basePrice = 0;
-    for(const rawItem of rawBundle.Items) {
+    for (const rawItem of rawBundle.Items) {
         const item = {
             uuid: rawItem.Item.ItemID,
             type: rawItem.Item.ItemTypeID,
@@ -632,15 +632,17 @@ export const fetchMaintenances = async (region) => {
 }
 
 export const formatNightMarket = (rawNightMarket) => {
-    if(!rawNightMarket) return null;
+    if (!rawNightMarket) return null;
 
     return {
-        offers: rawNightMarket.BonusStoreOffers.map(offer => {return {
-            uuid: offer.Offer.OfferID,
-            realPrice: offer.Offer.Cost["85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741"],
-            nmPrice: offer.DiscountCosts["85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741"],
-            percent: offer.DiscountPercent
-        }}),
+        offers: rawNightMarket.BonusStoreOffers.map(offer => {
+            return {
+                uuid: offer.Offer.OfferID,
+                realPrice: offer.Offer.Cost["85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741"],
+                nmPrice: offer.DiscountCosts["85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741"],
+                percent: offer.DiscountPercent
+            }
+        }),
         expires: Math.floor(Date.now() / 1000) + rawNightMarket.BonusStoreRemainingDurationInSeconds
     }
 }
@@ -648,12 +650,12 @@ export const formatNightMarket = (rawNightMarket) => {
 export const removeDupeAlerts = (alerts) => {
     const uuids = [];
     return alerts.filter(alert => {
-        if(uuids.includes(alert.uuid)) return false;
+        if (uuids.includes(alert.uuid)) return false;
         return uuids.push(alert.uuid);
     });
 }
 
-export const getPuuid = (id, account=null) => {
+export const getPuuid = (id, account = null) => {
     const user = getUser(id, account);
     if (!user) return null;
     return user.puuid;
@@ -663,18 +665,18 @@ export const isDefaultSkin = (skin) => skin.skinUuid === skin.defaultSkinUuid;
 
 // discord utils
 
-export const defer = async (interaction, ephemeral=false) => {
+export const defer = async (interaction, ephemeral = false) => {
     // discord only sets deferred to true once the event is sent over ws, which doesn't happen immediately
-    await interaction.deferReply({flags: ephemeral ? [MessageFlags.Ephemeral] : []});
+    await interaction.deferReply({ flags: ephemeral ? [MessageFlags.Ephemeral] : [] });
     interaction.deferred = true;
 }
 
-export const skinNameAndEmoji = async (skin, channel, localeOrInteraction=DEFAULT_LANG) => {
+export const skinNameAndEmoji = async (skin, channel, localeOrInteraction = DEFAULT_LANG) => {
     const name = l(skin.names, localeOrInteraction);
-    if(!skin.rarity) return name;
+    if (!skin.rarity) return name;
 
     const rarity = await getRarity(skin.rarity, channel);
-    if(!rarity) return name;
+    if (!rarity) return name;
 
     const rarityIcon = await rarityEmoji(channel, rarity.name, rarity.icon);
     return rarityIcon ? `${rarityIcon} ${name}` : name;
@@ -693,7 +695,7 @@ export const canCreateEmojis = (guild) => guild && guild.members.me && (
 export const emojiToString = (emoji) => emoji && `<:${emoji.name}:${emoji.id}>`;
 
 export const canSendMessages = (channel) => {
-    if(!channel || !channel.guild) return true;
+    if (!channel || !channel.guild) return true;
     const permissions = channel.permissionsFor(channel.guild.members.me);
     return permissions.has(PermissionsBitField.Flags.ViewChannel) && permissions.has(PermissionsBitField.Flags.SendMessages) && permissions.has(PermissionsBitField.Flags.EmbedLinks);
 }
@@ -701,29 +703,24 @@ export const canSendMessages = (channel) => {
 export const fetchChannel = async (channelId) => {
     try {
         return await client.channels.fetch(channelId);
-    } catch(e) {
+    } catch (e) {
         return null;
     }
 }
 
 export const getChannelGuildId = async (channelId) => {
     const cached = channelGuildCache.get(channelId);
-    if(cached && Date.now() - cached.at < CHANNEL_GUILD_CACHE_TTL_MS) return cached.guildId;
+    if (cached && Date.now() - cached.at < CHANNEL_GUILD_CACHE_TTL_MS) return cached.guildId;
 
     let guildId;
-    if(client.shard) {
-        const f = client => {
-            const channel = client.channels.get(channelId);
-            if(channel) return channel.guildId;
-        };
-        const results = await client.shard.broadcastEval(f);
-        guildId = results.find(result => result);
-    } else {
+    const f = client => {
         const channel = client.channels.cache.get(channelId);
-        guildId = channel && channel.guildId;
-    }
+        if (channel) return channel.guildId;
+    };
+    const results = await client.shard.broadcastEval(f);
+    guildId = results.find(result => result);
 
-    if(guildId) channelGuildCache.set(channelId, { guildId, at: Date.now() });
+    if (guildId) channelGuildCache.set(channelId, { guildId, at: Date.now() });
     return guildId;
 }
 
@@ -738,7 +735,7 @@ export const discordTag = id => {
 
 export const wait = ms => new Promise(r => setTimeout(r, ms));
 
-export const promiseTimeout = async (promise, ms, valueIfTimeout=null) => {
+export const promiseTimeout = async (promise, ms, valueIfTimeout = null) => {
     return await Promise.race([promise, wait(ms).then(() => valueIfTimeout)]);
 }
 
@@ -751,7 +748,7 @@ export const isSameDay = (t1, t2) => {
 export const findKeyOfValue = (obj, value) => Object.keys(obj).find(key => obj[key] === value);
 
 export const calcLength = (any) => {
-    if(!isNaN(any)) any = any.toString();
+    if (!isNaN(any)) any = any.toString();
     return any.length;
 }
 

@@ -8,11 +8,6 @@ let isConnected = false;
 
 // Initialize Redis connections
 export const initRedis = async () => {
-    if (!config.useRedis) {
-        localLog("Redis is disabled in config");
-        return false;
-    }
-
     try {
         // Main Redis client for queue operations
         redis = new Redis({
@@ -144,7 +139,7 @@ export const getAuthResult = async (c) => {
 
     const key = `${AUTH_RESULT_PREFIX}${c}`;
     const data = await redis.getdel(key); // Atomic operation (Redis 6.2+)
-    
+
     if (!data) return null;
 
     try {
@@ -205,7 +200,7 @@ export const cleanupStaleProcessing = async () => {
 // Acquire processing lock (distributed lock for queue processing)
 export const acquireProcessingLock = async (shardId) => {
     if (!isRedisAvailable()) return false;
-    
+
     try {
         // SET key value NX EX ttl - only sets if key doesn't exist (NX), with expiry (EX)
         // This ensures only one shard can hold the lock at a time
@@ -220,7 +215,7 @@ export const acquireProcessingLock = async (shardId) => {
 // Release processing lock
 export const releaseProcessingLock = async () => {
     if (!isRedisAvailable()) return;
-    
+
     try {
         await redis.del(AUTH_PROCESSING_LOCK);
     } catch (e) {
@@ -273,7 +268,7 @@ const SHOP_CACHE_EXPIRY = 24 * 60 * 60; // 24 hours
 // Store shop in Redis
 export const setShopCache = async (userId, accountIndex, shopData) => {
     if (!isRedisAvailable()) return;
-    
+
     const key = `${SHOP_CACHE_PREFIX}${userId}:${accountIndex}`;
     await redis.setex(key, SHOP_CACHE_EXPIRY, JSON.stringify(shopData));
 };
@@ -281,12 +276,12 @@ export const setShopCache = async (userId, accountIndex, shopData) => {
 // Get shop from Redis
 export const getShopCache = async (userId, accountIndex) => {
     if (!isRedisAvailable()) return null;
-    
+
     const key = `${SHOP_CACHE_PREFIX}${userId}:${accountIndex}`;
     const data = await redis.get(key);
-    
+
     if (!data) return null;
-    
+
     try {
         return JSON.parse(data);
     } catch (e) {
@@ -302,7 +297,7 @@ const RATE_LIMIT_PREFIX = "skinpeek:ratelimit:";
 // Store rate limit for a URL
 export const setRateLimit = async (url, retryAt) => {
     if (!isRedisAvailable()) return;
-    
+
     try {
         const key = `${RATE_LIMIT_PREFIX}${url}`;
         const ttl = Math.ceil((retryAt - Date.now()) / 1000);
@@ -317,7 +312,7 @@ export const setRateLimit = async (url, retryAt) => {
 // Get rate limit for a URL
 export const getRateLimit = async (url) => {
     if (!isRedisAvailable()) return null;
-    
+
     try {
         const key = `${RATE_LIMIT_PREFIX}${url}`;
         const data = await redis.get(key);
@@ -370,12 +365,12 @@ export const getShopData = async (puuid) => {
     if (!isRedisAvailable()) return null;
     const data = await redis.get(`${SHOPDATA_PREFIX}${puuid}`);
     if (!data) return null;
-    try { return JSON.parse(data); } catch(e) { return null; }
+    try { return JSON.parse(data); } catch (e) { return null; }
 };
 
 export const deleteShopData = async (puuid) => {
     if (!isRedisAvailable()) return;
-    try { await redis.del(`${SHOPDATA_PREFIX}${puuid}`); } catch(e) {}
+    try { await redis.del(`${SHOPDATA_PREFIX}${puuid}`); } catch (e) { }
 };
 
 // ==================== HEALTH CHECK ====================

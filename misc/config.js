@@ -3,17 +3,17 @@ import fs from "fs";
 export let config = {};
 export default config;
 
-export const loadConfig = (filename="config.json", saveAfterLoad=true) => {
+export const loadConfig = (filename = "config.json", saveAfterLoad = true) => {
     let loadedConfig;
 
     try {
         loadedConfig = fs.readFileSync(filename, 'utf-8');
-    } catch(e) {
+    } catch (e) {
         try {
             fs.readFileSync(filename + ".example", 'utf-8');
             console.error(`You forgot to rename ${filename}.example to ${filename}!`);
             console.error(`(Hint: If you can only see ${filename}, try enabling "file name extensions" in file explorer)`)
-        } catch(e1) {
+        } catch (e1) {
             console.error(`Could not find ${filename}!`, e);
         }
         return;
@@ -31,10 +31,10 @@ export const loadConfig = (filename="config.json", saveAfterLoad=true) => {
         }
     }
 
-    if(!loadedConfig.token || loadedConfig.token === "token goes here")
+    if (!loadedConfig.token || loadedConfig.token === "token goes here")
         return console.error("You forgot to put your bot token in config.json!");
 
-    if(loadedConfig.HDevTokenAlert && !loadedConfig.HDevToken || loadedConfig.HDevToken === ""){
+    if (loadedConfig.HDevTokenAlert && !loadedConfig.HDevToken || loadedConfig.HDevToken === "") {
         console.error("Looks like you didn't put a HDevToken in config.json!");
         console.error("The /profile command won't work without one. To get a key, see https://discord.gg/B7AarTMZMK");
         console.error("If you don't want to see this notification again, set HDevTokenAlert to false in config.json");
@@ -75,7 +75,7 @@ export const loadConfig = (filename="config.json", saveAfterLoad=true) => {
     applyConfig(loadedConfig, "rateLimitBackoff", 60);
     applyConfig(loadedConfig, "rateLimitCap", 10 * 60);
     applyConfig(loadedConfig, "useMultiqueue", false);
-    applyConfig(loadedConfig, "useRedis", true);
+    applyConfig(loadedConfig, "shards", "auto");
     applyConfig(loadedConfig, "redisHost", "127.0.0.1");
     applyConfig(loadedConfig, "redisPort", 6379);
     applyConfig(loadedConfig, "redisPassword", "");
@@ -108,7 +108,7 @@ export const loadConfig = (filename="config.json", saveAfterLoad=true) => {
     return config;
 }
 
-export const saveConfig = (filename="config.json", configToSave) => {
+export const saveConfig = (filename = "config.json", configToSave) => {
     const payload = JSON.stringify(configToSave || config, null, 2);
     const tmpFile = `${filename}.tmp`;
 
@@ -131,6 +131,6 @@ export const saveConfig = (filename="config.json", configToSave) => {
 }
 
 const applyConfig = (loadedConfig, name, defaultValue) => {
-    if(loadedConfig[name] === undefined) config[name] = defaultValue;
+    if (loadedConfig[name] === undefined) config[name] = defaultValue;
     else config[name] = loadedConfig[name];
 }

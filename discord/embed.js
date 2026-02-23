@@ -16,15 +16,15 @@ import {
     fetchChannel, isDefaultSkin, WeaponTypeUuid, ordinalSuffix
 } from "../misc/util.js";
 import config from "../misc/config.js";
-import {DEFAULT_VALORANT_LANG, discToValLang, l, s, hideUsername} from "../misc/languages.js";
-import {ActionRowBuilder, ButtonBuilder, ButtonStyle, escapeMarkdown, EmbedBuilder, MessageFlags, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionsBitField} from "discord.js";
-import {getStatsFor} from "../misc/stats.js";
-import {getUser} from "../valorant/auth.js";
-import {readUserJson, removeDupeAccounts, saveUser} from "../valorant/accountSwitcher.js";
-import {getSetting, humanifyValue, settingIsVisible, settingName} from "../misc/settings.js";
-import {VPEmoji, rarityEmojisAvailable} from "./emoji.js";
-import {getNextNightMarketTimestamp} from "../valorant/shop.js";
-import {isThereANM} from "../valorant/shopManager.js";
+import { DEFAULT_VALORANT_LANG, discToValLang, l, s, hideUsername } from "../misc/languages.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, escapeMarkdown, EmbedBuilder, MessageFlags, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionsBitField } from "discord.js";
+import { getStatsFor } from "../misc/stats.js";
+import { getUser } from "../valorant/auth.js";
+import { readUserJson, removeDupeAccounts, saveUser } from "../valorant/accountSwitcher.js";
+import { getSetting, humanifyValue, settingIsVisible, settingName } from "../misc/settings.js";
+import { VPEmoji, rarityEmojisAvailable } from "./emoji.js";
+import { getNextNightMarketTimestamp } from "../valorant/shop.js";
+import { isThereANM } from "../valorant/shopManager.js";
 
 export const VAL_COLOR_1 = 0xFD4553;
 export const VAL_COLOR_2 = 0x202225;
@@ -43,15 +43,15 @@ const thumbnails = [
     "https://media.valorant-api.com/sprays/40ff9251-4c11-b729-1f27-088ee032e7ce/fulltransparenticon.png"
 ];
 
-export const authFailureMessage = (interactionOrId, authResponse, message="AUTH_ERROR", isEphemeral=false) => {
+export const authFailureMessage = (interactionOrId, authResponse, message = "AUTH_ERROR", isEphemeral = false) => {
     const id = interactionOrId?.user?.id || interactionOrId;
     const tag = interactionOrId?.user?.tag || id;
     let embed;
 
-    if(authResponse.maintenance) embed = basicEmbed(s(interactionOrId).error.MAINTENANCE);
-    else if(authResponse.rateLimit) {
+    if (authResponse.maintenance) embed = basicEmbed(s(interactionOrId).error.MAINTENANCE);
+    else if (authResponse.rateLimit) {
         console.log(`${tag} got rate-limited`);
-        if(typeof authResponse.rateLimit === "number") embed = basicEmbed(s(interactionOrId).error.LOGIN_RATELIMIT_UNTIL.f({t: Math.ceil(authResponse.rateLimit / 1000)}));
+        if (typeof authResponse.rateLimit === "number") embed = basicEmbed(s(interactionOrId).error.LOGIN_RATELIMIT_UNTIL.f({ t: Math.ceil(authResponse.rateLimit / 1000) }));
         else embed = basicEmbed(s(interactionOrId).error.LOGIN_RATELIMIT);
     }
     else {
@@ -59,7 +59,7 @@ export const authFailureMessage = (interactionOrId, authResponse, message="AUTH_
 
         // two-strike system
         const user = getUser(id);
-        if(user) {
+        if (user) {
             user.authFailures++;
             saveUser(user);
         }
@@ -73,8 +73,8 @@ export const authFailureMessage = (interactionOrId, authResponse, message="AUTH_
 
 export const skinChosenEmbed = async (interaction, skin) => {
     const channel = interaction.channel || await fetchChannel(interaction.channelId);
-    let description = s(interaction).info.ALERT_SET.f({s: await skinNameAndEmoji(skin, channel, interaction)});
-    if(config.fetchSkinPrices && !skin.price) description += s(interaction).info.ALERT_BP_SKIN;
+    let description = s(interaction).info.ALERT_SET.f({ s: await skinNameAndEmoji(skin, channel, interaction) });
+    if (config.fetchSkinPrices && !skin.price) description += s(interaction).info.ALERT_BP_SKIN;
     return {
         description: description,
         color: VAL_COLOR_1,
@@ -84,34 +84,34 @@ export const skinChosenEmbed = async (interaction, skin) => {
     }
 }
 
-export const renderOffers = async (shop, interaction, valorantUser, VPemoji, otherId=null) => {
+export const renderOffers = async (shop, interaction, valorantUser, VPemoji, otherId = null) => {
     const forOtherUser = otherId && otherId !== interaction.user.id;
     const otherUserMention = `<@${otherId}>`;
     const targetId = forOtherUser ? otherId : interaction?.user?.id;
 
-    if(!shop.success) {
+    if (!shop.success) {
         let errorText;
 
-        if(forOtherUser) errorText = s(interaction).error.AUTH_ERROR_SHOP_OTHER.f({u: otherUserMention});
+        if (forOtherUser) errorText = s(interaction).error.AUTH_ERROR_SHOP_OTHER.f({ u: otherUserMention });
         else errorText = s(interaction).error.AUTH_ERROR_SHOP;
 
         return authFailureMessage(interaction, shop, errorText);
     }
 
     let headerText;
-    if(forOtherUser) {
+    if (forOtherUser) {
         const json = readUserJson(otherId);
 
         let usernameText = otherUserMention;
-        if(json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({n: json.currentAccount});
+        if (json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({ n: json.currentAccount });
 
-        headerText = s(interaction).info.SHOP_HEADER.f({u: usernameText, t: shop.expires});
+        headerText = s(interaction).info.SHOP_HEADER.f({ u: usernameText, t: shop.expires });
     }
-    else headerText = s(interaction).info.SHOP_HEADER.f({u: valorantUser.username, t: shop.expires}, interaction);
+    else headerText = s(interaction).info.SHOP_HEADER.f({ u: valorantUser.username, t: shop.expires }, interaction);
 
     const embeds = [headerEmbed(headerText)];
 
-    for(const uuid of shop.offers) {
+    for (const uuid of shop.offers) {
         const skin = await getSkin(uuid);
         const price = isDefaultSkin(skin) ? "0" : skin.price; // force render price for defaults
         const embed = await skinEmbed(skin, price, interaction, VPemoji);
@@ -119,22 +119,22 @@ export const renderOffers = async (shop, interaction, valorantUser, VPemoji, oth
     }
 
     const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
-    if((VPemoji && !VPemoji.startsWith("<:")) || missingExternalPerms) {
+    if ((VPemoji && !VPemoji.startsWith("<:")) || missingExternalPerms) {
         embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
     } // previous check was: if(VPemoji && !VPemoji.startsWith("<:"))
 
-    if(!rarityEmojisAvailable(interaction.channel)) {
+    if (!rarityEmojisAvailable(interaction.channel)) {
         embeds.push(basicEmbed(s(interaction).error.RARITY_EMOJIS_UNAVAILABLE));
     }
 
     // show notice if there is one
-    if(config.notice && valorantUser) {
+    if (config.notice && valorantUser) {
         // users shouldn't see the same notice twice
-        if(!config.onlyShowNoticeOnce || valorantUser.lastNoticeSeen !== config.notice) {
+        if (!config.onlyShowNoticeOnce || valorantUser.lastNoticeSeen !== config.notice) {
 
             // the notice can either be just a simple string, or a raw JSON embed data object
-            if(typeof config.notice === "string") {
-                if(config.notice.startsWith('{')) embeds.push(EmbedBuilder.from(JSON.parse(config.notice)).toJSON());
+            if (typeof config.notice === "string") {
+                if (config.notice.startsWith('{')) embeds.push(EmbedBuilder.from(JSON.parse(config.notice)).toJSON());
                 else embeds.push(basicEmbed(config.notice));
             }
             else embeds.push(EmbedBuilder.from(config.notice).toJSON());
@@ -145,23 +145,23 @@ export const renderOffers = async (shop, interaction, valorantUser, VPemoji, oth
     }
 
     let components;
-    if(forOtherUser && !getSetting(otherId, "othersCanUseAccountButtons")) {
+    if (forOtherUser && !getSetting(otherId, "othersCanUseAccountButtons")) {
         components = null;
     } else {
         components = switchAccountButtons(interaction, "shop", true, "daily", targetId);
     }
 
     const levels = await getSkinLevels(shop.offers, interaction);
-    if(levels) components === null ? components = [levels] : components.unshift(levels)
+    if (levels) components === null ? components = [levels] : components.unshift(levels)
 
     return {
         embeds, components
     };
 }
 
-export const renderAccessoryOffers = async (shop, interaction, valorantUser, KCemoji, id=interaction?.user?.id) => {
+export const renderAccessoryOffers = async (shop, interaction, valorantUser, KCemoji, id = interaction?.user?.id) => {
 
-    if(!shop.success) {
+    if (!shop.success) {
         let errorText = s(interaction).error.AUTH_ERROR_SHOP;
 
         return authFailureMessage(interaction, shop, errorText);
@@ -171,11 +171,11 @@ export const renderAccessoryOffers = async (shop, interaction, valorantUser, KCe
     const otherUserMention = `<@${id}>`;
 
     let headerText;
-    if(forOtherUser) {
+    if (forOtherUser) {
         const json = readUserJson(id);
 
         let usernameText = otherUserMention;
-        if(json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({n: json.currentAccount});
+        if (json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({ n: json.currentAccount });
 
         headerText = s(interaction).info.ACCESSORY_SHOP_HEADER.f({ u: usernameText, t: shop.accessory.expires });
     }
@@ -183,8 +183,8 @@ export const renderAccessoryOffers = async (shop, interaction, valorantUser, KCe
 
     const embeds = [headerEmbed(headerText)];
     for (const offer of shop.accessory.offers) {
-        for (const reward of offer.rewards){
-            
+        for (const reward of offer.rewards) {
+
             switch (reward.ItemTypeID) {
                 case "d5f120f8-ff8c-4aac-92ea-f2b5acbe9475": //sprays
                     embeds.push(await sprayEmbed(reward.ItemID, offer.cost, interaction, KCemoji))
@@ -205,23 +205,23 @@ export const renderAccessoryOffers = async (shop, interaction, valorantUser, KCe
     }
 
     // leave a little message if the accessory shop is empty (i.e. they have every single accessory in the game)
-    if(shop.accessory.offers.length === 0) {
+    if (shop.accessory.offers.length === 0) {
         embeds.push(basicEmbed(s(interaction).info.NO_MORE_ACCESSORIES));
     }
 
     const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
-    if((KCemoji && !KCemoji.startsWith("<:")) || missingExternalPerms) {
+    if ((KCemoji && !KCemoji.startsWith("<:")) || missingExternalPerms) {
         embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
     }
 
     // show notice if there is one
-    if(config.notice && valorantUser) {
+    if (config.notice && valorantUser) {
         // users shouldn't see the same notice twice
-        if(!config.onlyShowNoticeOnce || valorantUser.lastNoticeSeen !== config.notice) {
+        if (!config.onlyShowNoticeOnce || valorantUser.lastNoticeSeen !== config.notice) {
 
             // the notice can either be just a simple string, or a raw JSON embed data object
-            if(typeof config.notice === "string") {
-                if(config.notice.startsWith('{')) embeds.push(EmbedBuilder.from(JSON.parse(config.notice)).toJSON());
+            if (typeof config.notice === "string") {
+                if (config.notice.startsWith('{')) embeds.push(EmbedBuilder.from(JSON.parse(config.notice)).toJSON());
                 else embeds.push(basicEmbed(config.notice));
             }
             else embeds.push(EmbedBuilder.from(config.notice).toJSON());
@@ -245,11 +245,11 @@ export const getSkinLevels = async (offers, interaction, nightmarket = false) =>
 
     for (const uuid of offers) {
         let skin = await getSkin(nightmarket ? uuid.uuid : uuid);
-        if(!skin) continue;
+        if (!skin) continue;
 
         for (let i = 0; i < skin.levels.length; i++) {
             const level = skin.levels[i];
-            if(level.streamedVideo){
+            if (level.streamedVideo) {
                 skinSelector.addOptions(
                     new StringSelectMenuOptionBuilder()
                         .setLabel(`${l(skin.names, interaction)}`)
@@ -260,26 +260,26 @@ export const getSkinLevels = async (offers, interaction, nightmarket = false) =>
         }
     }
 
-    if(skinSelector.options.length===0) return false;
+    if (skinSelector.options.length === 0) return false;
     return new ActionRowBuilder().addComponents(skinSelector);
 }
 
 export const renderBundles = async (bundles, interaction, VPemoji) => {
-    if(!bundles.success) return authFailureMessage(interaction, bundles, s(interaction).error.AUTH_ERROR_BUNDLES);
+    if (!bundles.success) return authFailureMessage(interaction, bundles, s(interaction).error.AUTH_ERROR_BUNDLES);
 
     bundles = bundles.bundles;
 
-    if(bundles.length === 1) {
+    if (bundles.length === 1) {
         const bundle = await getBundle(bundles[0].uuid);
-        if(!bundle) {
+        if (!bundle) {
             console.error(`[renderBundles] Bundle UUID not found in cache: ${bundles[0].uuid}`);
             return basicEmbed(s(interaction).error.GENERIC_ERROR);
         }
 
         const renderedBundle = await renderBundle(bundle, interaction, VPemoji, false);
         const titleEmbed = renderedBundle.embeds[0];
-        titleEmbed.title = s(interaction).info.BUNDLE_HEADER.f({b: titleEmbed.title});
-        if(bundle.expires) titleEmbed.description += ` *(${s(interaction).info.EXPIRES.f({t: bundle.expires})})*`;
+        titleEmbed.title = s(interaction).info.BUNDLE_HEADER.f({ b: titleEmbed.title });
+        if (bundle.expires) titleEmbed.description += ` *(${s(interaction).info.EXPIRES.f({ t: bundle.expires })})*`;
 
         return renderedBundle;
     }
@@ -292,9 +292,9 @@ export const renderBundles = async (bundles, interaction, VPemoji) => {
 
     const buttons = [];
 
-    for(const bundleData of bundles) {
+    for (const bundleData of bundles) {
         const bundle = await getBundle(bundleData.uuid);
-        if(!bundle) {
+        if (!bundle) {
             console.error(`[renderBundles] Bundle UUID not found in cache: ${bundleData.uuid}`);
             continue;
         }
@@ -302,8 +302,8 @@ export const renderBundles = async (bundles, interaction, VPemoji) => {
         const subName = bundle.subNames ? l(bundle.subNames, interaction) + "\n" : "";
         const slantedDescription = bundle.descriptions ? "*" + l(bundle.descriptions, interaction) + "*\n" : "";
         const embed = {
-            title: s(interaction).info.BUNDLE_NAME.f({b: l(bundle.names, interaction)}),
-            description: `${subName}${slantedDescription}${VPemoji} **${bundle.price || s(interaction).info.FREE}**${bundle.expires ? ` - ${s(interaction).info.EXPIRES.f({t:bundle.expires})}` : ""}`,
+            title: s(interaction).info.BUNDLE_NAME.f({ b: l(bundle.names, interaction) }),
+            description: `${subName}${slantedDescription}${VPemoji} **${bundle.price || s(interaction).info.FREE}**${bundle.expires ? ` - ${s(interaction).info.EXPIRES.f({ t: bundle.expires })}` : ""}`,
             color: VAL_COLOR_2,
             thumbnail: {
                 url: bundle.icon
@@ -311,13 +311,13 @@ export const renderBundles = async (bundles, interaction, VPemoji) => {
         };
         embeds.push(embed);
 
-        if(buttons.length < 5) {
+        if (buttons.length < 5) {
             buttons.push(new ButtonBuilder().setCustomId(`viewbundle/${interaction.user.id}/${bundle.uuid}`).setStyle(ButtonStyle.Primary).setLabel(l(bundle.names, interaction)).setEmoji("🔎"));
         }
     }
 
     const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
-    if((VPemoji && !VPemoji.startsWith("<:")) || missingExternalPerms) {
+    if ((VPemoji && !VPemoji.startsWith("<:")) || missingExternalPerms) {
         embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
     }
 
@@ -327,26 +327,28 @@ export const renderBundles = async (bundles, interaction, VPemoji) => {
     };
 }
 
-export const renderBundle = async (bundle, interaction, emoji, includeExpires=true) => {
+export const renderBundle = async (bundle, interaction, emoji, includeExpires = true) => {
     const subName = bundle.subNames ? l(bundle.subNames, interaction) + "\n" : "";
     const slantedDescription = bundle.descriptions ? "*" + l(bundle.descriptions, interaction) + "*\n" : "";
     const strikedBundleBasePrice = bundle.basePrice ? " ~~" + bundle.basePrice + "~~" : "";
-    const UnixStamp = bundle.last_seen / 1000 ? `\n_${s(interaction).info.BUNDLE_RELEASED.f({t: Math.round(bundle.last_seen / 1000)})}_\n` : "";
+    const UnixStamp = bundle.last_seen / 1000 ? `\n_${s(interaction).info.BUNDLE_RELEASED.f({ t: Math.round(bundle.last_seen / 1000) })}_\n` : "";
 
-    if(!bundle.items) return {embeds: [{
-        title: s(interaction).info.BUNDLE_NAME.f({b: l(bundle.names, interaction)}),
-        description: `${subName}${slantedDescription}`,
-        color: VAL_COLOR_1,
-        image: {
-            url: bundle.icon
-        },
-        footer: {
-            text: s(interaction).info.NO_BUNDLE_DATA
-        }
-    }]};
+    if (!bundle.items) return {
+        embeds: [{
+            title: s(interaction).info.BUNDLE_NAME.f({ b: l(bundle.names, interaction) }),
+            description: `${subName}${slantedDescription}`,
+            color: VAL_COLOR_1,
+            image: {
+                url: bundle.icon
+            },
+            footer: {
+                text: s(interaction).info.NO_BUNDLE_DATA
+            }
+        }]
+    };
 
     const bundleTitleEmbed = {
-        title: s(interaction).info.BUNDLE_NAME.f({b: l(bundle.names, interaction)}),
+        title: s(interaction).info.BUNDLE_NAME.f({ b: l(bundle.names, interaction) }),
         description: `${subName}${slantedDescription}${UnixStamp}${emoji} **${bundle.price}**${strikedBundleBasePrice}`,
         color: VAL_COLOR_3,
         image: {
@@ -354,15 +356,15 @@ export const renderBundle = async (bundle, interaction, emoji, includeExpires=tr
         }
     }
 
-    if(includeExpires && bundle.expires) bundleTitleEmbed.description += ` (${(bundle.expires > Date.now() / 1000 ? 
-        s(interaction).info.EXPIRES : s(interaction).info.EXPIRED).f({t: bundle.expires})})`;
+    if (includeExpires && bundle.expires) bundleTitleEmbed.description += ` (${(bundle.expires > Date.now() / 1000 ?
+        s(interaction).info.EXPIRES : s(interaction).info.EXPIRED).f({ t: bundle.expires })})`;
 
     const itemEmbeds = await renderBundleItems(bundle, interaction, emoji);
-    const levels = await getSkinLevels(bundle.items.map(i=>i.uuid), interaction);
-    const result = levels ? {embeds: [bundleTitleEmbed, ...itemEmbeds], components: [levels]} : {embeds: [bundleTitleEmbed, ...itemEmbeds], components: []};
-    
+    const levels = await getSkinLevels(bundle.items.map(i => i.uuid), interaction);
+    const result = levels ? { embeds: [bundleTitleEmbed, ...itemEmbeds], components: [levels] } : { embeds: [bundleTitleEmbed, ...itemEmbeds], components: [] };
+
     const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
-    if((emoji && !emoji.startsWith("<:")) || missingExternalPerms) {
+    if ((emoji && !emoji.startsWith("<:")) || missingExternalPerms) {
         result.embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
     }
 
@@ -370,20 +372,20 @@ export const renderBundle = async (bundle, interaction, emoji, includeExpires=tr
 }
 
 export const renderNightMarket = async (market, interaction, valorantUser, emoji) => {
-    if(!market.success) return authFailureMessage(interaction, market, s(interaction).error.AUTH_ERROR_NMARKET);
+    if (!market.success) return authFailureMessage(interaction, market, s(interaction).error.AUTH_ERROR_NMARKET);
 
-    if(!market.offers) {
+    if (!market.offers) {
         const nextNightMarketTimestamp = await getNextNightMarketTimestamp();
-        const text = nextNightMarketTimestamp ? s(interaction).error.NO_NMARKET_WITH_DATE.f({t: nextNightMarketTimestamp}) : s(interaction).error.NO_NMARKET;
-        return {embeds: [basicEmbed(text)]};
+        const text = nextNightMarketTimestamp ? s(interaction).error.NO_NMARKET_WITH_DATE.f({ t: nextNightMarketTimestamp }) : s(interaction).error.NO_NMARKET;
+        return { embeds: [basicEmbed(text)] };
     }
 
     const embeds = [{
-        description: s(interaction).info.NMARKET_HEADER.f({u: valorantUser.username, t: market.expires}, interaction),
+        description: s(interaction).info.NMARKET_HEADER.f({ u: valorantUser.username, t: market.expires }, interaction),
         color: VAL_COLOR_3
     }];
 
-    for(const offer of market.offers) {
+    for (const offer of market.offers) {
         const skin = await getSkin(offer.uuid);
 
         const embed = await skinEmbed(skin, skin.price, interaction, emoji);
@@ -391,73 +393,73 @@ export const renderNightMarket = async (market, interaction, valorantUser, emoji
 
         embeds.push(embed);
     }
-    
+
     const missingExternalPerms = interaction.guild && config.useEmojisFromServer && config.useEmojisFromServer !== interaction.guildId && !interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.UseExternalEmojis);
-    if((emoji && !emoji.startsWith("<:")) || missingExternalPerms) {
+    if ((emoji && !emoji.startsWith("<:")) || missingExternalPerms) {
         embeds.push(basicEmbed(s(interaction).error.ALERT_NO_PERMS));
     }
 
-    if(!rarityEmojisAvailable(interaction.channel)) {
+    if (!rarityEmojisAvailable(interaction.channel)) {
         embeds.push(basicEmbed(s(interaction).error.RARITY_EMOJIS_UNAVAILABLE));
     }
 
     const components = switchAccountButtons(interaction, "nm", true);
 
     const levels = await getSkinLevels(market.offers, interaction, true);
-    if(levels) components.unshift(levels);
+    if (levels) components.unshift(levels);
     return {
         embeds, components
     };
 }
 
-export const renderBattlepass = async (battlepass, targetlevel, interaction, targetId=interaction.user.id) => {
-    if(!battlepass.success) return authFailureMessage(interaction, battlepass, s(interaction).error.AUTH_ERROR_BPASS);
-    if(battlepass.nextReward.rewardType === "EquippableCharmLevel"){
+export const renderBattlepass = async (battlepass, targetlevel, interaction, targetId = interaction.user.id) => {
+    if (!battlepass.success) return authFailureMessage(interaction, battlepass, s(interaction).error.AUTH_ERROR_BPASS);
+    if (battlepass.nextReward.rewardType === "EquippableCharmLevel") {
         battlepass.nextReward.rewardType = s(interaction).battlepass.GUN_BUDDY;
     }
-    if(battlepass.nextReward.rewardType === "EquippableSkinLevel"){
+    if (battlepass.nextReward.rewardType === "EquippableSkinLevel") {
         battlepass.nextReward.rewardType = s(interaction).battlepass.SKIN;
     }
-    if(battlepass.nextReward.rewardType === "PlayerCard"){
+    if (battlepass.nextReward.rewardType === "PlayerCard") {
         battlepass.nextReward.rewardType = s(interaction).battlepass.CARD;
     }
-    if(battlepass.nextReward.rewardType === "Currency") {
+    if (battlepass.nextReward.rewardType === "Currency") {
         battlepass.nextReward.rewardType = s(interaction).battlepass.CURRENCY;
     }
-    if(battlepass.nextReward.rewardType === "Spray") {
+    if (battlepass.nextReward.rewardType === "Spray") {
         battlepass.nextReward.rewardType = s(interaction).battlepass.SPRAY;
     }
-    if(battlepass.nextReward.rewardName === undefined) {
+    if (battlepass.nextReward.rewardName === undefined) {
         battlepass.nextReward.rewardName = "Name not found"
     }
     const user = getUser(targetId);
 
     let embeds = []
-    if(battlepass.bpdata.progressionLevelReached < 55) {
+    if (battlepass.bpdata.progressionLevelReached < 55) {
 
         const forOtherUser = targetId && targetId !== interaction.user.id;
         const otherUserMention = `<@${targetId}>`;
-    
-        let headerText;
-        if(forOtherUser) {
-            const json = readUserJson(targetId);
-    
-            let usernameText = otherUserMention;
-            if(json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({n: json.currentAccount});
 
-            headerText = s(interaction).battlepass.TIER_HEADER.f({u: usernameText})
+        let headerText;
+        if (forOtherUser) {
+            const json = readUserJson(targetId);
+
+            let usernameText = otherUserMention;
+            if (json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({ n: json.currentAccount });
+
+            headerText = s(interaction).battlepass.TIER_HEADER.f({ u: usernameText })
         }
-        else headerText = s(interaction).battlepass.TIER_HEADER.f({u: user.username}, interaction)
+        else headerText = s(interaction).battlepass.TIER_HEADER.f({ u: user.username }, interaction)
 
         embeds.push({
             title: s(interaction).battlepass.CALCULATIONS_TITLE,
-            thumbnail: {url: thumbnails[Math.floor(Math.random()*thumbnails.length)]},
+            thumbnail: { url: thumbnails[Math.floor(Math.random() * thumbnails.length)] },
             description: `${headerText}\n${createProgressBar(battlepass.xpneeded, battlepass.bpdata.progressionTowardsNextLevel, battlepass.bpdata.progressionLevelReached)}`,
             color: VAL_COLOR_1,
             fields: [
                 {
                     "name": s(interaction).battlepass.GENERAL_COL,
-                    "value": `${s(interaction).battlepass.TOTAL_ROW}\n${s(interaction).battlepass.LVLUP_ROW}\n${s(interaction).battlepass.TIER50_ROW.f({t: targetlevel})}\n${s(interaction).battlepass.WEEKLY_LEFT_ROW}`,
+                    "value": `${s(interaction).battlepass.TOTAL_ROW}\n${s(interaction).battlepass.LVLUP_ROW}\n${s(interaction).battlepass.TIER50_ROW.f({ t: targetlevel })}\n${s(interaction).battlepass.WEEKLY_LEFT_ROW}`,
                     "inline": true
                 },
                 {
@@ -467,68 +469,68 @@ export const renderBattlepass = async (battlepass, targetlevel, interaction, tar
                 }
             ],
             footer: {
-                text: battlepass.battlepassPurchased ? s(interaction).battlepass.BP_PURCHASED.f({u: user.username}, interaction) : ""
+                text: battlepass.battlepassPurchased ? s(interaction).battlepass.BP_PURCHASED.f({ u: user.username }, interaction) : ""
             }
         },
-        {
-            title: s(interaction).battlepass.GAMES_HEADER,
-            color: VAL_COLOR_1,
-            fields: [
-                {
-                    "name": s(interaction).battlepass.GAMEMODE_COL,
-                    "value": `${s(interaction).battlepass.SPIKERUSH_ROW}\n${s(interaction).battlepass.NORMAL_ROW}\n`,
-                    "inline": true
-                },
-                {
-                    "name": "#",
-                    "value": `\`${battlepass.spikerushneeded}\`\n\`${battlepass.normalneeded}\``,
-                    "inline": true
-                },
-                {
-                    "name": s(interaction).battlepass.INCL_WEEKLIES_COL,
-                    "value": `\`${battlepass.spikerushneededwithweeklies}\`\n\`${battlepass.normalneededwithweeklies}\``,
-                    "inline": true
+            {
+                title: s(interaction).battlepass.GAMES_HEADER,
+                color: VAL_COLOR_1,
+                fields: [
+                    {
+                        "name": s(interaction).battlepass.GAMEMODE_COL,
+                        "value": `${s(interaction).battlepass.SPIKERUSH_ROW}\n${s(interaction).battlepass.NORMAL_ROW}\n`,
+                        "inline": true
+                    },
+                    {
+                        "name": "#",
+                        "value": `\`${battlepass.spikerushneeded}\`\n\`${battlepass.normalneeded}\``,
+                        "inline": true
+                    },
+                    {
+                        "name": s(interaction).battlepass.INCL_WEEKLIES_COL,
+                        "value": `\`${battlepass.spikerushneededwithweeklies}\`\n\`${battlepass.normalneededwithweeklies}\``,
+                        "inline": true
+                    }
+                ],
+                footer: {
+                    text: s(interaction).battlepass.ACT_END.f({ d: battlepass.season_days_left })
                 }
-            ],
-            footer: {
-                text: s(interaction).battlepass.ACT_END.f({d: battlepass.season_days_left})
-            }
-        },
-        {
-            title: s(interaction).battlepass.XP_HEADER,
-            color: VAL_COLOR_1,
-            fields: [
-                {
-                    "name": s(interaction).battlepass.AVERAGE_COL,
-                    "value": `${s(interaction).battlepass.DAILY_XP_ROW}\n${s(interaction).battlepass.WEEKLY_XP_ROW}`,
-                    "inline": true
-                },
-                {
-                    "name": s(interaction).battlepass.XP_COL,
-                    "value": `\`${battlepass.dailyxpneeded}\`\n\`${battlepass.weeklyxpneeded}\``,
-                    "inline": true
-                },
-                {
-                    "name": s(interaction).battlepass.INCL_WEEKLIES_COL,
-                    "value": `\`${battlepass.dailyxpneededwithweeklies}\`\n\`${battlepass.weeklyxpneededwithweeklies}\``,
-                    "inline": true
-                }
-            ]
-        },
-        {
-            title: s(interaction).battlepass.NEXT_BP_REWARD,
-            color: VAL_COLOR_1,
-            fields: [
-                {
-                    "name": `**${s(interaction).battlepass.TYPE}:** \`${battlepass.nextReward.rewardType}\``,
-                    "value": `**${s(interaction).battlepass.REWARD}:** ${battlepass.nextReward.rewardName}\n**XP:** ${battlepass.bpdata.progressionTowardsNextLevel}/${battlepass.nextReward.XP}`,
-                    "inline": true
-                },
-            ],
-            thumbnail: {
-                url: battlepass.nextReward.rewardIcon,
             },
-        });
+            {
+                title: s(interaction).battlepass.XP_HEADER,
+                color: VAL_COLOR_1,
+                fields: [
+                    {
+                        "name": s(interaction).battlepass.AVERAGE_COL,
+                        "value": `${s(interaction).battlepass.DAILY_XP_ROW}\n${s(interaction).battlepass.WEEKLY_XP_ROW}`,
+                        "inline": true
+                    },
+                    {
+                        "name": s(interaction).battlepass.XP_COL,
+                        "value": `\`${battlepass.dailyxpneeded}\`\n\`${battlepass.weeklyxpneeded}\``,
+                        "inline": true
+                    },
+                    {
+                        "name": s(interaction).battlepass.INCL_WEEKLIES_COL,
+                        "value": `\`${battlepass.dailyxpneededwithweeklies}\`\n\`${battlepass.weeklyxpneededwithweeklies}\``,
+                        "inline": true
+                    }
+                ]
+            },
+            {
+                title: s(interaction).battlepass.NEXT_BP_REWARD,
+                color: VAL_COLOR_1,
+                fields: [
+                    {
+                        "name": `**${s(interaction).battlepass.TYPE}:** \`${battlepass.nextReward.rewardType}\``,
+                        "value": `**${s(interaction).battlepass.REWARD}:** ${battlepass.nextReward.rewardName}\n**XP:** ${battlepass.bpdata.progressionTowardsNextLevel}/${battlepass.nextReward.XP}`,
+                        "inline": true
+                    },
+                ],
+                thumbnail: {
+                    url: battlepass.nextReward.rewardIcon,
+                },
+            });
     } else {
         embeds.push({
             description: s(interaction).battlepass.FINISHED,
@@ -538,11 +540,11 @@ export const renderBattlepass = async (battlepass, targetlevel, interaction, tar
 
     const components = switchAccountButtons(interaction, "bp", false, false, targetId);
 
-    return {embeds, components};
+    return { embeds, components };
 }
 
 const renderBundleItems = async (bundle, interaction, VPemojiString) => {
-    if(!bundle.items) return [];
+    if (!bundle.items) return [];
 
     const priorities = {};
     priorities[itemTypes.SKIN] = 5;
@@ -554,46 +556,46 @@ const renderBundleItems = async (bundle, interaction, VPemojiString) => {
     const items = bundle.items.sort((a, b) => priorities[b.type] - priorities[a.type]);
 
     const embeds = [];
-    for(const item of items) {
+    for (const item of items) {
         const embed = await bundleItemEmbed(item, interaction, VPemojiString);
 
-        if(item.amount !== 1) embed.title = `${item.amount}x ${embed.title}`;
-        if(item.basePrice && item.price !== item.basePrice) {
+        if (item.amount !== 1) embed.title = `${item.amount}x ${embed.title}`;
+        if (item.basePrice && item.price !== item.basePrice) {
             embed.description = `${VPemojiString} **${item.price || s(interaction).info.FREE}** ~~${item.basePrice}~~`;
-            if(item.type === itemTypes.TITLE && item.item) embed.description = "`" + item.item.text + "`\n\n" + embed.description
+            if (item.type === itemTypes.TITLE && item.item) embed.description = "`" + item.item.text + "`\n\n" + embed.description
         }
 
         embeds.push(embed);
     }
 
     // discord has a limit of 10 embeds (9 if we count the bundle title)
-    if(embeds.length > 9) {
+    if (embeds.length > 9) {
         embeds.length = 8;
-        embeds.push(basicEmbed(s(interaction).info.MORE_ITEMS.f({n: items.length - 8})));
+        embeds.push(basicEmbed(s(interaction).info.MORE_ITEMS.f({ n: items.length - 8 })));
     }
 
     return embeds;
 }
 
 const bundleItemEmbed = async (item, interaction, VPemojiString) => {
-    switch(item.type) {
+    switch (item.type) {
         case itemTypes.SKIN: return skinEmbed(item.uuid, item.price, interaction, VPemojiString);
         case itemTypes.BUDDY: return buddyEmbed(item.uuid, item.price, interaction, VPemojiString);
         case itemTypes.CARD: return cardEmbed(item.uuid, item.price, interaction, VPemojiString);
         case itemTypes.SPRAY: return sprayEmbed(item.uuid, item.price, interaction, VPemojiString);
         case itemTypes.TITLE: return titleEmbed(item.uuid, item.price, interaction, VPemojiString);
-        default: return basicEmbed(s(interaction).error.UNKNOWN_ITEM_TYPE.f({t: item.type}));
+        default: return basicEmbed(s(interaction).error.UNKNOWN_ITEM_TYPE.f({ t: item.type }));
     }
 }
 
 export const skinEmbed = async (skinOrUuid, price, interactionOrId, VPemojiString, channel = null) => {
     const skin = skinOrUuid && typeof skinOrUuid === "object" ? skinOrUuid : await getSkin(skinOrUuid);
     const colorMap = {
-      '0cebb8be-46d7-c12a-d306-e9907bfc5a25': 0x009984,
-      'e046854e-406c-37f4-6607-19a9ba8426fc': 0xf99358,
-      '60bca009-4182-7998-dee7-b8a2558dc369': 0xd1538c,
-      '12683d76-48d7-84a3-4e09-6985794f0445': 0x5a9fe1,
-      '411e4a55-4e59-7757-41f0-86a53f101bb5': 0xf9d563
+        '0cebb8be-46d7-c12a-d306-e9907bfc5a25': 0x009984,
+        'e046854e-406c-37f4-6607-19a9ba8426fc': 0xf99358,
+        '60bca009-4182-7998-dee7-b8a2558dc369': 0xd1538c,
+        '12683d76-48d7-84a3-4e09-6985794f0445': 0x5a9fe1,
+        '411e4a55-4e59-7757-41f0-86a53f101bb5': 0xf9d563
     };
 
     const color = colorMap[skin.rarity] || '000000'; // default to black
@@ -656,17 +658,17 @@ const titleEmbed = async (uuid, price, locale, emojiString) => {
     }
 }
 
-export const skinCollectionSingleEmbed = async (interaction, id, user, {loadout, favorites}) => {
+export const skinCollectionSingleEmbed = async (interaction, id, user, { loadout, favorites }) => {
     const someoneElseUsedCommand = interaction.message ?
         interaction.message.interaction && interaction.message.interaction.user.id !== user.id :
         interaction.user.id !== user.id;
 
     let totalValue = 0;
     const skinsUuid = [];
-    const createField = async (weaponUuid, inline=true) => {
+    const createField = async (weaponUuid, inline = true) => {
         const weapon = await getWeapon(weaponUuid);
         const skinUuid = loadout.Guns.find(gun => gun.ID === weaponUuid)?.SkinID
-        if(!skinUuid) return {
+        if (!skinUuid) return {
             name: 'No information available',
             value: 'Login to the game for display',
             inline: inline
@@ -725,26 +727,26 @@ export const skinCollectionSingleEmbed = async (interaction, id, user, {loadout,
     }, emptyField);
 
     let usernameText;
-    if(someoneElseUsedCommand) {
+    if (someoneElseUsedCommand) {
         usernameText = `<@${id}>`;
 
         const json = readUserJson(id);
-        if(json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({n: json.currentAccount});
+        if (json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({ n: json.currentAccount });
     }
     else usernameText = user.username;
 
 
     const embed = {
-        description: s(interaction).info.COLLECTION_HEADER.f({u: usernameText}, id),
+        description: s(interaction).info.COLLECTION_HEADER.f({ u: usernameText }, id),
         color: VAL_COLOR_1,
         fields: fields
     }
 
     const components = [new ActionRowBuilder().addComponents(collectionSwitchEmbedButton(interaction, true, id)),]
-    if(!someoneElseUsedCommand) components.push(...switchAccountButtons(interaction, "cl", false, false, id))
-    
-    const levels = await getSkinLevels(skinsUuid.map(item=>item.uuid), interaction);
-    if(levels) components.unshift(levels);
+    if (!someoneElseUsedCommand) components.push(...switchAccountButtons(interaction, "cl", false, false, id))
+
+    const levels = await getSkinLevels(skinsUuid.map(item => item.uuid), interaction);
+    if (levels) components.unshift(levels);
 
     return {
         embeds: [embed],
@@ -752,7 +754,7 @@ export const skinCollectionSingleEmbed = async (interaction, id, user, {loadout,
     }
 }
 
-export const skinCollectionPageEmbed = async (interaction, id, user, {loadout, favorites}, pageIndex=0) => {
+export const skinCollectionPageEmbed = async (interaction, id, user, { loadout, favorites }, pageIndex = 0) => {
     const someoneElseUsedCommand = interaction.message ?
         interaction.message.interaction && interaction.message.interaction.user.id !== user.id :
         interaction.user.id !== user.id;
@@ -764,7 +766,7 @@ export const skinCollectionPageEmbed = async (interaction, id, user, {loadout, f
     const createEmbed = async (weaponUuid) => {
         const weapon = await getWeapon(weaponUuid);
         const skinUuid = loadout.Guns.find(gun => gun.ID === weaponUuid)?.SkinID
-        if(!skinUuid) return {
+        if (!skinUuid) return {
             title: 'No information available',
             description: 'Login to the game for display',
             color: VAL_COLOR_1,
@@ -791,20 +793,20 @@ export const skinCollectionPageEmbed = async (interaction, id, user, {loadout, f
         [WeaponTypeUuid.Stinger, WeaponTypeUuid.Ares, WeaponTypeUuid.Odin],
     ];
 
-    if(pageIndex < 0) pageIndex = pages.length - 1;
-    if(pageIndex >= pages.length) pageIndex = 0;
+    if (pageIndex < 0) pageIndex = pages.length - 1;
+    if (pageIndex >= pages.length) pageIndex = 0;
 
     let usernameText;
-    if(someoneElseUsedCommand) {
+    if (someoneElseUsedCommand) {
         usernameText = `<@${id}>`;
 
         const json = readUserJson(id);
-        if(json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({n: json.currentAccount});
+        if (json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({ n: json.currentAccount });
     }
     else usernameText = user.username;
 
-    const embeds = [basicEmbed(s(interaction).info.COLLECTION_HEADER.f({u: usernameText}, id))];
-    for(const weapon of pages[pageIndex]) {
+    const embeds = [basicEmbed(s(interaction).info.COLLECTION_HEADER.f({ u: usernameText }, id))];
+    for (const weapon of pages[pageIndex]) {
         embeds.push(await createEmbed(weapon));
     }
 
@@ -812,9 +814,9 @@ export const skinCollectionPageEmbed = async (interaction, id, user, {loadout, f
     firstRowButtons.push(...(pageButtons("clpage", id, pageIndex, pages.length).components))
 
     const components = [new ActionRowBuilder().setComponents(...firstRowButtons)]
-    if(!someoneElseUsedCommand) components.push(...switchAccountButtons(interaction, "cl", false, false, id));
+    if (!someoneElseUsedCommand) components.push(...switchAccountButtons(interaction, "cl", false, false, id));
 
-    return {embeds, components}
+    return { embeds, components }
 }
 
 const collectionSwitchEmbedButton = (interaction, switchToPage, id) => {
@@ -823,7 +825,7 @@ const collectionSwitchEmbedButton = (interaction, switchToPage, id) => {
     return new ButtonBuilder().setEmoji('🔍').setLabel(label).setStyle(ButtonStyle.Primary).setCustomId(customId);
 }
 
-export const collectionOfWeaponEmbed = async (interaction, id, user, weaponTypeUuid, skins, pageIndex=0) => {
+export const collectionOfWeaponEmbed = async (interaction, id, user, weaponTypeUuid, skins, pageIndex = 0) => {
     const someoneElseUsedCommand = interaction.message ?
         interaction.message.interaction && interaction.message.interaction.user.id !== user.id :
         interaction.user.id !== user.id;
@@ -831,11 +833,11 @@ export const collectionOfWeaponEmbed = async (interaction, id, user, weaponTypeU
     const emoji = await VPEmoji(interaction);
 
     let usernameText;
-    if(someoneElseUsedCommand) {
+    if (someoneElseUsedCommand) {
         usernameText = `<@${id}>`;
 
         const json = readUserJson(id);
-        if(json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({n: json.currentAccount});
+        if (json.accounts.length > 1) usernameText += ' ' + s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({ n: json.currentAccount });
     }
     else usernameText = user.username;
 
@@ -844,7 +846,7 @@ export const collectionOfWeaponEmbed = async (interaction, id, user, weaponTypeU
     const filteredSkins = skinsData.filter(skin => skin?.weapon === weaponTypeUuid);
     filteredSkins.sort((a, b) => { // sort by price, then rarity
         const priceDiff = (b.price || 0) - (a.price || 0);
-        if(priceDiff !== 0) return priceDiff;
+        if (priceDiff !== 0) return priceDiff;
 
         const rarityOrder = [
             "12683d76-48d7-84a3-4e09-6985794f0445", // select
@@ -859,11 +861,11 @@ export const collectionOfWeaponEmbed = async (interaction, id, user, weaponTypeU
     const embedsPerPage = 5;
     const maxPages = Math.ceil(filteredSkins.length / embedsPerPage);
 
-    if(pageIndex < 0) pageIndex = maxPages - 1;
-    if(pageIndex >= maxPages) pageIndex = 0;
+    if (pageIndex < 0) pageIndex = maxPages - 1;
+    if (pageIndex >= maxPages) pageIndex = 0;
 
     const weaponName = await getWeapon(weaponTypeUuid).then(weapon => l(weapon.names, interaction));
-    const embeds = [basicEmbed(s(interaction).info.COLLECTION_WEAPON_HEADER.f({u: usernameText, w: weaponName, p: pageIndex + 1, t: maxPages}, id))];
+    const embeds = [basicEmbed(s(interaction).info.COLLECTION_WEAPON_HEADER.f({ u: usernameText, w: weaponName, p: pageIndex + 1, t: maxPages }, id))];
     const skinEmbed = async (skin) => ({
         title: await skinNameAndEmoji(skin, interaction.channel, interaction),
         description: `${emoji} ${skin.price || 'N/A'}`,
@@ -872,25 +874,25 @@ export const collectionOfWeaponEmbed = async (interaction, id, user, weaponTypeU
             url: skin.icon
         }
     })
-    if(filteredSkins.length === 0) {
+    if (filteredSkins.length === 0) {
         const weapon = await getWeapon(weaponTypeUuid);
         const skin = await getSkinFromSkinUuid(weapon.defaultSkinUuid);
         embeds.push(await skinEmbed(skin));
     }
-    else for(const skin of filteredSkins.slice(pageIndex * embedsPerPage, (pageIndex + 1) * embedsPerPage)) {
+    else for (const skin of filteredSkins.slice(pageIndex * embedsPerPage, (pageIndex + 1) * embedsPerPage)) {
         embeds.push(await skinEmbed(skin));
     }
 
     const weaponTypeIndex = Object.values(WeaponTypeUuid).indexOf(weaponTypeUuid);
 
     const actionRows = [];
-    if(maxPages > 1) actionRows.push(pageButtons(`clwpage/${weaponTypeIndex}`, id, pageIndex, maxPages));
-    if(!someoneElseUsedCommand) actionRows.push(...switchAccountButtons(interaction, `clw-${weaponTypeIndex}`, false, false, id));
+    if (maxPages > 1) actionRows.push(pageButtons(`clwpage/${weaponTypeIndex}`, id, pageIndex, maxPages));
+    if (!someoneElseUsedCommand) actionRows.push(...switchAccountButtons(interaction, `clw-${weaponTypeIndex}`, false, false, id));
 
-    const levels = await getSkinLevels(filteredSkins.slice(pageIndex * embedsPerPage, (pageIndex + 1) * embedsPerPage).map(item=>item.uuid), interaction);
-    if(levels) actionRows.unshift(levels);
+    const levels = await getSkinLevels(filteredSkins.slice(pageIndex * embedsPerPage, (pageIndex + 1) * embedsPerPage).map(item => item.uuid), interaction);
+    if (levels) actionRows.unshift(levels);
 
-    return {embeds, components: actionRows}
+    return { embeds, components: actionRows }
 }
 
 export const botInfoEmbed = (interaction, client, guildCount, userCount, registeredUserCount, ownerString, status) => {
@@ -921,17 +923,17 @@ export const botInfoEmbed = (interaction, client, guildCount, userCount, registe
             inline: true
         }
     ];
-    if(ownerString) fields.push({
+    if (ownerString) fields.push({
         name: s(interaction).info.INFO_OWNER,
         value: ownerString,
         inline: true
     });
-    if(interaction.client.shard) fields.push({
+    fields.push({
         name: "Running on",
         value: "Shard " + interaction.client.shard.ids.join(', ') || "No shard id...?",
         inline: true
     });
-    if(status) fields.push({
+    if (status) fields.push({
         name: s(interaction).info.INFO_STATUS,
         value: status || "Up and running!",
         inline: true
@@ -942,16 +944,16 @@ export const botInfoEmbed = (interaction, client, guildCount, userCount, registe
     return {
         embeds: [{
             title: s(interaction).info.INFO_HEADER,
-            description: s(interaction).info.INFO_RUNNING.f({t1: readyTimestamp, t2: readyTimestamp}),
+            description: s(interaction).info.INFO_RUNNING.f({ t1: readyTimestamp, t2: readyTimestamp }),
             color: VAL_COLOR_1,
             fields: fields
         }]
     }
 }
 const competitiveMatchEmbed = (interaction, matchData) => {
-    const embedTitle = `${s(interaction).match.COMPETITIVE}┊${matchData.metadata.map}・<t:${matchData.metadata.game_start+matchData.metadata.game_length}:R>`;
+    const embedTitle = `${s(interaction).match.COMPETITIVE}┊${matchData.metadata.map}・<t:${matchData.metadata.game_start + matchData.metadata.game_length}:R>`;
     const roundDesc = `[**${matchData.metadata.pt_round_won ?? "?"}** : **${matchData.metadata.et_round_won ?? "?"}**]`;
-    const hsPercentDesc = `**${s(interaction).match.PERCENT.f({v:matchData.player.hs_percent})}** ${s(interaction).match.HS_PERCENT}`;
+    const hsPercentDesc = `**${s(interaction).match.PERCENT.f({ v: matchData.player.hs_percent })}** ${s(interaction).match.HS_PERCENT}`;
     const adsDesc = `**${matchData.player.average_damage_round}** ${s(interaction).match.AVERAGE_DAMAGE_ROUND}`;
     const acsDesc = `**${matchData.player.average_combat_score}** ${s(interaction).match.AVERAGE_COMBAT_SCORE}`;
     const colors = {
@@ -973,7 +975,7 @@ const competitiveMatchEmbed = (interaction, matchData) => {
     }
 
     const mmrValue = matchData.player.mmr !== undefined ? matchData.player.mmr : "N/A";
-    const mapDesc = `**${"`"+mmrValue+"`"}**`;
+    const mapDesc = `**${"`" + mmrValue + "`"}**`;
     const embedDescription = `${mapDesc}・${roundDesc}・${hsPercentDesc}・${adsDesc}・${acsDesc}`;
     const embed = {
         "title": embedTitle,
@@ -991,11 +993,11 @@ const competitiveMatchEmbed = (interaction, matchData) => {
     return embed
 }
 
-export const renderCompetitiveMatchHistory = async (interaction, accountData, matchHistoryData, targetId=interaction.user.id) => { //will be edited in the future
-    if(!accountData.success) return {embeds: [basicEmbed(s(interaction).error.GENERIC_ERROR.f({e: accountData.error}))]}
-    if(!matchHistoryData.success) return {embeds: [basicEmbed(s(interaction).error.GENERIC_ERROR.f({e: matchHistoryData.error}))]}
+export const renderCompetitiveMatchHistory = async (interaction, accountData, matchHistoryData, targetId = interaction.user.id) => { //will be edited in the future
+    if (!accountData.success) return { embeds: [basicEmbed(s(interaction).error.GENERIC_ERROR.f({ e: accountData.error }))] }
+    if (!matchHistoryData.success) return { embeds: [basicEmbed(s(interaction).error.GENERIC_ERROR.f({ e: matchHistoryData.error }))] }
     const account = accountData.data
-    const userName = hideUsername({u: account.account.name + "`#"+ account.account.tag + "`"}, targetId).u
+    const userName = hideUsername({ u: account.account.name + "`#" + account.account.tag + "`" }, targetId).u
     const embeds = [{
         "title": userName + ` • Lv. ${account.account.account_level}`,
         "description": `${s(interaction).info.PROFILE_PEAK_RANK} ┊ **${account.mmr.highest_rank?.patched_tier}**`,
@@ -1013,14 +1015,14 @@ export const renderCompetitiveMatchHistory = async (interaction, accountData, ma
         embeds.push(embed);
     }
     const rows = switchAccountButtons(interaction, "comphistory", true, false, targetId)
-    return {embeds: embeds, components: rows}
+    return { embeds: embeds, components: rows }
 }
 
-export const renderProfile = async (interaction, data1, targetId=interaction.user.id) => { //will be edited in the future
-    if(!data1.success) return {embeds: [basicEmbed(s(interaction).error.GENERIC_ERROR.f({e: data1.error}))]}
+export const renderProfile = async (interaction, data1, targetId = interaction.user.id) => { //will be edited in the future
+    if (!data1.success) return { embeds: [basicEmbed(s(interaction).error.GENERIC_ERROR.f({ e: data1.error }))] }
     const valorantUser = getUser(targetId)
     const data = data1.data
-    const userName = hideUsername({u: data.account.name + "`#"+ data.account.tag + "`"}, targetId).u
+    const userName = hideUsername({ u: data.account.name + "`#" + data.account.tag + "`" }, targetId).u
     const embeds = [{
         "title": userName + ` • Lv. ${data.account.account_level}`,
         "description": `${s(interaction).info.PROFILE_PEAK_RANK} ┊ **${data.mmr.highest_rank?.patched_tier}**`,
@@ -1034,13 +1036,13 @@ export const renderProfile = async (interaction, data1, targetId=interaction.use
         }
     }];
 
-    if(config.notice && valorantUser) {
+    if (config.notice && valorantUser) {
         // users shouldn't see the same notice twice
-        if(!config.onlyShowNoticeOnce || valorantUser.lastNoticeSeen !== config.notice) {
+        if (!config.onlyShowNoticeOnce || valorantUser.lastNoticeSeen !== config.notice) {
 
             // the notice can either be just a simple string, or a raw JSON embed data object
-            if(typeof config.notice === "string") {
-                if(config.notice.startsWith('{')) embeds.push(EmbedBuilder.from(JSON.parse(config.notice)).toJSON());
+            if (typeof config.notice === "string") {
+                if (config.notice.startsWith('{')) embeds.push(EmbedBuilder.from(JSON.parse(config.notice)).toJSON());
                 else embeds.push(basicEmbed(config.notice));
             }
             else embeds.push(EmbedBuilder.from(config.notice).toJSON());
@@ -1053,16 +1055,16 @@ export const renderProfile = async (interaction, data1, targetId=interaction.use
     const rows = profileButtons(interaction, targetId)
     switchAccountButtons(interaction, "profile", true, false, targetId).map(a => rows.push(a))
 
-    return {embeds: embeds, components: rows}
+    return { embeds: embeds, components: rows }
 }
 
-const profileButtons = (interaction, id, back=false) => {
-    if(back){ // not implemented yet
+const profileButtons = (interaction, id, back = false) => {
+    if (back) { // not implemented yet
         const returnButton = new ButtonBuilder()
-        .setStyle(ButtonStyle.Primary)
-        .setLabel(s(interaction).info.RETURN_BUTTON)
-        .setEmoji("↩️")
-        .setCustomId(`account/profile/${id}/c`);
+            .setStyle(ButtonStyle.Primary)
+            .setLabel(s(interaction).info.RETURN_BUTTON)
+            .setEmoji("↩️")
+            .setCustomId(`account/profile/${id}/c`);
         return [new ActionRowBuilder().setComponents(returnButton)]
     }
     const shopButton = new ButtonBuilder()
@@ -1115,7 +1117,7 @@ export const ownerMessageEmbed = (messageContent, author) => {
 }
 
 const priceDescription = (VPemojiString, price) => {
-    if(price) return `${VPemojiString} ${price}`;
+    if (price) return `${VPemojiString} ${price}`;
 }
 
 const pageButtons = (pageId, userId, current, max) => {
@@ -1123,15 +1125,15 @@ const pageButtons = (pageId, userId, current, max) => {
     const rightButton = new ButtonBuilder().setStyle(ButtonStyle.Secondary).setEmoji("▶").setCustomId(`${pageId}/${userId}/${current + 1}`);
     const goToPageButton = new ButtonBuilder().setStyle(ButtonStyle.Secondary).setEmoji("🔍").setCustomId(`gotopage/${pageId}/${userId}/${max}`);
 
-    if(current === 0) leftButton.setEmoji("⏪");
-    if(current === max - 1) rightButton.setEmoji("⏩");
+    if (current === 0) leftButton.setEmoji("⏪");
+    if (current === max - 1) rightButton.setEmoji("⏩");
 
     return new ActionRowBuilder().setComponents(leftButton, rightButton, goToPageButton);
 }
 
-export const switchAccountButtons = (interaction, customId, oneAccountButton=false, accessory = false, id=interaction?.user?.id || interaction) => {
+export const switchAccountButtons = (interaction, customId, oneAccountButton = false, accessory = false, id = interaction?.user?.id || interaction) => {
     const json = removeDupeAccounts(id);
-    if(!json || json.accounts.length === 1 && !oneAccountButton) return [];
+    if (!json || json.accounts.length === 1 && !oneAccountButton) return [];
     const accountNumbers = [...Array(json.accounts.length).keys()].map(n => n + 1).slice(0, config.maxAccountsPerUser <= 10 ? config.maxAccountsPerUser : 10);
     const hideIgn = getSetting(id, "hideIgn");
 
@@ -1139,9 +1141,9 @@ export const switchAccountButtons = (interaction, customId, oneAccountButton=fal
     const buttons = []; // account switch buttons, row 1
     const buttons2 = []; // account switch buttons, row 2
 
-    for(const number of accountNumbers) {
+    for (const number of accountNumbers) {
         const username = json.accounts[number - 1].username || s(interaction).info.NO_USERNAME;
-        const label = hideIgn ? s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({n: number.toString()}) : username;
+        const label = hideIgn ? s(interaction).info.SWITCH_ACCOUNT_BUTTON.f({ n: number.toString() }) : username;
 
         const button = new ButtonBuilder().setStyle(ButtonStyle.Secondary).setLabel(label).setCustomId(`account/${customId}/${id}/${number}`);
         button.setDisabled(number === json.currentAccount);
@@ -1153,37 +1155,37 @@ export const switchAccountButtons = (interaction, customId, oneAccountButton=fal
     // the "accessory" parameter represents the current page of the embed.
     // it can be either "daily" for the skin shop, "accessory" for the accessory shop.
     // it can also be "false" to not render this row.
-    if(accessory !== false) {
+    if (accessory !== false) {
         const skinShopButton = new ButtonBuilder().setStyle(ButtonStyle.Primary)
-                                    .setLabel(s(interaction).info.DAILY_SHOP_SWITCH_BUTTON)
-                                    .setEmoji("🛒")
-                                    .setCustomId(`account/shop/${id}/daily`);
+            .setLabel(s(interaction).info.DAILY_SHOP_SWITCH_BUTTON)
+            .setEmoji("🛒")
+            .setCustomId(`account/shop/${id}/daily`);
         const accessoryShopButton = new ButtonBuilder().setStyle(ButtonStyle.Primary)
-                                    .setLabel(s(interaction).info.ACCESSORY_SHOP_SWITCH_BUTTON)
-                                    .setEmoji("🎩")
-                                    .setCustomId(`account/accessoryshop/${id}/accessory`);
+            .setLabel(s(interaction).info.ACCESSORY_SHOP_SWITCH_BUTTON)
+            .setEmoji("🎩")
+            .setCustomId(`account/accessoryshop/${id}/accessory`);
 
-        if(accessory === "daily") skinShopButton.setDisabled(true);
-        else if(accessory === "accessory") accessoryShopButton.setDisabled(true);
+        if (accessory === "daily") skinShopButton.setDisabled(true);
+        else if (accessory === "accessory") accessoryShopButton.setDisabled(true);
 
         const row = new ActionRowBuilder().setComponents(skinShopButton, accessoryShopButton);
         rows.push(row);
     }
 
     rows.push(new ActionRowBuilder().setComponents(...buttons))
-    if(buttons2.length) rows.push(new ActionRowBuilder().setComponents(...buttons2))
+    if (buttons2.length) rows.push(new ActionRowBuilder().setComponents(...buttons2))
     return rows
 }
 
 const alertFieldDescription = async (interaction, channel_id, emojiString, price) => {
-    if(channel_id === interaction.channelId) {
-        if(price) return `${emojiString} ${price}`;
-        if(config.fetchSkinPrices) return s(interaction).info.SKIN_NOT_FOR_SALE;
+    if (channel_id === interaction.channelId) {
+        if (price) return `${emojiString} ${price}`;
+        if (config.fetchSkinPrices) return s(interaction).info.SKIN_NOT_FOR_SALE;
         return s(interaction).info.SKIN_PRICES_HIDDEN;
     } else {
         const channel = await fetchChannel(channel_id);
-        if(channel && !channel.guild) return s(interaction).info.ALERT_IN_DM_CHANNEL;
-        return s(interaction).info.ALERT_IN_CHANNEL.f({c: channel_id})
+        if (channel && !channel.guild) return s(interaction).info.ALERT_IN_DM_CHANNEL;
+        return s(interaction).info.ALERT_IN_CHANNEL.f({ c: channel_id })
     }
 }
 
@@ -1192,14 +1194,14 @@ export const alertsPageEmbed = async (interaction, alerts, pageIndex, emojiStrin
 
     alerts = alerts.filter(alert => alert.uuid);
 
-    if(alerts.length === 0) {
+    if (alerts.length === 0) {
         return {
             embeds: [basicEmbed(s(interaction).error.NO_ALERTS)],
             components: components
         }
     }
 
-    if(alerts.length === 1) {
+    if (alerts.length === 1) {
         const alert = alerts[0];
 
         const skin = await getSkin(alert.uuid);
@@ -1220,8 +1222,8 @@ export const alertsPageEmbed = async (interaction, alerts, pageIndex, emojiStrin
 
     const maxPages = Math.ceil(alerts.length / config.alertsPerPage);
 
-    if(pageIndex < 0) pageIndex = maxPages - 1;
-    if(pageIndex >= maxPages) pageIndex = 0;
+    if (pageIndex < 0) pageIndex = maxPages - 1;
+    if (pageIndex >= maxPages) pageIndex = 0;
 
     const embed = { // todo switch this to a "one embed per alert" message, kinda like /shop
         title: s(interaction).info.MULTIPLE_ALERTS,
@@ -1235,28 +1237,28 @@ export const alertsPageEmbed = async (interaction, alerts, pageIndex, emojiStrin
 
     let n = pageIndex * config.alertsPerPage;
     const alertsToRender = alerts.slice(n, n + config.alertsPerPage);
-    for(const alert of alertsToRender) {
+    for (const alert of alertsToRender) {
         const skin = await getSkin(alert.uuid);
         embed.fields.push({
-            name: `**${n+1}.** ${await skinNameAndEmoji(skin, interaction.channel, interaction)}`,
+            name: `**${n + 1}.** ${await skinNameAndEmoji(skin, interaction.channel, interaction)}`,
             value: await alertFieldDescription(interaction, alert.channel_id, emojiString, skin.price),
             inline: alerts.length > 5
         });
-        buttons.push(removeAlertButton(interaction.user.id, alert.uuid, `${n+1}.`));
+        buttons.push(removeAlertButton(interaction.user.id, alert.uuid, `${n + 1}.`));
         n++;
     }
 
     const actionRows = [];
-    for(let i = 0; i < alertsToRender.length; i += 5) {
+    for (let i = 0; i < alertsToRender.length; i += 5) {
         const actionRow = new ActionRowBuilder();
-        for(let j = i; j < i + 5 && j < alertsToRender.length; j++) {
+        for (let j = i; j < i + 5 && j < alertsToRender.length; j++) {
             actionRow.addComponents(buttons[j]);
         }
         actionRows.push(actionRow);
     }
-    if(maxPages > 1) actionRows.push(pageButtons("changealertspage", interaction.user.id, pageIndex, maxPages));
+    if (maxPages > 1) actionRows.push(pageButtons("changealertspage", interaction.user.id, pageIndex, maxPages));
 
-    if(actionRows.length < 5) actionRows.push(...components);
+    if (actionRows.length < 5) actionRows.push(...components);
 
     return {
         embeds: [embed],
@@ -1265,7 +1267,7 @@ export const alertsPageEmbed = async (interaction, alerts, pageIndex, emojiStrin
 }
 
 export const alertTestResponse = async (interaction, success) => {
-    if(success) {
+    if (success) {
         await interaction.followUp({
             embeds: [secondaryEmbed(s(interaction).info.ALERT_TEST_SUCCESSFUL)]
         });
@@ -1276,21 +1278,21 @@ export const alertTestResponse = async (interaction, success) => {
     }
 }
 
-export const allStatsEmbed = async (interaction, stats, pageIndex=0) => {
+export const allStatsEmbed = async (interaction, stats, pageIndex = 0) => {
     const skinCount = Object.keys(stats.items).length;
 
-    if(skinCount === 0) return {
+    if (skinCount === 0) return {
         embeds: [basicEmbed(config.trackStoreStats ? s(interaction).error.EMPTY_STATS : s(interaction).error.STATS_DISABLED)]
     }
 
     const maxPages = Math.ceil(skinCount / config.statsPerPage);
 
-    if(pageIndex < 0) pageIndex = maxPages - 1;
-    if(pageIndex >= maxPages) pageIndex = 0;
+    if (pageIndex < 0) pageIndex = maxPages - 1;
+    if (pageIndex >= maxPages) pageIndex = 0;
 
     const skinsToDisplay = Object.keys(stats.items).slice(pageIndex * config.statsPerPage, pageIndex * config.statsPerPage + config.statsPerPage);
-    const embeds = [basicEmbed(s(interaction).info.STATS_HEADER.f({c: stats.shopsIncluded, p: pageIndex + 1, t: maxPages}))];
-    for(const uuid of skinsToDisplay) {
+    const embeds = [basicEmbed(s(interaction).info.STATS_HEADER.f({ c: stats.shopsIncluded, p: pageIndex + 1, t: maxPages }))];
+    for (const uuid of skinsToDisplay) {
         const skin = await getSkin(uuid);
         const statsForSkin = getStatsFor(uuid);
         embeds.push(await statsForSkinEmbed(skin, statsForSkin, interaction));
@@ -1304,11 +1306,11 @@ export const allStatsEmbed = async (interaction, stats, pageIndex=0) => {
 
 export const statsForSkinEmbed = async (skin, stats, interaction) => {
     let description;
-    if(stats.count === 0) description = s(interaction).error.NO_STATS_FOR_SKIN.f({d: config.statsExpirationDays || '∞'});
+    if (stats.count === 0) description = s(interaction).error.NO_STATS_FOR_SKIN.f({ d: config.statsExpirationDays || '∞' });
     else {
         const percentage = Math.round(stats.count / stats.shopsIncluded * 100 * 100) / 100;
         const crownEmoji = stats.rank[0] === 1 || stats.rank[0] === stats.rank[1] ? ':crown: ' : '';
-        description = s(interaction).info.STATS_DESCRIPTION.f({c: crownEmoji, r: stats.rank[0], t: stats.rank[1], p: percentage});
+        description = s(interaction).info.STATS_DESCRIPTION.f({ c: crownEmoji, r: stats.rank[0], t: stats.rank[1], p: percentage });
     }
 
     return {
@@ -1323,9 +1325,9 @@ export const statsForSkinEmbed = async (skin, stats, interaction) => {
 
 export const accountsListEmbed = (interaction, userJson) => {
     const fields = [];
-    for(const [i, account] of Object.entries(userJson.accounts)) {
+    for (const [i, account] of Object.entries(userJson.accounts)) {
         let fieldValue;
-        if(!account.username) fieldValue = s(interaction).info.NO_USERNAME;
+        if (!account.username) fieldValue = s(interaction).info.NO_USERNAME;
         else fieldValue = account.username;
 
         fields.push({
@@ -1355,8 +1357,8 @@ export const settingsEmbed = (userSettings, interaction) => {
         fields: []
     }
 
-    for(const [setting, value] of Object.entries(userSettings)) {
-        if(!settingIsVisible(setting)) continue;
+    for (const [setting, value] of Object.entries(userSettings)) {
+        if (!settingIsVisible(setting)) continue;
 
         let displayValue = humanifyValue(
             setting === "locale" && !userSettings.localeForced ? "Automatic" : value,
@@ -1375,17 +1377,17 @@ export const settingsEmbed = (userSettings, interaction) => {
     }
 }
 
-export const valMaintenancesEmbeds = (interaction, {maintenances, incidents, id: regionName}) => {
+export const valMaintenancesEmbeds = (interaction, { maintenances, incidents, id: regionName }) => {
     const embeds = [];
-    for(const maintenance of maintenances) {
+    for (const maintenance of maintenances) {
         embeds.push(valMaintenanceEmbed(interaction, maintenance, false, regionName));
     }
-    for(const incident of incidents) {
+    for (const incident of incidents) {
         embeds.push(valMaintenanceEmbed(interaction, incident, true, regionName));
     }
 
-    if(!embeds.length) {
-        embeds.push(basicEmbed(s(interaction).info.NO_MAINTENANCES.f({r: regionName})));
+    if (!embeds.length) {
+        embeds.push(basicEmbed(s(interaction).info.NO_MAINTENANCES.f({ r: regionName })));
     }
 
     return {
@@ -1401,8 +1403,8 @@ export const valMaintenanceEmbed = (interaction, target, isIncident, regionName)
     const targetType = isIncident ? s(interaction).info.INCIDENT_TYPE : s(interaction).info.MAINTENANCE_TYPE;
 
     return {
-        title: s(interaction).info.MAINTENANCE_HEADER.f({t: targetType, r: regionName}),
-        description: `> ${string}\n*${s(interaction).info.LAST_UPDATED.f({t: lastUpdate})}*`,
+        title: s(interaction).info.MAINTENANCE_HEADER.f({ t: targetType, r: regionName }),
+        description: `> ${string}\n*${s(interaction).info.LAST_UPDATED.f({ t: lastUpdate })}*`,
     }
 }
 
@@ -1414,10 +1416,10 @@ export const basicEmbed = (content) => {
 }
 
 export const headerEmbed = (content) => {
-  return {
-    description: content,
-    color: 0x202225,
-  };
+    return {
+        description: content,
+        color: 0x202225,
+    };
 };
 
 export const secondaryEmbed = (content) => {

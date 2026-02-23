@@ -3,9 +3,11 @@ import {loadConfig} from "./misc/config.js";
 
 const config = loadConfig();
 
+export const startShardingManager = () => {
 const manager = new ShardingManager('./SkinPeek.js', {
     token: config.token,
-    mode: "worker"
+    mode: "worker",
+    totalShards: config.shards || "auto"
 });
 
 let allShardsReady = false;
@@ -63,3 +65,4 @@ manager.spawn({
     console.error("[Shards] Failed to spawn shards:", err);
     process.exit(1);
 });
+}
