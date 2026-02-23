@@ -1,6 +1,6 @@
 import config from "./config.js";
 import fs from "fs";
-import {client} from "../discord/bot.js";
+import { client } from "../discord/bot.js";
 
 let stats = {
     fileVersion: 2,
@@ -15,21 +15,21 @@ let statsDirty = false;
 let saveDebounceTimer = null;
 const SAVE_DEBOUNCE_MS = 5000; // batch saves within 5 seconds
 
-export const loadStats = (filename="data/stats.json") => {
-    if(!config.trackStoreStats) return;
-    if(statsLoaded) return; // already loaded, no need to re-read from disk
+export const loadStats = (filename = "data/stats.json") => {
+    if (!config.trackStoreStats) return;
+    if (statsLoaded) return; // already loaded, no need to re-read from disk
     try {
         const obj = JSON.parse(fs.readFileSync(filename).toString());
 
-        if(!obj.fileVersion) transferStatsFromV1(obj);
+        if (!obj.fileVersion) transferStatsFromV1(obj);
         else stats = obj;
 
         calculateOverallStats();
-    } catch(e) {}
+    } catch (e) { }
     statsLoaded = true;
 }
 
-const saveStats = (filename="data/stats.json") => {
+const saveStats = (filename = "data/stats.json") => {
     const dir = filename.substring(0, filename.lastIndexOf("/"));
     if (dir && !fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -39,22 +39,22 @@ const saveStats = (filename="data/stats.json") => {
 }
 
 const debouncedSaveStats = () => {
-    if(client.shard && client.shard.ids[0] !== 0) return; // shard 0 only
+    if (client.shard.ids[0] !== 0) return; // shard 0 only
     statsDirty = true;
-    if(saveDebounceTimer) return; // already scheduled
+    if (saveDebounceTimer) return; // already scheduled
     saveDebounceTimer = setTimeout(() => {
         saveDebounceTimer = null;
-        if(statsDirty) saveStats();
+        if (statsDirty) saveStats();
     }, SAVE_DEBOUNCE_MS);
 }
 
 // Ensure stats are flushed to disk (call on shutdown or forced save)
 export const flushStats = () => {
-    if(saveDebounceTimer) {
+    if (saveDebounceTimer) {
         clearTimeout(saveDebounceTimer);
         saveDebounceTimer = null;
     }
-    if(statsDirty) saveStats();
+    if (statsDirty) saveStats();
 }
 
 export const calculateOverallStats = () => {
@@ -65,16 +65,16 @@ export const calculateOverallStats = () => {
     let items = {};
     let needsCleanup = false;
 
-    for(let dateString in stats.stats) {
-        if(config.statsExpirationDays && daysAgo(dateString) > config.statsExpirationDays) {
+    for (let dateString in stats.stats) {
+        if (config.statsExpirationDays && daysAgo(dateString) > config.statsExpirationDays) {
             needsCleanup = true;
             continue;
         }
         const dayStats = stats.stats[dateString];
 
         overallStats.shopsIncluded += dayStats.shopsIncluded;
-        for(let item in dayStats.items) {
-            if(item in items) {
+        for (let item in dayStats.items) {
+            if (item in items) {
                 items[item] += dayStats.items[item];
             } else {
                 items[item] = dayStats.items[item];
@@ -83,12 +83,12 @@ export const calculateOverallStats = () => {
     }
 
     // Clean up expired entries lazily
-    if(needsCleanup) {
+    if (needsCleanup) {
         cleanupStats();
     }
 
-    const sortedItems = Object.entries(items).sort(([,a], [,b]) => b - a);
-    for(const [uuid, count] of sortedItems) {
+    const sortedItems = Object.entries(items).sort(([, a], [, b]) => b - a);
+    for (const [uuid, count] of sortedItems) {
         overallStats.items[uuid] = count;
     }
 }
@@ -108,26 +108,26 @@ export const getStatsFor = (uuid) => {
 }
 
 export const addStore = async (puuid, items) => {
-    if(!config.trackStoreStats) return;
+    if (!config.trackStoreStats) return;
 
     const today = formatDate(new Date());
 
     // Try Redis first: atomic cross-shard dedup via SADD
-    const {statsAddStore, isRedisAvailable} = await import("./redisQueue.js");
-    if(isRedisAvailable()) {
+    const { statsAddStore, isRedisAvailable } = await import("./redisQueue.js");
+    if (isRedisAvailable()) {
         const isNew = await statsAddStore(puuid, items, today);
-        if(isNew === false) return; // already counted today (cross-shard dedup)
-        if(isNew === true) {
+        if (isNew === false) return; // already counted today (cross-shard dedup)
+        if (isNew === true) {
             // Update in-memory state for same-shard reads
             loadStats();
             let todayStats = stats.stats[today];
-            if(!todayStats) {
+            if (!todayStats) {
                 todayStats = { shopsIncluded: 0, items: {}, users: [] };
                 stats.stats[today] = todayStats;
             }
-            if(!todayStats.users.includes(puuid)) {
+            if (!todayStats.users.includes(puuid)) {
                 todayStats.users.push(puuid);
-                for(const item of items) {
+                for (const item of items) {
                     todayStats.items[item] = (todayStats.items[item] || 0) + 1;
                 }
                 todayStats.shopsIncluded++;
@@ -143,7 +143,7 @@ export const addStore = async (puuid, items) => {
     loadStats();
 
     let todayStats = stats.stats[today];
-    if(!todayStats) {
+    if (!todayStats) {
         todayStats = {
             shopsIncluded: 0,
             items: {},
@@ -152,11 +152,11 @@ export const addStore = async (puuid, items) => {
         stats.stats[today] = todayStats;
     }
 
-    if(todayStats.users.includes(puuid)) return;
+    if (todayStats.users.includes(puuid)) return;
     todayStats.users.push(puuid);
 
-    for(const item of items) {
-        if(item in todayStats.items) {
+    for (const item of items) {
+        if (item in todayStats.items) {
             todayStats.items[item]++;
         } else {
             todayStats.items[item] = 1;
@@ -170,10 +170,10 @@ export const addStore = async (puuid, items) => {
 }
 
 const cleanupStats = () => {
-    if(!config.statsExpirationDays) return;
+    if (!config.statsExpirationDays) return;
 
-    for(const dateString in stats.stats) {
-        if(daysAgo(dateString) > config.statsExpirationDays) {
+    for (const dateString in stats.stats) {
+        if (daysAgo(dateString) > config.statsExpirationDays) {
             delete stats.stats[dateString];
         }
     }

@@ -1,6 +1,6 @@
-import {redeemCookies} from "./auth.js";
+import { redeemCookies } from "./auth.js";
 import config from "../misc/config.js";
-import {wait} from "../misc/util.js";
+import { wait } from "../misc/util.js";
 import {
     getNextCounter,
     pushAuthQueue,
@@ -14,7 +14,7 @@ import {
     acquireProcessingLock,
     releaseProcessingLock
 } from "../misc/redisQueue.js";
-import {client} from "../discord/bot.js";
+import { client } from "../discord/bot.js";
 
 export const Operations = {
     COOKIES: "ck",
@@ -25,7 +25,7 @@ let authQueueInterval;
 
 export const startAuthQueue = () => {
     clearInterval(authQueueInterval);
-    if(config.useLoginQueue) {
+    if (config.useLoginQueue) {
         authQueueInterval = setInterval(processAuthQueue, config.loginQueueInterval);
         // Cleanup stale processing marks every 5 minutes
         setInterval(cleanupStaleProcessing, 5 * 60 * 1000);
@@ -33,7 +33,7 @@ export const startAuthQueue = () => {
 }
 
 export const queueCookiesLogin = async (id, cookies) => {
-    if(!config.useLoginQueue) return await redeemCookies(id, cookies);
+    if (!config.useLoginQueue) return await redeemCookies(id, cookies);
 
     const c = await getNextCounter();
     await pushAuthQueue({
@@ -41,13 +41,13 @@ export const queueCookiesLogin = async (id, cookies) => {
         c, id, cookies
     });
     console.log(`[Auth Queue] Added cookie login for user ${id} (c=${c})`);
-    return {inQueue: true, c};
+    return { inQueue: true, c };
 };
 
 export const queueNullOperation = async (timeout) => {  // used for stress-testing the auth queue
-    if(!config.useLoginQueue) {
+    if (!config.useLoginQueue) {
         await wait(timeout);
-        return {success: true};
+        return { success: true };
     }
 
     const c = await getNextCounter();
@@ -56,13 +56,13 @@ export const queueNullOperation = async (timeout) => {  // used for stress-testi
         c, timeout
     });
     console.log(`[Auth Queue] Added null operation with timeout ${timeout} (c=${c})`);
-    return {inQueue: true, c};
+    return { inQueue: true, c };
 };
 
 export const processAuthQueue = async () => {
-    if(!config.useLoginQueue) return;
+    if (!config.useLoginQueue) return;
 
-    const shardId = client.shard ? client.shard.ids[0] : 0;
+    const shardId = client.shard.ids[0];
 
     // Only one shard across the cluster can hold the processing lock at a time
     const lockAcquired = await acquireProcessingLock(shardId);
@@ -87,11 +87,11 @@ export const processAuthQueue = async () => {
                     break;
                 case Operations.NULL:
                     await wait(item.timeout);
-                    result = {success: true};
+                    result = { success: true };
                     break;
             }
-        } catch(e) {
-            result = {success: false, error: e.message};
+        } catch (e) {
+            result = { success: false, error: e.message };
         }
 
         await storeAuthResult(item.c, result);
@@ -106,7 +106,7 @@ export const processAuthQueue = async () => {
 export const getAuthQueueItemStatus = async (c) => {
     const result = await getAuthResult(c);
     if (result) {
-        return {processed: true, result};
+        return { processed: true, result };
     }
 
     const queueLength = await getAuthQueueLength();

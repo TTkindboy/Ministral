@@ -174,36 +174,34 @@ client.on("clientReady", async () => {
 
     // Fetch version data FIRST (required for API headers)
     // Only shard 0 fetches, others wait for broadcast
-    if (!client.shard || client.shard.ids[0] === 0) {
+    if (client.shard.ids[0] === 0) {
         await fetchRiotVersionData();
         console.log("Fetched latest Riot user-agent!");
-        
+
         // Broadcast to other shards if using sharding
-        if (client.shard) {
-            const {getRiotVersionData} = await import("../misc/util.js");
-            const {sendShardMessage} = await import("../misc/shardMessage.js");
-            const versionData = getRiotVersionData();
-            await sendShardMessage({type: "riotVersionData", data: versionData});
-        }
+        const { getRiotVersionData } = await import("../misc/util.js");
+        const { sendShardMessage } = await import("../misc/shardMessage.js");
+        const versionData = getRiotVersionData();
+        await sendShardMessage({ type: "riotVersionData", data: versionData });
     } else {
         console.log("Waiting for Riot version data from shard 0...");
         // Version data will be received via shard message
     }
-    
+
     console.log("Loading skins...");
     fetchData().then(() => console.log("Skins loaded!"));
 
-    if(!client.shard || client.shard.ids[0] === 0) {
+    if (client.shard.ids[0] === 0) {
         // Shard 0 warms the emoji cache and broadcasts the snapshot to all other shards
         warmEmojiCache().then(async (snapshot) => {
-            if(snapshot && client.shard) {
-                const {sendShardMessage} = await import("../misc/shardMessage.js");
-                await sendShardMessage({type: "emojiCacheWarm", snapshot});
+            if (snapshot) {
+                const { sendShardMessage } = await import("../misc/shardMessage.js");
+                await sendShardMessage({ type: "emojiCacheWarm", snapshot });
             }
         }).catch(e => console.error(`Emoji cache warm failed: ${e.message}`));
     }
     // Other shards skip warmEmojiCache() here — they receive the snapshot via "emojiCacheWarm" message
-    
+
     initProxyManager().then(() => {
         if (getProxyManager().enabled) {
             console.log(`Proxy manager loaded ${getProxyManager().allProxies.length} proxies!`);
@@ -216,7 +214,7 @@ client.on("clientReady", async () => {
     await client.user.setActivity("your store!", { type: ActivityType.Watching });
 
     // deploy commands if different
-    if (config.autoDeployCommands && (!client.shard || client.shard.ids[0] === 0)) {
+    if (config.autoDeployCommands && client.shard.ids[0] === 0) {
         const currentCommands = await client.application.commands.fetch();
 
         let shouldDeploy = currentCommands.size !== globalCommands.length;
@@ -238,7 +236,7 @@ client.on("clientReady", async () => {
     }
 
     // tell sharding manager that we're ready (workaround in case of shard respawn)
-    if (client.shard) client.shard.send("shardReady");
+    client.shard.send("shardReady");
 });
 
 export const scheduleTasks = () => {
@@ -248,36 +246,34 @@ export const scheduleTasks = () => {
     if (config.refreshSkins) cronTasks.push(cron.schedule(config.refreshSkins, checkAlerts, { timezone: "GMT" }));
 
     // check for new valorant version every 15mins (only on shard 0, then broadcasts to others)
-    if (config.checkGameVersion && (!client.shard || client.shard.ids[0] === 0)) {
+    if (config.checkGameVersion && client.shard.ids[0] === 0) {
         cronTasks.push(cron.schedule(config.checkGameVersion, () => fetchData(null, true)));
     }
 
     // reload skin prices from disk every 30mins (shard 0 only — other shards get updates via skinsReload broadcast)
-    if (config.refreshPrices && (!client.shard || client.shard.ids[0] === 0)) {
+    if (config.refreshPrices && client.shard.ids[0] === 0) {
         cronTasks.push(cron.schedule(config.refreshPrices, () => loadSkinsJSON()));
     }
 
     // if login queue is enabled, process on shard 0 only (all shards submit to the Redis queue, only shard 0 processes)
-    if (config.useLoginQueue && config.loginQueueInterval && (!client.shard || client.shard.ids[0] === 0)) {
+    if (config.useLoginQueue && config.loginQueueInterval && client.shard.ids[0] === 0) {
         startAuthQueue();
     }
 
     // if send console to discord channel is enabled, send console output (shard 0 only — other shards forward via logMessages)
-    if (config.logToChannel && config.logFrequency && (!client.shard || client.shard.ids[0] === 0)) {
+    if (config.logToChannel && config.logFrequency && client.shard.ids[0] === 0) {
         cronTasks.push(cron.schedule(config.logFrequency, sendConsoleOutput));
     }
 
     // check for a new riot client version (new user agent) every 15mins (only on shard 0, then broadcasts to others)
-    if (config.updateUserAgent && (!client.shard || client.shard.ids[0] === 0)) {
+    if (config.updateUserAgent && client.shard.ids[0] === 0) {
         cronTasks.push(cron.schedule(config.updateUserAgent, async () => {
             await fetchRiotVersionData();
             // Broadcast to other shards if using sharding
-            if (client.shard) {
-                const {getRiotVersionData} = await import("../misc/util.js");
-                const {sendShardMessage} = await import("../misc/shardMessage.js");
-                const versionData = getRiotVersionData();
-                await sendShardMessage({type: "riotVersionData", data: versionData});
-            }
+            const { getRiotVersionData } = await import("../misc/util.js");
+            const { sendShardMessage } = await import("../misc/shardMessage.js");
+            const versionData = getRiotVersionData();
+            await sendShardMessage({ type: "riotVersionData", data: versionData });
         }));
     }
 }
@@ -577,7 +573,7 @@ client.on("messageCreate", async (message) => {
                 saveConfig();
                 scheduleTasks();
 
-                if (client.shard) sendShardMessage({ type: "configReload" });
+                sendShardMessage({ type: "configReload" });
 
                 let s = "Successfully reloaded the config!";
                 if (config.token !== oldToken)
@@ -590,7 +586,7 @@ client.on("messageCreate", async (message) => {
                 destroyTasks();
                 scheduleTasks();
 
-                if (client.shard) sendShardMessage({ type: "configReload" });
+                sendShardMessage({ type: "configReload" });
 
                 let s = "Successfully reloaded the config from disk!";
                 if (config.token !== oldToken)
@@ -689,7 +685,7 @@ client.on("messageCreate", async (message) => {
             saveConfig();
             await message.reply("Set the status to `" + config.status + "`!");
         } else if (content === "!forcealerts") {
-            if (!client.shard || client.shard.ids.includes(0)) {
+            if (client.shard.ids.includes(0)) {
                 await checkAlerts();
                 await message.reply("Checked alerts!");
             }
@@ -698,25 +694,25 @@ client.on("messageCreate", async (message) => {
                 await message.reply("Told shard 0 to start checking alerts!");
             }
         } else if (content === "!debugalerts") {
-            if (!client.shard || client.shard.ids.includes(0)) {
+            if (client.shard.ids.includes(0)) {
                 await message.reply("Starting debug alert check (dry run)... Check the console for detailed output.");
                 const debugOutput = await debugCheckAlerts();
                 // Split output if too long for Discord (2000 char limit)
                 const chunks = [];
                 const lines = debugOutput.split('\n');
                 let currentChunk = '```\n';
-                
-                for(const line of lines) {
-                    if(currentChunk.length + line.length + 5 > 1990) { // 5 for \n```
+
+                for (const line of lines) {
+                    if (currentChunk.length + line.length + 5 > 1990) { // 5 for \n```
                         chunks.push(currentChunk + '\n```');
                         currentChunk = '```\n' + line + '\n';
                     } else {
                         currentChunk += line + '\n';
                     }
                 }
-                if(currentChunk.length > 4) chunks.push(currentChunk + '\n```');
-                
-                for(const chunk of chunks) {
+                if (currentChunk.length > 4) chunks.push(currentChunk + '\n```');
+
+                for (const chunk of chunks) {
                     await message.channel.send(chunk);
                 }
             } else {
@@ -848,7 +844,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (searchResults.length === 0) {
                         return await interaction.followUp({
                             embeds: [basicEmbed(s(interaction).error.BUNDLE_NOT_FOUND)],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
                     } else if (searchResults.length === 1 || nameMatchesExactly(interaction) || nameMatchesExactly()) { // check both localized and english
                         const bundle = searchResults[0].obj;
@@ -974,7 +970,7 @@ client.on("interactionCreate", async (interaction) => {
                         return await interaction.followUp({
                             embeds: [basicEmbed(s(interaction).error.DUPLICATE_ALERT.f({ s: await skinNameAndEmoji(skin, interaction.channel, interaction), c: otherAlert.channel_id }))],
                             components: [removeAlertActionRow(interaction.user.id, skin.uuid, s(interaction).info.REMOVE_ALERT_BUTTON)],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
                     } else if (filteredResults.length === 1 ||
                         l(filteredResults[0].obj.names, interaction.locale).toLowerCase() === searchQuery.toLowerCase() ||
@@ -1080,7 +1076,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (json && json.accounts.length >= config.maxAccountsPerUser) {
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.TOO_MANY_ACCOUNTS.f({ n: config.maxAccountsPerUser }))],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
                     }
 
@@ -1094,7 +1090,7 @@ client.on("interactionCreate", async (interaction) => {
 
                     const embed = {
                         title: s(interaction).info.LOGIN_TITLE,
-                        description: s(interaction).info.LOGIN_DESCRIPTION.f({url: url}),
+                        description: s(interaction).info.LOGIN_DESCRIPTION.f({ url: url }),
                         color: VAL_COLOR_1,
                         image: { url: "https://cdn.discordapp.com/attachments/951836162312527872/1473414714947010751/ezgif.com-optiwebp.webp" },
                         footer: { text: s(interaction).info.LOGIN_FOOTER }
@@ -1147,12 +1143,12 @@ client.on("interactionCreate", async (interaction) => {
 
                         if (targetIndex === null) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.ACCOUNT_NOT_FOUND)],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         if (targetIndex > accountCount) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.ACCOUNT_NUMBER_TOO_HIGH.f({ n: accountCount }))],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         const usernameOfDeleted = deleteUser(interaction.user.id, targetIndex);
@@ -1166,7 +1162,7 @@ client.on("interactionCreate", async (interaction) => {
 
                         await interaction.reply({
                             embeds: [basicEmbed(s(interaction).info.ACCOUNT_DELETED)],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
                     }
                     break;
@@ -1329,19 +1325,11 @@ client.on("interactionCreate", async (interaction) => {
                 }
                 case "info": {
                     let guildCount, userCount;
-                    if (client.shard) {
-                        const guildCounts = await client.shard.fetchClientValues('guilds.cache.size');
-                        guildCount = guildCounts.reduce((acc, guildCount) => acc + guildCount, 0);
+                    const guildCounts = await client.shard.fetchClientValues('guilds.cache.size');
+                    guildCount = guildCounts.reduce((acc, guildCount) => acc + guildCount, 0);
 
-                        const userCounts = await client.shard.broadcastEval(c => c.guilds.cache.reduce((acc, guild) => acc + (guild.memberCount || 0), 0));
-                        userCount = userCounts.reduce((acc, guildCount) => acc + guildCount, 0);
-                    } else {
-                        guildCount = client.guilds.cache.size;
-
-                        userCount = 0;
-                        for (const guild of client.guilds.cache.values())
-                            userCount += (guild.memberCount || 0);
-                    }
+                    const userCounts = await client.shard.broadcastEval(c => c.guilds.cache.reduce((acc, guild) => acc + (guild.memberCount || 0), 0));
+                    userCount = userCounts.reduce((acc, guildCount) => acc + guildCount, 0);
 
                     const registeredUserCount = getUserList().length;
 
@@ -1426,7 +1414,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (interaction.message.interaction.user.id !== interaction.user.id) {
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_ALERT)],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
                     }
 
@@ -1466,7 +1454,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (interaction.message.interaction.user.id !== interaction.user.id) {
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_STATS)],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
                     }
 
@@ -1485,7 +1473,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (interaction.message.interaction.user.id !== interaction.user.id) {
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_BUNDLE)],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
                     }
 
@@ -1511,7 +1499,7 @@ client.on("interactionCreate", async (interaction) => {
                         .setCustomId(`select-skin-level`)
                         .setPlaceholder(s(interaction).info.SELECT_LEVEL_OF_SKIN)
 
-                    if(!skin){
+                    if (!skin) {
                         const req = await fetch(`https://valorant-api.com/v1/weapons/skins/${skinUuid}?language=all`);
                         skin = JSON.parse(req.body).data;
                         skinUuid = skin.levels[0].uuid;
@@ -1547,7 +1535,7 @@ client.on("interactionCreate", async (interaction) => {
                     const rawSkin = await getSkin(skinUuid);
                     const skin = rawSkin[type].filter(x => x.uuid === uuid);
                     const name = l(skin[0].displayName, interaction)
-                    
+
                     // Use direct video/image links
                     const link = skin[0].streamedVideo || skin[0].displayIcon;
 
@@ -1565,7 +1553,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (id !== interaction.user.id) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_ALERT)],
-                        flags: [MessageFlags.Ephemeral]
+                    flags: [MessageFlags.Ephemeral]
                 });
 
                 const success = removeAlert(id, uuid);
@@ -1596,7 +1584,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (id !== interaction.user.id) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_ALERT)],
-                        flags: [MessageFlags.Ephemeral]
+                    flags: [MessageFlags.Ephemeral]
                 });
 
                 const emojiString = await VPEmoji(interaction);
@@ -1606,7 +1594,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (id !== interaction.user.id) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_STATS)],
-                        flags: [MessageFlags.Ephemeral]
+                    flags: [MessageFlags.Ephemeral]
                 });
 
                 await interaction.update(await allStatsEmbed(interaction, await getOverallStats(), parseInt(pageIndex)));
@@ -1665,7 +1653,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (id !== interaction.user.id) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_BUNDLE)],
-                        flags: [MessageFlags.Ephemeral]
+                    flags: [MessageFlags.Ephemeral]
                 });
 
                 const bundle = await getBundle(uuid);
@@ -1680,7 +1668,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (id !== interaction.user.id && !getSetting(id, "othersCanUseAccountButtons")) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_GENERIC)],
-                        flags: [MessageFlags.Ephemeral]
+                    flags: [MessageFlags.Ephemeral]
                 });
 
                 if (!canSendMessages(interaction.channel)) return await interaction.reply({
@@ -1723,7 +1711,7 @@ client.on("interactionCreate", async (interaction) => {
                     case "alerts": newMessage = await fetchAlerts(interaction); break;
                     case "cl": newMessage = await renderCollection(interaction, id); break;
                     case "profile": newMessage = await renderProfile(interaction, await getAccountInfo(getUser(id)), id); break;
-                    case "comphistory": newMessage = await renderCompetitiveMatchHistory(interaction, await getAccountInfo(getUser(id)),await fetchMatchHistory(interaction, getUser(id), "competitive"), id); break;
+                    case "comphistory": newMessage = await renderCompetitiveMatchHistory(interaction, await getAccountInfo(getUser(id)), await fetchMatchHistory(interaction, getUser(id), "competitive"), id); break;
                 }
                 /* else */ if (customId.startsWith("clw")) {
                     let valorantUser = getUser(id);
@@ -1765,24 +1753,24 @@ client.on("interactionCreate", async (interaction) => {
             } else if (interaction.customId.startsWith("gotopage")) {
                 let [, pageId, userId, max] = interaction.customId.split('/');
                 let weaponTypeIndex
-                if(pageId === 'clwpage') [, pageId, weaponTypeIndex, userId, max] = interaction.customId.split('/');
+                if (pageId === 'clwpage') [, pageId, weaponTypeIndex, userId, max] = interaction.customId.split('/');
 
-                if (userId !== interaction.user.id){
-                    if (pageId === 'changestatspage'){
+                if (userId !== interaction.user.id) {
+                    if (pageId === 'changestatspage') {
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_STATS)],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
-                    }else if (pageId === 'changealertspage'){
+                    } else if (pageId === 'changealertspage') {
                         return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_UR_ALERT)],
-                        flags: [MessageFlags.Ephemeral]
+                            flags: [MessageFlags.Ephemeral]
                         });
                     }
                 }
 
                 const modal = new ModalBuilder()
-                    .setCustomId(`gotopage/${pageId}${weaponTypeIndex ? `/${weaponTypeIndex}`: ''}/${userId}/${max}`)
+                    .setCustomId(`gotopage/${pageId}${weaponTypeIndex ? `/${weaponTypeIndex}` : ''}/${userId}/${max}`)
                     .setTitle(s(interaction).modal.PAGE_TITLE);
 
                 const pageInput = new TextInputBuilder()
@@ -1791,7 +1779,7 @@ client.on("interactionCreate", async (interaction) => {
                     .setPlaceholder(s(interaction).modal.PAGE_INPUT_PLACEHOLDER)
                     .setRequired(true)
                     .setCustomId('pageIndex')
-                    .setLabel(s(interaction).modal.PAGE_INPUT_LABEL.f({max: max}))
+                    .setLabel(s(interaction).modal.PAGE_INPUT_LABEL.f({ max: max }))
                     .setStyle(TextInputStyle.Short);
 
                 const q1 = new ActionRowBuilder().addComponents(pageInput);
@@ -1825,7 +1813,7 @@ client.on("interactionCreate", async (interaction) => {
         } catch (e) {
             await handleError(e, interaction);
         }
-    } else if (interaction.isModalSubmit()){
+    } else if (interaction.isModalSubmit()) {
         try {
             if (interaction.customId.startsWith("webauth_callback/")) {
                 // Web auth modal submission - process the callback URL
@@ -1865,17 +1853,17 @@ client.on("interactionCreate", async (interaction) => {
             } else if (interaction.customId.startsWith("gotopage")) {
                 let [, pageId, userId, max] = interaction.customId.split('/');
                 let weaponTypeIndex
-                if(pageId === 'clwpage') [, pageId, weaponTypeIndex, userId, max] = interaction.customId.split('/');
+                if (pageId === 'clwpage') [, pageId, weaponTypeIndex, userId, max] = interaction.customId.split('/');
                 const pageIndex = interaction.fields.getTextInputValue('pageIndex');
 
-                if(isNaN(Number(pageIndex))){
+                if (isNaN(Number(pageIndex))) {
                     return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.NOT_A_NUMBER)],
                         flags: [MessageFlags.Ephemeral]
                     });
-                }else if(Number(pageIndex) > max || Number(pageIndex) <= 0){
+                } else if (Number(pageIndex) > max || Number(pageIndex) <= 0) {
                     return await interaction.reply({
-                        embeds: [basicEmbed(s(interaction).error.INVALID_PAGE_NUMBER.f({max: max}))],
+                        embeds: [basicEmbed(s(interaction).error.INVALID_PAGE_NUMBER.f({ max: max }))],
                         flags: [MessageFlags.Ephemeral]
                     });
                 }
@@ -1883,8 +1871,8 @@ client.on("interactionCreate", async (interaction) => {
                 switch (pageId) {
                     case "clpage": clpage(); break;
                     case "clwpage": clwpage(); break;
-                    case "changealertspage": await interaction.update(await alertsPageEmbed(interaction, await filteredAlertsForUser(interaction), parseInt(pageIndex-1), await VPEmoji(interaction))); break;
-                    case "changestatspage": await interaction.update(await allStatsEmbed(interaction, await getOverallStats(), parseInt(pageIndex-1)));break;
+                    case "changealertspage": await interaction.update(await alertsPageEmbed(interaction, await filteredAlertsForUser(interaction), parseInt(pageIndex - 1), await VPEmoji(interaction))); break;
+                    case "changestatspage": await interaction.update(await allStatsEmbed(interaction, await getOverallStats(), parseInt(pageIndex - 1))); break;
                 }
 
                 async function clpage() {
@@ -1895,7 +1883,7 @@ client.on("interactionCreate", async (interaction) => {
                     const loadoutResponse = await getLoadout(user);
                     if (!loadoutResponse.success) return await interaction.reply(authFailureMessage(interaction, loadoutResponse, s(interaction).error.AUTH_ERROR_COLLECTION, userId !== interaction.user.id));
 
-                    await interaction.update(await skinCollectionPageEmbed(interaction, userId, user, loadoutResponse, parseInt(pageIndex-1)));
+                    await interaction.update(await skinCollectionPageEmbed(interaction, userId, user, loadoutResponse, parseInt(pageIndex - 1)));
                 }
 
                 async function clwpage() {
@@ -1908,7 +1896,7 @@ client.on("interactionCreate", async (interaction) => {
                     const skinsResponse = await getSkins(user);
                     if (!skinsResponse.success) return await interaction.reply(authFailureMessage(interaction, skinsResponse, s(interaction).error.AUTH_ERROR_COLLECTION, userId !== interaction.user.id));
 
-                    await interaction.update(await collectionOfWeaponEmbed(interaction, userId, user, weaponType, skinsResponse.skins, parseInt(pageIndex-1)));
+                    await interaction.update(await collectionOfWeaponEmbed(interaction, userId, user, weaponType, skinsResponse.skins, parseInt(pageIndex - 1)));
                 }
             }
         } catch (e) {
@@ -1974,11 +1962,11 @@ const handleError = async (e, interaction) => {
         if (!interaction.replied && !interaction.deferred) {
             // Interaction hasn't been acknowledged yet
             const embed = basicEmbed(message);
-            await interaction.reply({ embeds: [embed], flags: [MessageFlags.Ephemeral] }).catch(() => {});
+            await interaction.reply({ embeds: [embed], flags: [MessageFlags.Ephemeral] }).catch(() => { });
         } else if (interaction.deferred) {
             // Interaction was deferred, use followUp
             const embed = basicEmbed(message);
-            await interaction.followUp({ embeds: [embed], flags: [MessageFlags.Ephemeral] }).catch(() => {});
+            await interaction.followUp({ embeds: [embed], flags: [MessageFlags.Ephemeral] }).catch(() => { });
         }
         // If interaction was already replied to, silently fail
         console.error(e);

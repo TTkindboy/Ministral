@@ -1,9 +1,9 @@
-import {checkAlerts, debugCheckAlerts, sendAlert, sendCredentialsExpired, sendDailyShop} from "../discord/alerts.js";
-import {loadConfig} from "./config.js";
-import {client, destroyTasks, scheduleTasks} from "../discord/bot.js";
-import {addMessagesToLog, localLog} from "./logger.js";
-import {loadSkinsJSON} from "../valorant/cache.js";
-import {handleMQRequest, handleMQResponse} from "./multiqueue.js";
+import { checkAlerts, debugCheckAlerts, sendAlert, sendCredentialsExpired, sendDailyShop } from "../discord/alerts.js";
+import { loadConfig } from "./config.js";
+import { client, destroyTasks, scheduleTasks } from "../discord/bot.js";
+import { addMessagesToLog, localLog } from "./logger.js";
+import { loadSkinsJSON } from "../valorant/cache.js";
+import { handleMQRequest, handleMQResponse } from "./multiqueue.js";
 
 let allShardsReadyCb;
 let allShardsReadyPromise = new Promise(r => allShardsReadyCb = r);
@@ -14,22 +14,20 @@ let allShardsReadyPromise = new Promise(r => allShardsReadyCb = r);
 const channelToShardCache = new Map();
 
 export const areAllShardsReady = () => {
-    return !client.shard || allShardsReadyPromise === null;
+    return allShardsReadyPromise === null;
 }
 
 export const sendShardMessage = async (message) => {
-    if(!client.shard) return;
-
     await allShardsReadyPromise;
 
-    if(message.type !== "logMessages") localLog(`Sending message to other shards: ${JSON.stringify(message).substring(0, 100)}`);
+    if (message.type !== "logMessages") localLog(`Sending message to other shards: ${JSON.stringify(message).substring(0, 100)}`);
 
     // I know this is a weird way of doing this, but trust me
     // client.shard.send() did not want to work for the life of me
     // and this solution seems to work, so should be fine lol
     await client.shard.broadcastEval((client, context) => {
         client.skinPeekShardMessageReceived(context.message);
-    }, {context: {message}});
+    }, { context: { message } });
 }
 
 /**
@@ -41,29 +39,27 @@ export const sendShardMessage = async (message) => {
  * On subsequent deliveries: targeted single-shard eval, fall back to broadcast on miss.
  */
 export const sendShardMessageForChannel = async (message, channelId) => {
-    if(!client.shard) return false;
-
     await allShardsReadyPromise;
 
     // A4: Try targeted delivery to the cached shard first
     const knownShard = channelToShardCache.get(channelId);
-    if(knownShard != null) {
+    if (knownShard != null) {
         try {
             const [result] = await client.shard.broadcastEval((client, context) => {
-                if(client.channels.cache.has(context.channelId)) {
+                if (client.channels.cache.has(context.channelId)) {
                     client.skinPeekShardMessageReceived(context.message);
                     return true;
                 }
                 return false;
-            }, {context: {message, channelId}, shard: knownShard});
+            }, { context: { message, channelId }, shard: knownShard });
 
-            if(result) {
+            if (result) {
                 localLog(`Targeted shard ${knownShard} for channel ${channelId}: ${JSON.stringify(message).substring(0, 100)}`);
                 return true;
             }
             // Shard no longer has this channel (e.g., bot kicked, resharding) — evict and fall through
             channelToShardCache.delete(channelId);
-        } catch(e) {
+        } catch (e) {
             // Shard unavailable — evict and fall through to broadcast
             channelToShardCache.delete(channelId);
         }
@@ -73,15 +69,15 @@ export const sendShardMessageForChannel = async (message, channelId) => {
 
     // Full broadcast fallback
     const results = await client.shard.broadcastEval((client, context) => {
-        if(client.channels.cache.has(context.channelId)) {
+        if (client.channels.cache.has(context.channelId)) {
             client.skinPeekShardMessageReceived(context.message);
             return true;
         }
         return false;
-    }, {context: {message, channelId}});
+    }, { context: { message, channelId } });
 
     const matchIndex = results.findIndex(r => r === true);
-    if(matchIndex !== -1) {
+    if (matchIndex !== -1) {
         channelToShardCache.set(channelId, matchIndex); // A4: cache for future deliveries
         return true;
     }
@@ -91,10 +87,10 @@ export const sendShardMessageForChannel = async (message, channelId) => {
 
 const receiveShardMessage = async (message) => {
     //oldLog(`Received shard message ${JSON.stringify(message).substring(0, 100)}`);
-    switch(message.type) {
+    switch (message.type) {
         case "shardsReady":
             // also received when a shard dies and respawns
-            if(allShardsReadyPromise === null) return;
+            if (allShardsReadyPromise === null) return;
 
             localLog(`All shards are ready!`);
             allShardsReadyPromise = null;
@@ -131,20 +127,20 @@ const receiveShardMessage = async (message) => {
             break;
         case "priceUpdate":
             // Non-zero shards send discovered prices to shard 0 for persistence
-            if (client.shard && client.shard.ids[0] === 0) {
-                const {mergePrices} = await import("../valorant/cache.js");
+            if (client.shard.ids[0] === 0) {
+                const { mergePrices } = await import("../valorant/cache.js");
                 mergePrices(message.prices);
             }
             break;
         case "emojiCacheWarm":
             // Shard 0 broadcasts its emoji cache snapshot so other shards skip their own fetch
-            if (client.shard && client.shard.ids[0] !== 0) {
-                const {populateEmojiCacheFromSnapshot} = await import("../discord/emoji.js");
+            if (client.shard.ids[0] !== 0) {
+                const { populateEmojiCacheFromSnapshot } = await import("../discord/emoji.js");
                 populateEmojiCacheFromSnapshot(message.snapshot);
             }
             break;
         case "settingsInvalidate": {
-            const {clearSettingsCache} = await import("./settings.js");
+            const { clearSettingsCache } = await import("./settings.js");
             clearSettingsCache(message.userId);
             break;
         }
@@ -152,7 +148,7 @@ const receiveShardMessage = async (message) => {
             addMessagesToLog(message.messages);
             break;
         case "riotVersionData":
-            const {setRiotVersionData} = await import("./util.js");
+            const { setRiotVersionData } = await import("./util.js");
             setRiotVersionData(message.data);
             localLog(`Received Riot version data from shard 0: ${message.data.riotClientVersion}`);
             break;
