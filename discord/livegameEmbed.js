@@ -21,12 +21,12 @@ import { emojiToString } from "../misc/util.js";
 
 // ─── Colours ────────────────────────────────────────────────────────────────
 const COLOR_PREGAME = 0xFFB300;  // amber  — agent select
-const COLOR_ALLY    = 0x1E88E5;  // blue   — in-game
+const COLOR_ALLY = 0x1E88E5;  // blue   — in-game
 
 // ─── State labels ────────────────────────────────────────────────────────────
 const STATE_LABEL = {
-    pregame:     "🟡 Agent Select",
-    ingame:      "🔴 In-Game",
+    pregame: "🟡 Agent Select",
+    ingame: "🔴 In-Game",
     not_in_game: "⬜ Not in a match",
 };
 
@@ -82,7 +82,7 @@ const formatPlayerRow = async (player, channel, isCompetitive = false) => {
     const compParts = [];
     if (isCompetitive) {
         if (player.winRate !== null)
-            compParts.push(`**${player.winRate}%WR** (${player.games})`);
+            compParts.push(`**${player.winRate}%WR** (${player.wins}W-${player.losses}L)`);
         if (player.recentMatches?.length)
             compParts.push(player.recentMatches.map(m => m.win ? "🟢" : "🔴").join(""));
     }
@@ -104,8 +104,8 @@ const buildPlayerFields = async (players, channel, isCompetitive, headerName = "
     const fields = [];
     for (let i = 0; i < rows.length; i += 5) {
         fields.push({
-            name:   i === 0 ? headerName : "\u200b",
-            value:  rows.slice(i, i + 5).join("\n"),
+            name: i === 0 ? headerName : "\u200b",
+            value: rows.slice(i, i + 5).join("\n"),
             inline: false,
         });
     }
@@ -121,18 +121,21 @@ const buildPlayerFields = async (players, channel, isCompetitive, headerName = "
  * • Single-team modes (deathmatch, …) → all players listed in `description`.
  */
 const buildGameEmbed = async (data, allyPlayers, enemyPlayers, channel, localeInput = null) => {
-    const stateLabel    = STATE_LABEL[data.state] ?? "Live Game";
-    const isPreGame     = data.state === "pregame";
+    const stateLabel = STATE_LABEL[data.state] ?? "Live Game";
+    const isPreGame = data.state === "pregame";
     const isCompetitive = data.queueId === "competitive";
-    const color         = isPreGame ? COLOR_PREGAME : COLOR_ALLY;
+    const color = isPreGame ? COLOR_PREGAME : COLOR_ALLY;
+    const mapAndServer = data.serverName
+        ? `${data.mapName}・${data.serverName}`
+        : data.mapName;
 
     const embed = {
         author: {
-            name:     `Live Game・${data.mapName}`,
+            name: `Live Game・${mapAndServer}`,
             icon_url: data.queueIcon ?? undefined,
         },
         color,
-        image:  data.mapImage ? { url: data.mapImage } : undefined,
+        image: data.mapImage ? { url: data.mapImage } : undefined,
         footer: { text: s(localeInput).livegame.EMBED_FOOTER.f({ stateLabel, queueName: data.queueName }) },
         timestamp: new Date().toISOString(),
     };
@@ -190,10 +193,10 @@ export const renderLiveGame = async (liveGameData, userId, _isDM = false, channe
     if (state === "not_in_game") {
         return {
             embeds: [{
-                title:       s(userId).livegame.NOT_IN_MATCH_TITLE,
+                title: s(userId).livegame.NOT_IN_MATCH_TITLE,
                 description: s(userId).livegame.NOT_IN_MATCH_DESC,
-                color:       0x616161,
-                footer:      { text: s(userId).livegame.LIVE_GAME_FOOTER },
+                color: 0x616161,
+                footer: { text: s(userId).livegame.LIVE_GAME_FOOTER },
             }],
             components: [liveGameRefreshRow(userId)],
         };
@@ -202,7 +205,7 @@ export const renderLiveGame = async (liveGameData, userId, _isDM = false, channe
     const embed = await buildGameEmbed(liveGameData, allyPlayers, enemyPlayers, channel, userId);
 
     return {
-        embeds:     [embed],
+        embeds: [embed],
         components: [liveGameRefreshRow(userId)],
     };
 };
@@ -220,9 +223,9 @@ export const renderLiveGameError = (liveGameData, userId = null) => {
     if (liveGameData.maintenance) {
         return {
             embeds: [{
-                title:       s().livegame.MAINTENANCE_TITLE,
+                title: s().livegame.MAINTENANCE_TITLE,
                 description: s().livegame.MAINTENANCE_DESC,
-                color:       0x616161,
+                color: 0x616161,
             }],
             components,
         };
@@ -230,18 +233,18 @@ export const renderLiveGameError = (liveGameData, userId = null) => {
     if (liveGameData.rateLimit) {
         return {
             embeds: [{
-                title:       s().livegame.RATE_LIMITED_TITLE,
+                title: s().livegame.RATE_LIMITED_TITLE,
                 description: s().livegame.RATE_LIMITED_DESC,
-                color:       0xBF360C,
+                color: 0xBF360C,
             }],
             components,
         };
     }
     return {
         embeds: [{
-            title:       s().livegame.LOGIN_REQUIRED_TITLE,
+            title: s().livegame.LOGIN_REQUIRED_TITLE,
             description: s().livegame.LOGIN_REQUIRED_DESC,
-            color:       0x616161,
+            color: 0x616161,
         }],
         components,
     };

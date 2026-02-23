@@ -69,7 +69,7 @@
 - Clone/[Download](https://github.com/mistralwz/Ministral/archive/refs/heads/master.zip) the repo, rename the `config.json.example` file to `config.json` and put your bot token into it.
 - [Open a command prompt in the same folder](https://www.thewindowsclub.com/how-to-open-command-prompt-from-right-click-menu#:~:text=To%20open%20a%20command%20prompt%20window%20in%20any%20folder%2C%20simply,the%20same%20inside%20any%20folder.) and type `npm i` to install dependencies
 - Run [SkinPeek.js](https://github.com/mistralwz/Ministral/blob/master/SkinPeek.js) using `node SkinPeek.js` in the command prompt
-- And that's it! Don't forget too give the bot a [role](https://support.discord.com/hc/en-us/articles/206029707-Setting-Up-Permissions-FAQ) that allows it to send messages and create custom emojis.
+- And that's it! Don't forget too give the bot a [role](https://support.discord.com/hc/en-us/articles/206029707-Setting-Up-Permissions-FAQ) that allows it to send messages and embed links.
 - Also note that you need to keep the window open for the bot to stay online. If you want it to run 24/7, consider using a [VPS](https://github.com/giorgi-o/SkinPeek/wiki/SkinPeek-Admin-Guide#which-vps-should-i-use).
 
 ## Useful Information
