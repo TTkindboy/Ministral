@@ -38,7 +38,7 @@
     "NO_ALERTS": "**Nie masz skonfigurowanych żadnych alertów!** Użyj komendy `/alert` aby rozpocząć.",
     "DUPLICATE_ALERT": "Masz już alert dotyczący **{s}** w <#{c}>!",
     "GHOST_ALERT": "Ten alert już nie istnieje!",
-    "ALERT_NO_PERMS": "**Nie mam niezbędnych uprawnień!** Czy mam odpowiednią rolę?\nUpewnij się, że mogę `Wyświetlić kanał`, `Wysyłać wiadomości`, `Osadzać linki` i `Używać zewnętrznych emoji` na tym kanale.",
+    "ALERT_NO_PERMS": "**Nie mam niezbędnych uprawnień!** Czy mam odpowiednią rolę?\nUpewnij się, że mogę `Wyświetlić kanał`, `Wysyłać wiadomości` i `Osadzać linki` na tym kanale.",
     "GENERIC_NO_PERMS": "**Nie mam niezbędnych uprawnień do wysyłania alertów na tym kanale!** Czy mam odpowiednią rolę?\nUpewnij się, że mogę `View Channel`, `Send Messages`, `Embed Links` na tym kanale.",
     "NO_NMARKET": "**Obecnie nie ma Night Market'u!**",
     "NO_NMARKET_WITH_DATE": "**Obecnie nie ma Night Market'u!** Następny będzie <t:{t}:R>.",

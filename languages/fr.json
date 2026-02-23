@@ -1,6 +1,6 @@
 {
   "translation_by": "Giorgio",
-  "error":{
+  "error": {
     "NOT_REGISTERED": "**Tu ne t'es pas encore connecté sur le bot!** Fais `/login`.",
     "NOT_REGISTERED_OTHER": "**Cet utilisateur ne s'est pas encore connecté sur le bot!**",
     "INVALID_PASSWORD": "Nom d'utilisateur ou mot de passe incorrect!",
@@ -28,8 +28,8 @@
     "OTHER_COLLECTION_DISABLED": "**{u} a désactivé la fonctionnalité aux autres de voir sa collection!**",
     "OTHER_PROFILE_DISABLED": "**{u} a désactivé la fonctionnalité aux autres de voir son profil!**",
     "STATS_DISABLED": "**Les statistiques de la boutique sont désactivées sur ce bot!**",
-    "EMPTY_STATS":  "**Je n'ai pas de statistiques à montrer!** Fais `/shop` pour commencer.",
-    "NO_STATS_FOR_SKIN":  "**Ce skin n'a été dans aucune boutique** les {d} derniers jours!",
+    "EMPTY_STATS": "**Je n'ai pas de statistiques à montrer!** Fais `/shop` pour commencer.",
+    "NO_STATS_FOR_SKIN": "**Ce skin n'a été dans aucune boutique** les {d} derniers jours!",
     "NOT_UR_MESSAGE_STATS": "**Ce n'est pas ton message!** Fais `/stats` pour voir les statistiques de la boutique.",
     "NOT_UR_MESSAGE_BUNDLE": "**Ce n'est pas ton message!** Fais `/bundle` pour voir des collections.",
     "NOT_UR_MESSAGE_ALERT": "**Ce n'est pas ton message!** Fais `/alert` pour mettre en place tes alertes.",
@@ -38,8 +38,8 @@
     "NO_ALERTS": "**Tu n'as pas encore mis en place d'alertes!** Utilise `/alert` pour en faire.",
     "DUPLICATE_ALERT": "Tu as déjà une alerte pour la **{s}** dans <#{c}>!",
     "GHOST_ALERT": "Cette alerte n'existe plus!",
-    "ALERT_NO_PERMS": "**Je n'ai pas les permissions nécessaires !** Ai-je le bon rôle ?\nAssure-toi que je peux `Voir le salon`, `Envoyer des messages`, `Intégrer des liens` et `Utiliser des émojis externes` dans ce canal.",
-    "GENERIC_NO_PERMS": "**Je n'ai pas les permissions requises pour faire cela dans ce canal!** Ais-je le bon role?\nDonne moi les permissions `Voir le salons`, `Envoyer des messages`, `Intégrer des liens` et `Utiliser des émojis externes` dans ce canal.",
+    "ALERT_NO_PERMS": "**Je n'ai pas les permissions nécessaires !** Ai-je le bon rôle ?\nAssure-toi que je peux `Voir le salon`, `Envoyer des messages` et `Intégrer des liens` dans ce canal.",
+    "GENERIC_NO_PERMS": "**Je n'ai pas les permissions requises pour faire cela dans ce canal!** Ais-je le bon role?\nDonne moi les permissions `Voir le salons`, `Envoyer des messages` et `Intégrer des liens` dans ce canal.",
     "NO_NMARKET": "**Il n'y a pas de Night Market actuellement!**",
     "NO_NMARKET_WITH_DATE": "**Il n'y a pas de Night Market actuellement!** Le prochain sera <t:{t}:R>.",
     "ACCOUNT_NOT_FOUND": "**Je n'ai pas trouvé ce compte parmi tes comptes enregistrés!**",
@@ -54,7 +54,7 @@
     "INVALID_WEB_AUTH_URL": "**URL invalide!** Assurez-vous d'avoir copié l'URL entière de la barre d'adresse de votre navigateur après la page de connexion.\nElle devrait commencer par `http://localhost/redirect#access_token=...`",
     "WEB_AUTH_FAILED": "**La connexion a échoué!** {e}"
   },
-  "info":{
+  "info": {
     "SHOP_HEADER": "Boutique du jour pour **{u}** (nouvelle boutique <t:{t}:R>)",
     "ACCESSORY_SHOP_HEADER": "Boutique d'accessoires pour **{u}** (nouvelle boutique <t:{t}:R>)",
     "BUNDLE_HEADER": "Collection à l'affiche: **{b}**",
