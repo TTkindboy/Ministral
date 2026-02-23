@@ -125,13 +125,6 @@ const receiveShardMessage = async (message) => {
                 mergePrices(message.prices);
             }
             break;
-        case "emojiCacheWarm":
-            // Shard 0 broadcasts its emoji cache snapshot so other shards skip their own fetch
-            if (client.shard.ids[0] !== 0) {
-                const { populateEmojiCacheFromSnapshot } = await import("../discord/emoji.js");
-                populateEmojiCacheFromSnapshot(message.snapshot);
-            }
-            break;
         case "settingsInvalidate": {
             const { clearSettingsCache } = await import("./settings.js");
             clearSettingsCache(message.userId);

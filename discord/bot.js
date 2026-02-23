@@ -192,15 +192,8 @@ client.on("clientReady", async () => {
     fetchData().then(() => console.log("Skins loaded!"));
 
     if (client.shard.ids[0] === 0) {
-        // Shard 0 warms the emoji cache and broadcasts the snapshot to all other shards
-        warmEmojiCache().then(async (snapshot) => {
-            if (snapshot) {
-                const { sendShardMessage } = await import("../misc/shardMessage.js");
-                await sendShardMessage({ type: "emojiCacheWarm", snapshot });
-            }
-        }).catch(e => console.error(`Emoji cache warm failed: ${e.message}`));
+        warmEmojiCache().catch(e => console.error(`Emoji cache warm/bootstrap failed: ${e.message}`));
     }
-    // Other shards skip warmEmojiCache() here — they receive the snapshot via "emojiCacheWarm" message
 
 
 
