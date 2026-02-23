@@ -17,7 +17,7 @@ jobs:
       - name: Login ghcr
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-        run:  docker login ghcr.io --username ${{ github.repository_owner }} --password "$GHCR_TOKEN"
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
       - name: Build and Push Image
         run: |
           docker buildx build \
