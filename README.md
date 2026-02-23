@@ -115,7 +115,7 @@ Using Docker automatically spins up both the bot and its required Redis dependen
 - [jursen](https://github.com/Kyedae), [Keny](https://github.com/pandakeny) for their countless bug reports, suggestions and feedback
 - [mizto](https://miz.to/) for the absolutely amazing designs! 🎨
 
-And of course... thank you [Giorgio](https://github.com/giorgi-o/) for creating & maintaining [the original SkinPeek](https://github.com/giorgi-o/) repo for over 3 years!
+And of course, thank you [Giorgio](https://github.com/giorgi-o/) for creating & maintaining [SkinPeek](https://github.com/giorgi-o/) repo for over 4 years alongside [everyone who contributed to the original repo](https://github.com/giorgi-o/SkinPeek/graphs/contributors)!
 
 ## Translations
 
