@@ -39,7 +39,7 @@ const STATE_LABEL = {
  *   <agent>  `RiotId`・<rank> **42 RR**・<peak> (E5A3)
  *
  * Competitive also appends:
- *   ・**46%WR** (13)┊�13:5
+ *   ・**46%WR** (13)┊🔹13:5
  *
  * Level has been removed.
  * Peak rank is always shown when the player has competitive history.
@@ -62,7 +62,7 @@ const formatPlayerRow = async (player, channel, showCompStats = false) => {
         : "";
 
     const rankPart = player.currentTier > 0
-        ? `${currentRankEmojiStr} **${player.currentRR} RR**`.trim()
+        ? `**${player.currentRR}**rr ${currentRankEmojiStr}`.trim()
         : currentRankEmojiStr || "`Unranked`";
 
     // Peak rank — shown in all modes; text fallback when emoji is unavailable
@@ -70,7 +70,7 @@ const formatPlayerRow = async (player, channel, showCompStats = false) => {
         ? (emojiToString(await rankEmoji(channel, player.peakTier, player.peakTierIcon)) ?? `\`${player.peakTierName}\``)
         : null;
     const peakPart = peakRankEmojiStr
-        ? `${peakRankEmojiStr}${player.peakActLabel ? ` (${player.peakActLabel})` : ""}`
+        ? `\`${player.peakActLabel ?? "—"}\` ${peakRankEmojiStr}`
         : null;
 
     // Competitive-only: win-rate and last match score
@@ -82,7 +82,7 @@ const formatPlayerRow = async (player, channel, showCompStats = false) => {
 
         const lastMatch = player.recentMatches?.[0];
         if (lastMatch) {
-            matchScoreStr = `┊${lastMatch.win ? "�" : "�"}${lastMatch.allyScore}:${lastMatch.enemyScore}`;
+            matchScoreStr = `┊${lastMatch.win ? "🔹" : "🔻"}${lastMatch.allyScore}:${lastMatch.enemyScore}`;
         }
     }
 
