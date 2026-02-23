@@ -22,7 +22,7 @@ import { authUser, getUser } from "./auth.js";
 
 /** GLZ base URL — the shard matches userRegion() (latam/br → na); region is raw */
 const glzUrl = (user) =>
-    `https://glz-${userRegion(user)}-1.${user.region}.a.pvp.net`;
+    `https://glz-${user.region}-1.${userRegion(user)}.a.pvp.net`;
 
 /** PD base URL */
 const pdUrl = (user) =>
