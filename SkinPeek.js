@@ -67,5 +67,26 @@ if (isMainThread) {
         process.exit(1);
     });
 } else {
-    import('./botLogic.js').then(module => module.startBotWorker());
+    // Worker Thread Logic
+    const { startBot } = await import("./discord/bot.js");
+    const { loadLogger } = await import("./misc/logger.js");
+    const { initRedis } = await import("./misc/redisQueue.js");
+    const { initUserDatabase } = await import("./misc/userDatabase.js");
+
+    const config = loadConfig();
+    if (config) {
+        loadLogger();
+
+        if (!initUserDatabase()) {
+            console.error("User database initialization failed. Cannot start bot.");
+            process.exit(1);
+        }
+
+        initRedis().then(() => {
+            startBot();
+        }).catch(err => {
+            console.error("Failed to initialize Redis, cannot start bot without it:", err);
+            process.exit(1);
+        });
+    }
 }
