@@ -82,7 +82,10 @@ const formatPlayerRow = async (player, channel, showCompStats = false) => {
 
         const lastMatch = player.recentMatches?.[0];
         if (lastMatch) {
-            matchScoreStr = `┊${lastMatch.win ? "🔹" : "🔻"}${lastMatch.allyScore}:${lastMatch.enemyScore}`;
+            let symbol = lastMatch.allyScore === lastMatch.enemyScore
+                ? "▫️"
+                : (lastMatch.win ? "🔹" : "🔻");
+            matchScoreStr = `┊${symbol}${lastMatch.allyScore}:${lastMatch.enemyScore}`;
         }
     }
 
