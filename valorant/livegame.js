@@ -46,14 +46,14 @@ let competitiveTiersCache = null;
 const loadAgents = async () => {
     if (agentsCache) return;
     try {
-        const req = await fetch("https://valorant-api.com/v1/agents?isPlayableCharacter=true");
+        const req = await fetch("https://valorant-api.com/v1/agents?isPlayableCharacter=true&language=all");
         const json = JSON.parse(req.body);
         agentsCache = {};
         for (const agent of json.data) {
             agentsCache[agent.uuid.toLowerCase()] = {
-                name: agent.displayName,
+                names: agent.displayName, // This is an object of locale strings because of `language=all`
                 icon: agent.displayIcon,
-                role: agent.role?.displayName ?? null,
+                roles: agent.role?.displayName ?? null,
             };
         }
     } catch (e) {
@@ -96,10 +96,10 @@ export const clearLiveGameCache = () => {
     currentSeasonId = null;
 };
 
-/** Resolve agent UUID → {name, icon, role} */
+/** Resolve agent UUID → {names, icon, roles} */
 export const resolveAgent = async (uuid) => {
     await loadAgents();
-    return agentsCache[uuid?.toLowerCase()] ?? { name: "Unknown Agent", icon: null, role: null };
+    return agentsCache[uuid?.toLowerCase()] ?? { names: { "en-US": "Unknown Agent" }, icon: null, roles: null };
 };
 
 /** Resolve tier number (0-27) → {name, color, icon} */
@@ -655,6 +655,115 @@ export const parseMMRData = (mmrJson, knownCurrentSeasonId = null) => {
 };
 
 // ──────────────────────────────────────────────
+// Party / Matchmaking fetch
+// ──────────────────────────────────────────────
+
+/**
+ * Fetch party/matchmaking data for a user.
+ * Returns { success, state: "queuing", matchId: partyId, queueId }
+ * or       { success, state: "not_queuing" }
+ * or       { success: false, ... } on auth failure.
+ */
+export const getPartyData = async (id, account = null) => {
+    const authResult = await authUser(id, account);
+    if (!authResult.success) return { ...authResult, state: null };
+
+    const user = getUser(id, account);
+    const base = glzUrl(user);
+    const headers = authHeaders(user);
+
+    // Check if the user is in a party
+    const playerResp = await fetch(
+        `${base}/parties/v1/players/${user.puuid}`,
+        { headers }
+    );
+
+    if (playerResp.statusCode !== 200) {
+        return { success: true, state: "not_queuing" };
+    }
+
+    const { CurrentPartyID: partyId } = JSON.parse(playerResp.body);
+    if (!partyId) return { success: true, state: "not_queuing" };
+
+    // Fetch party data
+    const partyResp = await fetch(
+        `${base}/parties/v1/parties/${partyId}`,
+        { headers }
+    );
+
+    if (partyResp.statusCode !== 200) {
+        return { success: true, state: "not_queuing" };
+    }
+
+    const partyJson = JSON.parse(partyResp.body);
+
+    if (partyJson.State !== "MATCHMAKING") {
+        return { success: true, state: "not_queuing" };
+    }
+
+    const queueId = partyJson.MatchmakingData?.QueueID ?? "";
+
+    return {
+        success: true,
+        state: "queuing",
+        matchId: partyId,
+        queueId,
+        queueName: resolveQueueName(queueId),
+    };
+};
+
+// ──────────────────────────────────────────────
+// Agent endpoints
+// ──────────────────────────────────────────────
+
+export const selectAgent = async (id, account, matchId, agentId) => {
+    const user = getUser(id, account);
+    const base = glzUrl(user);
+    const headers = authHeaders(user);
+
+    const resp = await fetch(
+        `${base}/pregame/v1/matches/${matchId}/select/${agentId}`,
+        { method: "POST", headers }
+    );
+    return resp.statusCode === 200;
+};
+
+export const lockAgent = async (id, account, matchId, agentId) => {
+    const user = getUser(id, account);
+    const base = glzUrl(user);
+    const headers = authHeaders(user);
+
+    const resp = await fetch(
+        `${base}/pregame/v1/matches/${matchId}/lock/${agentId}`,
+        { method: "POST", headers }
+    );
+    return resp.statusCode === 200;
+};
+
+export const getOwnedAgents = async (user) => {
+    // Agent Item Type ID: "01bb38e1-da47-4e6a-9b3d-945d822588c4"
+    const req = await fetch(`https://pd.${userRegion(user)}.a.pvp.net/store/v1/entitlements/${user.puuid}/01bb38e1-da47-4e6a-9b3d-945d822588c4`, {
+        headers: authHeaders(user)
+    });
+
+    if (req.statusCode !== 200) return [];
+
+    const json = JSON.parse(req.body);
+    const owned = json.Entitlements ? json.Entitlements.map(ent => ent.ItemID.toLowerCase()) : [];
+
+    // Default unlocked 5 agents
+    const defaultAgents = [
+        "add6443a-41bd-e414-f6ad-e58d267f4e95", // Jett
+        "eb93336a-449b-9c1b-0a54-a891f7921d69", // Phoenix
+        "320b2a48-4d9b-a075-30f1-1f93a9b638fa", // Sova
+        "9f0d8ba9-4140-b941-57d3-a7ad57c6b417", // Brimstone
+        "569fdd95-4d10-43ab-ca70-79becc718b46"  // Sage
+    ];
+
+    return [...new Set([...owned, ...defaultAgents])];
+};
+
+// ──────────────────────────────────────────────
 // Pre-game fetch
 // ──────────────────────────────────────────────
 
@@ -716,7 +825,8 @@ export const getPreGameData = async (id, account = null) => {
         puuid: p.Subject,
         teamId: "Ally",
         isAlly: true,
-        agentId: p.CharacterID ?? null,
+        agentId: p.CharacterID || null,
+        selectionState: p.CharacterSelectionState || "",
         incognito: p.PlayerIdentity?.Incognito ?? false,
         accountLevel: p.PlayerIdentity?.AccountLevel ?? null,
         isHideAccountLevel: p.PlayerIdentity?.HideAccountLevel ?? false,
@@ -1003,8 +1113,9 @@ const enrichPlayers = async (id, account, rawPlayers, queueId = "") => {
                 ? (p.agentId && agentInfo.name !== "Unknown Agent" ? agentInfo.name : `Player ${idx + 1}`)
                 : (name ?? p.puuid.slice(0, 8)),
             // Agent
-            agentName: p.agentId ? agentInfo.name : null,
+            agentName: p.agentId ? agentInfo.names : null,
             agentIcon: p.agentId ? agentInfo.icon : null,
+            selectionState: p.selectionState ?? "",
             // Rank
             currentTier: mmr?.currentTier ?? 0,
             currentRR: mmr?.currentRR ?? 0,
@@ -1080,6 +1191,14 @@ export const fetchLiveGame = async (id, account = null) => {
         return { ...preGame, players: enriched, allyPlayers: enriched, enemyPlayers: [], mapImage, isSingleTeam, queueIcon };
     }
 
-    // 4. Not in any game
+    // 4. Try queueing
+    const party = await getPartyData(id, account);
+    if (!party.success) return party;
+
+    if (party.state === "queuing") {
+        return { ...party };
+    }
+
+    // 5. Not in any game
     return { success: true, state: "not_in_game" };
 };

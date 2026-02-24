@@ -225,6 +225,9 @@
     "LOGIN_REQUIRED_DESC": "Could not verify your VALORANT account. Please log in again with `/login`.",
     "REFRESH_BUTTON": "Refresh",
     "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
-    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}"
+    "PLAYER_ROW_FORMAT": "{level}┊{agent}  `{riotId}`・{rank}・{peak}{competitive}",
+    "QUEUING_TITLE": "🕒 Queuing for Match",
+    "QUEUING_DESC": "Searching for a match in **{queueName}**...",
+    "SELECT_AGENT_PLACEHOLDER": "Select an Agent to Lock In"
   }
 }

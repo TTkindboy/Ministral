@@ -14,8 +14,12 @@
  * everything together.
  * ─────────────────────────────────────────────────────────────────────────*/
 
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { s } from "../misc/languages.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from "discord.js";
+import { s, discToValLang, DEFAULT_VALORANT_LANG } from "../misc/languages.js";
+import { getSetting } from "../misc/settings.js";
+import config from "../misc/config.js";
+import { getOwnedAgents, resolveAgent } from "../valorant/livegame.js";
+import { getUser } from "../valorant/auth.js";
 import { agentEmoji, rankEmoji } from "./emoji.js";
 import { emojiToString } from "../misc/util.js";
 
@@ -28,6 +32,7 @@ const STATE_LABEL = {
     pregame: "🟡 Agent Select",
     ingame: "🔴 In-Game",
     not_in_game: "⬜ Not in a match",
+    queuing: "🕒 Queuing",
 };
 
 // ─── Player row renderer ─────────────────────────────────────────────────────
@@ -200,11 +205,82 @@ export const renderLiveGame = async (liveGameData, userId, _isDM = false, channe
         };
     }
 
+    if (state === "queuing") {
+        return {
+            embeds: [{
+                title: s(userId).livegame.QUEUING_TITLE,
+                description: s(userId).livegame.QUEUING_DESC.f({ queueName: liveGameData.queueName }),
+                color: COLOR_PREGAME,
+                footer: { text: s(userId).livegame.LIVE_GAME_FOOTER },
+            }],
+            components: [liveGameRefreshRow(userId)],
+        };
+    }
+
     const embed = await buildGameEmbed(liveGameData, allyPlayers, enemyPlayers, channel, userId);
+
+    let components = [liveGameRefreshRow(userId)];
+
+    if (state === "pregame" && liveGameData.matchId) {
+        const myPlayer = allyPlayers.find(p => p.puuid === liveGameData.userPuuid);
+
+        if (myPlayer && myPlayer.selectionState !== "locked") {
+            const user = getUser(userId);
+            const ownedAgentIds = await getOwnedAgents(user);
+
+            const lockedAgentIds = new Set(
+                allyPlayers.filter(p => p.selectionState === "locked").map(p => p.agentId?.toLowerCase())
+            );
+
+            let discLang = config.localiseText ? getSetting(userId, 'locale') : 'en-GB';
+            if (discLang === "Automatic") discLang = 'en-US';
+            const valLang = discToValLang[discLang] || DEFAULT_VALORANT_LANG;
+
+            const options = [];
+            for (const agentId of ownedAgentIds) {
+                if (lockedAgentIds.has(agentId)) continue;
+
+                const agentInfo = await resolveAgent(agentId);
+                if (!agentInfo || agentInfo.roles === null) continue;
+
+                options.push({
+                    label: agentInfo.names[valLang] || agentInfo.names["en-US"] || "Unknown",
+                    value: agentId,
+                    description: agentInfo.roles,
+                });
+            }
+
+            options.sort((a, b) => a.label.localeCompare(b.label));
+            const selectMenuOptions = options.slice(0, 25);
+
+            if (selectMenuOptions.length > 0) {
+                const selectMenuRow = new ActionRowBuilder().addComponents(
+                    new StringSelectMenuBuilder()
+                        .setCustomId(`livegame/select_agent/${liveGameData.matchId}`)
+                        .setPlaceholder(s(userId).livegame.SELECT_AGENT_PLACEHOLDER)
+                        .addOptions(selectMenuOptions)
+                );
+
+                let lockButtonRow;
+                if (myPlayer.agentId) {
+                    lockButtonRow = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`livegame/lock_agent/${liveGameData.matchId}/${myPlayer.agentId.toLowerCase()}`)
+                            .setLabel("Lock In")
+                            .setStyle(ButtonStyle.Success)
+                    );
+                }
+
+                components = lockButtonRow
+                    ? [selectMenuRow, lockButtonRow, components[0]]
+                    : [selectMenuRow, components[0]];
+            }
+        }
+    }
 
     return {
         embeds: [embed],
-        components: [liveGameRefreshRow(userId)],
+        components,
     };
 };
 

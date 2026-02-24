@@ -95,14 +95,13 @@ import fuzzysort from "fuzzysort";
 import { renderCollection, getSkins } from "../valorant/inventory.js";
 import { getLoadout } from "../valorant/inventory.js";
 import { getAccountInfo, fetchMatchHistory } from "../valorant/profile.js";
-import { fetchLiveGame } from "../valorant/livegame.js";
+import { fetchLiveGame, selectAgent, lockAgent } from "../valorant/livegame.js";
 import { renderLiveGame, renderLiveGameError } from "./livegameEmbed.js";
 
 // ─── Pre-game → in-game transition poller ─────────────────────────────────
 // Maps userId → { timer: Timeout, retries: number }
 const liveGamePollers = new Map();
-const POLLER_INTERVAL_MS = 90_000;  // 90 seconds
-const POLLER_MAX_RETRIES = 3;       // ~270 s total
+const POLLER_MAX_TIME_MS = 300_000;       // 5 mins total
 
 /**
  * Cancel any running pre-game poller for this user.
@@ -123,7 +122,7 @@ const cancelLiveGamePoller = (userId) => {
  * @param {Interaction} interaction  Original deferred interaction (for editReply)
  * @param {number}     retriesLeft
  */
-const startLiveGamePoller = (userId, interaction, retriesLeft = POLLER_MAX_RETRIES) => {
+const startLiveGamePoller = (userId, interaction, retriesLeft = Math.ceil(POLLER_MAX_TIME_MS / config.livegamePollingInterval)) => {
     cancelLiveGamePoller(userId);
     if (retriesLeft <= 0) return;
 
@@ -136,15 +135,15 @@ const startLiveGamePoller = (userId, interaction, retriesLeft = POLLER_MAX_RETRI
             const payload = await renderLiveGame(data, userId, !interaction.guild, interaction.channel);
             await interaction.editReply(payload);
 
-            if (data.state === "pregame") {
-                // Still in agent select — wait another cycle
+            if (data.state === "pregame" || data.state === "queuing") {
+                // Still in agent select or queue — wait another cycle
                 startLiveGamePoller(userId, interaction, retriesLeft - 1);
             }
             // state === "ingame" → full embed sent, stop polling
         } catch (e) {
             console.error(`[livegame poller] error for ${userId}:`, e);
         }
-    }, POLLER_INTERVAL_MS);
+    }, config.livegamePollingInterval);
 
     liveGamePollers.set(userId, { timer, retries: retriesLeft });
 };
@@ -1342,8 +1341,8 @@ client.on("interactionCreate", async (interaction) => {
                     } else {
                         await interaction.followUp(await renderLiveGame(liveGameData, interaction.user.id, !interaction.guild, interaction.channel));
 
-                        // If in agent select, start poller to auto-upgrade to in-game embed
-                        if (liveGameData.state === "pregame") {
+                        // If in agent select or queuing, start poller to auto-upgrade embed
+                        if (liveGameData.state === "pregame" || liveGameData.state === "queuing") {
                             startLiveGamePoller(interaction.user.id, interaction);
                         }
                     }
@@ -1395,6 +1394,7 @@ client.on("interactionCreate", async (interaction) => {
         try {
             let selectType = interaction.customId;
             if (interaction.values[0].startsWith("levels") || interaction.values[0].startsWith("chromas")) selectType = "get-level-video"
+            if (interaction.customId.startsWith("livegame/select_agent")) selectType = "livegame/select_agent";
             switch (selectType) {
                 case "skin-select": {
                     if (interaction.message.interaction.user.id !== interaction.user.id) {
@@ -1435,6 +1435,34 @@ client.on("interactionCreate", async (interaction) => {
                         embeds: [await skinChosenEmbed(interaction, skin)],
                         components: [removeAlertActionRow(interaction.user.id, chosenSkin, s(interaction).info.REMOVE_ALERT_BUTTON)]
                     });
+
+                    break;
+                }
+                case "livegame/select_agent": {
+                    if (interaction.message.interaction.user.id !== interaction.user.id) {
+                        return await interaction.reply({
+                            embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_GENERIC)],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    await interaction.deferUpdate();
+                    interaction.deferred = true;
+
+                    const agentId = interaction.values[0];
+                    const matchId = interaction.customId.split('/')[2];
+
+                    if (!agentId) return;
+
+                    await selectAgent(interaction.user.id, null, matchId, agentId);
+
+                    // Re-render embed immediately
+                    const liveGameData = await fetchLiveGame(interaction.user.id);
+                    const payload = liveGameData.success
+                        ? await renderLiveGame(liveGameData, interaction.user.id, !interaction.guild, interaction.channel)
+                        : renderLiveGameError(liveGameData, interaction.user.id);
+
+                    await updateInteraction(interaction, payload);
 
                     break;
                 }
@@ -1806,7 +1834,8 @@ client.on("interactionCreate", async (interaction) => {
                 // Cancel any running poller — we're about to refresh manually
                 cancelLiveGamePoller(interaction.user.id);
 
-                await deferInteraction(interaction);
+                await interaction.deferUpdate();
+                interaction.deferred = true;
 
                 const liveGameData = await fetchLiveGame(interaction.user.id);
                 const payload = liveGameData.success
@@ -1816,9 +1845,31 @@ client.on("interactionCreate", async (interaction) => {
                 await updateInteraction(interaction, payload);
 
                 // Restart poller if still in agent select
-                if (liveGameData.success && liveGameData.state === "pregame") {
+                if (liveGameData.success && (liveGameData.state === "pregame" || liveGameData.state === "queuing")) {
                     startLiveGamePoller(interaction.user.id, interaction);
                 }
+            } else if (interaction.customId.startsWith("livegame/lock_agent/")) {
+                const [, , matchId, agentId] = interaction.customId.split('/');
+
+                if (interaction.message.interaction.user.id !== interaction.user.id) {
+                    return await interaction.reply({
+                        embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_GENERIC)],
+                        flags: [MessageFlags.Ephemeral]
+                    });
+                }
+
+                await interaction.deferUpdate();
+                interaction.deferred = true;
+
+                await lockAgent(interaction.user.id, null, matchId, agentId);
+
+                // Re-render embed immediately
+                const liveGameData = await fetchLiveGame(interaction.user.id);
+                const payload = liveGameData.success
+                    ? await renderLiveGame(liveGameData, interaction.user.id, !interaction.guild, interaction.channel)
+                    : renderLiveGameError(liveGameData, interaction.user.id);
+
+                await updateInteraction(interaction, payload);
             }
         } catch (e) {
             await handleError(e, interaction);
