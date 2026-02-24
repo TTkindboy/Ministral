@@ -67,6 +67,8 @@ for (const setting in settings) defaultSettings[setting] = settings[setting].def
 const settingsCache = new Map();
 
 const getSettings = (id) => {
+    if (!id) return defaultSettings;
+
     // Check cache first
     if (settingsCache.has(id)) {
         return settingsCache.get(id);

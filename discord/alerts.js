@@ -249,8 +249,8 @@ export const checkAlerts = async () => {
         // Partition: each shard handles the users whose snowflake maps to it.
         // Users with no shard (non-sharded run) are handled by the single instance.
         const userList = totalShards > 1
-            ? allUsers.filter(id => Number(BigInt(id) >> 22n) % totalShards === myShardId)
-            : allUsers;
+            ? allUsers.filter(id => id && Number(BigInt(id) >> 22n) % totalShards === myShardId)
+            : allUsers.filter(id => id);
 
         if (userList.length === 0) {
             console.log(`[Shard ${myShardId}] No users in this shard's partition, skipping.`);
