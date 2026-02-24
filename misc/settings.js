@@ -3,7 +3,6 @@ import { basicEmbed, secondaryEmbed, settingsEmbed } from "../discord/embed.js";
 import { ActionRowBuilder, StringSelectMenuBuilder } from "discord.js";
 import { discLanguageNames, s } from "./languages.js";
 import { findKeyOfValue } from "./util.js";
-import { client } from "../discord/bot.js";
 
 export const settings = {
     dailyShop: { // stores false or channel id

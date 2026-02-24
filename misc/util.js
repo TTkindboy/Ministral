@@ -3,13 +3,11 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, Permissions
 import { getItem, getRarity } from "../valorant/cache.js";
 
 import https from "https";
-import http from "http";
 import fs from "fs";
-import { DEFAULT_LANG, l, valToDiscLang } from "./languages.js";
+import { DEFAULT_LANG, l } from "./languages.js";
 import { client } from "../discord/bot.js";
 import { getUser } from "../valorant/auth.js";
 import config from "./config.js";
-import { checkRateLimit } from "./rateLimit.js";
 
 const tlsCiphers = [
     'TLS_CHACHA20_POLY1305_SHA256',
@@ -416,7 +414,7 @@ export const skinNameAndEmoji = async (skin, channel, localeOrInteraction = DEFA
     const rarity = await getRarity(skin.rarity, channel);
     if (!rarity) return name;
 
-    const rarityIcon = await rarityEmoji(channel, rarity.name, rarity.icon);
+    const rarityIcon = await rarityEmoji(rarity.name, rarity.icon);
     return rarityIcon ? `${rarityIcon} ${name}` : name;
 }
 

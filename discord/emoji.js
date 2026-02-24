@@ -18,15 +18,15 @@ export const VPEmoji = async (interaction) => emojiToString(await getOrCreateEmo
 export const RadEmoji = async (interaction) => emojiToString(await getOrCreateEmoji(RadEmojiName, RadEmojiFilename));
 export const KCEmoji = async (interaction) => emojiToString(await getOrCreateEmoji(KCEmojiName, KCEmojiFilename));
 
-export const rarityEmoji = async (channel, name, icon) => emojiToString(await getOrCreateEmoji(`${name}Rarity`, icon));
+export const rarityEmoji = async (name, icon) => emojiToString(await getOrCreateEmoji(`${name}Rarity`, icon));
 
-export const agentEmoji = async (channel, agentName, iconUrl) => {
+export const agentEmoji = async (agentName, iconUrl) => {
     if (!agentName || !iconUrl) return null;
     const emojiName = ("Agent_" + agentName.replace(/[^a-zA-Z0-9]/g, "_")).slice(0, 32);
     return getOrCreateEmoji(emojiName, iconUrl);
 };
 
-export const rankEmoji = async (channel, tier, iconUrl) => {
+export const rankEmoji = async (tier, iconUrl) => {
     if (tier == null || !iconUrl) return null;
     return getOrCreateEmoji(`Rank_${tier}`, iconUrl);
 };

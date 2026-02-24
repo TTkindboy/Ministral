@@ -17,7 +17,7 @@ import config from "../misc/config.js";
 import { l, s } from "../misc/languages.js";
 import { readUserJson, saveUser } from "../valorant/accountSwitcher.js";
 import { beginBatchWrites, commitBatchWrites } from "../misc/userDatabase.js";
-import { sendShardMessage, sendShardMessageForChannel } from "../misc/shardMessage.js";
+import { sendShardMessageForChannel } from "../misc/shardMessage.js";
 import { VPEmoji } from "./emoji.js";
 import { getSetting } from "../misc/settings.js";
 import { ActionRowBuilder } from "discord.js";

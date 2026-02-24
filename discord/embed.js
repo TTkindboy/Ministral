@@ -13,7 +13,7 @@ import {
     itemTypes,
     removeAlertActionRow,
     removeAlertButton,
-    fetchChannel, isDefaultSkin, WeaponTypeUuid, ordinalSuffix
+    fetchChannel, isDefaultSkin, WeaponTypeUuid
 } from "../misc/util.js";
 import config from "../misc/config.js";
 import { DEFAULT_VALORANT_LANG, discToValLang, l, s, hideUsername } from "../misc/languages.js";
@@ -22,7 +22,7 @@ import { getStatsFor } from "../misc/stats.js";
 import { getUser } from "../valorant/auth.js";
 import { readUserJson, removeDupeAccounts, saveUser } from "../valorant/accountSwitcher.js";
 import { getSetting, humanifyValue, settingIsVisible, settingName } from "../misc/settings.js";
-import { VPEmoji, rarityEmojisAvailable } from "./emoji.js";
+import { VPEmoji } from "./emoji.js";
 import { getNextNightMarketTimestamp } from "../valorant/shop.js";
 import { isThereANM } from "../valorant/shopManager.js";
 

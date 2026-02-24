@@ -53,12 +53,12 @@ const formatPlayerRow = async (player, channel, showCompStats = false) => {
     // For incognito players riotId IS the agent name, so we suppress the text
     // fallback to avoid "Vyse  `Vyse`" when the emoji hasn't uploaded yet.
     const agentEmojiStr = player.agentName && player.agentIcon
-        ? (emojiToString(await agentEmoji(channel, player.agentName, player.agentIcon)) ?? (player.incognito ? "" : `\`${player.agentName}\``))
+        ? (emojiToString(await agentEmoji(player.agentName, player.agentIcon)) ?? (player.incognito ? "" : `\`${player.agentName}\``))
         : (player.incognito ? "" : `\`${player.agentName ?? "—"}\``);
 
     // Current rank emoji — tier 0 (Unranked) now has an icon too
     const currentRankEmojiStr = player.currentTierIcon
-        ? (emojiToString(await rankEmoji(channel, player.currentTier, player.currentTierIcon)) ?? "")
+        ? (emojiToString(await rankEmoji(player.currentTier, player.currentTierIcon)) ?? "")
         : "";
 
     const rankPart = player.currentTier > 0
@@ -67,7 +67,7 @@ const formatPlayerRow = async (player, channel, showCompStats = false) => {
 
     // Peak rank — shown in all modes; text fallback when emoji is unavailable
     const peakRankEmojiStr = player.peakTier > 0 && player.peakTierIcon
-        ? (emojiToString(await rankEmoji(channel, player.peakTier, player.peakTierIcon)) ?? `\`${player.peakTierName}\``)
+        ? (emojiToString(await rankEmoji(player.peakTier, player.peakTierIcon)) ?? `\`${player.peakTierName}\``)
         : null;
     const peakPart = peakRankEmojiStr
         ? `\`${player.peakActLabel ?? "—"}\` ${peakRankEmojiStr}`

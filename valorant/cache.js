@@ -1,12 +1,10 @@
-import { asyncReadJSONFile, fetch, isMaintenance, itemTypes, userRegion } from "../misc/util.js";
-import { authUser, getUser, getUserList } from "./auth.js";
+import { asyncReadJSONFile, fetch, itemTypes } from "../misc/util.js";
 import config from "../misc/config.js";
 import fuzzysort from "fuzzysort";
 import fs from "fs";
 import { DEFAULT_VALORANT_LANG, discToValLang } from "../misc/languages.js";
 import { client } from "../discord/bot.js";
 import { sendShardMessage } from "../misc/shardMessage.js";
-import { riotClientHeaders } from "../misc/util.js";
 
 const formatVersion = 14;
 let gameVersion;
