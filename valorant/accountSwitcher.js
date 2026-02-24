@@ -1,18 +1,18 @@
 import fs from "fs";
-import {removeDupeAlerts} from "../misc/util.js";
-import {defaultSettings, clearSettingsCache} from "../misc/settings.js";
-import {getUserFromDb, saveUserToDb, deleteUserFromDb, deleteAccountFromDb, runUserDbTransaction, updateSingleAccountInDb} from "../misc/userDatabase.js";
+import { removeDupeAlerts } from "../misc/util.js";
+import { defaultSettings, clearSettingsCache } from "../misc/settings.js";
+import { getUserFromDb, saveUserToDb, deleteUserFromDb, deleteAccountFromDb, runUserDbTransaction, updateSingleAccountInDb } from "../misc/userDatabase.js";
 
 export const readUserJson = (id) => {
     return getUserFromDb(id);
 }
 
-export const getUserJson = (id, account=null) => {
+export const getUserJson = (id, account = null) => {
     const user = readUserJson(id);
-    if(!user) return null;
+    if (!user) return null;
 
     account = account || user.currentAccount || 1;
-    if(account > user.accounts.length) account = 1;
+    if (account > user.accounts.length) account = 1;
 
     return user.accounts[account - 1];
 }
@@ -22,7 +22,7 @@ export const saveUserJson = (id, json) => {
     saveUserToDb(json);
 }
 
-export const saveUser = (user, account=null) => {
+export const saveUser = (user, account = null) => {
     // Fast path: if the account already exists in DB, update just that one row
     if (user.puuid && updateSingleAccountInDb(user)) {
         return;
@@ -40,8 +40,8 @@ export const saveUser = (user, account=null) => {
             return;
         }
 
-        if(!account) account = userJson.accounts.findIndex(a => a.puuid === user.puuid) + 1 || userJson.currentAccount;
-        if(account > userJson.accounts.length) account = userJson.accounts.length;
+        if (!account) account = userJson.accounts.findIndex(a => a.puuid === user.puuid) + 1 || userJson.currentAccount;
+        if (account > userJson.accounts.length) account = userJson.accounts.length;
 
         userJson.accounts[(account || userJson.currentAccount) - 1] = user;
         saveUserToDb(userJson);
@@ -117,11 +117,12 @@ export const deleteUser = (id, accountNumber) => {
     });
 }
 
-export const deleteWholeUser = (id) => {
+export const deleteWholeUser = async (id) => {
     const userJson = readUserJson(id);
     if (userJson) {
+        const { deleteShopData } = await import("../misc/redisQueue.js");
         for (const puuid of userJson.accounts.map(a => a.puuid)) {
-            try { fs.unlinkSync(`data/shopCache/${puuid}.json`); } catch(e) {}
+            try { await deleteShopData(puuid); } catch (e) { }
         }
     }
     deleteUserFromDb(id);
@@ -130,13 +131,13 @@ export const deleteWholeUser = (id) => {
 
 export const getNumberOfAccounts = (id) => {
     const user = readUserJson(id);
-    if(!user) return 0;
+    if (!user) return 0;
     return user.accounts.length;
 }
 
 export const switchAccount = (id, accountNumber) => {
     const userJson = readUserJson(id);
-    if(!userJson) return;
+    if (!userJson) return;
 
     userJson.currentAccount = accountNumber;
     saveUserToDb(userJson);
@@ -146,30 +147,30 @@ export const switchAccount = (id, accountNumber) => {
 
 export const getAccountWithPuuid = (id, puuid) => {
     const userJson = readUserJson(id);
-    if(!userJson) return null;
+    if (!userJson) return null;
     return userJson.accounts.find(a => a.puuid === puuid);
 }
 
 export const findTargetAccountIndex = (id, query) => {
     const userJson = readUserJson(id);
-    if(!userJson) return null;
+    if (!userJson) return null;
 
     let index = userJson.accounts.findIndex(a => a.username === query || a.puuid === query);
-    if(index !== -1) return index + 1;
+    if (index !== -1) return index + 1;
 
     return parseInt(query) || null;
 }
 
-export const removeDupeAccounts = (id, json=readUserJson(id)) => {
+export const removeDupeAccounts = (id, json = readUserJson(id)) => {
     const accounts = json.accounts;
     const newAccounts = [];
-    for(let i = 0; i < accounts.length; i++) {
+    for (let i = 0; i < accounts.length; i++) {
         const existingAccount = newAccounts.find(a => a.puuid === accounts[i].puuid);
-        if(!existingAccount) newAccounts.push(accounts[i]);
+        if (!existingAccount) newAccounts.push(accounts[i]);
         else existingAccount.alerts = removeDupeAlerts(existingAccount.alerts.concat(accounts[i].alerts));
     }
 
-    if(accounts.length !== newAccounts.length) {
+    if (accounts.length !== newAccounts.length) {
         json.accounts = newAccounts;
         saveUserToDb(json);
     }

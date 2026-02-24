@@ -591,10 +591,9 @@ client.on("messageCreate", async (message) => {
                 }, null, 2) + "```";
                 await message.reply(s);
             } else if (splits[1] === "clearcache") {
-                await message.channel.send("Deleting all files in data/shopCache...");
-                fs.rmSync("data/shopCache", { force: true, recursive: true });
-                fs.mkdirSync("data/shopCache");
                 clearShopMemoryCache();
+
+                // (Using redis key expiration handles individual redis cache clears, so we just clear L1)
 
                 // delete skins.json and reset skin cache
                 await message.channel.send("Deleting skins.json and resetting skin cache...");

@@ -1,6 +1,5 @@
 import Database from "better-sqlite3";
 import { localLog, localError } from "./logger.js";
-import path from "path";
 
 let db = null;
 
@@ -283,7 +282,7 @@ export const countAllUsers = () => {
 
 export const getUsersByUserId = (userId) => {
     const rows = stmts.getAccountsByUserId.all(userId);
-    
+
     return rows.map(row => ({
         puuid: row.puuid,
         username: row.username,

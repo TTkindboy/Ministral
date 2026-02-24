@@ -1,4 +1,3 @@
-import fs from "fs";
 import { authUser, deleteUserAuth, getUser } from "./auth.js";
 import {
     discordTag,
@@ -227,13 +226,7 @@ export const getShopCache = async (puuid, target = "offers", print = true) => {
         }
 
         if (!shopCache) {
-            // L3: disk fallback (legacy)
-            try {
-                shopCache = JSON.parse(fs.readFileSync("data/shopCache/" + puuid + ".json", "utf8"));
-                memoryShopCache.set(puuid, shopCache); // warm L1
-            } catch (e) {
-                return null;
-            }
+            return null;
         }
 
         let expiresTimestamp;
@@ -297,12 +290,6 @@ const addShopCache = async (puuid, shopJson) => {
     // L2: Redis (primary, cross-shard)
     const { setShopData } = await import("../misc/redisQueue.js");
     setShopData(puuid, shopCache).catch(e => console.error(`Failed to write shop to Redis for ${puuid}:`, e.message));
-
-    // L3: disk (legacy fallback)
-    if (!fs.existsSync("data/shopCache")) fs.mkdirSync("data/shopCache");
-    fs.writeFile("data/shopCache/" + puuid + ".json", JSON.stringify(shopCache, null, 2), (err) => {
-        if (err) console.error(`Failed to write shop cache for ${puuid}:`, err.message);
-    });
 
     console.log(`Added shop cache for user ${discordTag(puuid)}`);
 }
