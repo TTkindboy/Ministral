@@ -52,6 +52,7 @@
     "WAIT_FOR_PREVIUS_REQUEST": "我们仍在处理您上一次的请求，请稍等片刻后再试！",
     "INVALID_WEB_AUTH_URL": "**无效的 URL！** 请确保您复制了登录页面后浏览器地址栏中的完整 URL。\n它应该以 `http://localhost/redirect#access_token=...` 开头",
     "WEB_AUTH_FAILED": "**登录失败！** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "更改游戏模式失败。**如果您当前处于自定义游戏大厅**，Riot 要求您在更改队列之前手动退出原有的自定义游戏！",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **每日商店提醒出现问题**\n\n{perms}\n\n**频道：** <#{c}>\n**原因：** {r}\n\n请使用 `/settings` 在我有权限的频道中设置每日商店提醒，或在不想再接收自动商店更新时将其禁用。",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **皮肤提醒频道无法访问**\n\n{perms}\n\n**频道：** <#{c}>\n**原因：** {r}\n\n✅ **我已自动将 {n} 条提醒移动到此私信频道**，以免你错过任何提醒！\n\n如果你想在其他服务器频道设置提醒，请在该频道再次使用 `/alert`。",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **皮肤提醒频道无法访问**\n\n{perms}\n\n**频道：** <#{c}>\n**原因：** {r}\n\n请在我有权限的频道中使用 `/alert` 命令重新设置你的提醒。",
@@ -228,9 +229,11 @@
     "QUEUING_TITLE": "🕒 正在排队中",
     "QUEUING_DESC": "正在搜寻 **{queueName}** 比赛...",
     "SELECT_AGENT_PLACEHOLDER": "选择特工以确认锁定",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "队伍空闲",
+    "IDLE_PARTY_DESC": "等待排队中。",
+    "PARTY_MEMBERS": "队伍成员",
+    "START_QUEUE": "开始排队",
+    "CANCEL_QUEUE": "取消排队"
   },
   "queues": {
     "COMPETITIVE": "竞技",

@@ -53,6 +53,7 @@
     "WAIT_FOR_PREVIUS_REQUEST": "Încă lucrăm la cererea ta anterioară, te rog așteaptă un moment înainte de a încerca din nou!",
     "INVALID_WEB_AUTH_URL": "**URL invalid!** Asigurați-vă că ați copiat URL-ul complet din bara de adrese a browserului după pagina de autentificare.\nAr trebui să înceapă cu `http://localhost/redirect#access_token=...`",
     "WEB_AUTH_FAILED": "**Autentificarea a eșuat!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Eroare la schimbarea modului de joc. **Dacă ești în prezent într-un lobby de Joc Personalizat**, Riot solicită să părăsești manual Jocul Personalizat în clientul tău Valorant înainte de a schimba coada!",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **Problemă cu alerta zilnică de magazin**\n\n{perms}\n\n**Canal:** <#{c}>\n**Motiv:** {r}\n\nFolosește `/settings` pentru a configura alerta zilnică într-un canal la care am acces, sau dezactiveaz-o dacă nu mai dorești actualizări automate.",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Canalul de alertă pentru skin-uri inaccesibil**\n\n{perms}\n\n**Canal:** <#{c}>\n**Motiv:** {r}\n\n✅ **Am mutat automat {n} alertă/alerte în acest canal DM** astfel încât să nu ratezi nimic!\n\nDacă dorești să setezi alerte într-un alt canal al serverului, folosește din nou `/alert` în acel canal.",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Canalul de alertă pentru skin-uri inaccesibil**\n\n{perms}\n\n**Canal:** <#{c}>\n**Motiv:** {r}\n\nTe rog, configurează alertele din nou într-un canal la care am acces folosind comanda `/alert`."
@@ -198,9 +199,11 @@
     "QUEUING_TITLE": "🕒 La coadă pentru meci",
     "QUEUING_DESC": "Se caută un meci în **{queueName}**...",
     "SELECT_AGENT_PLACEHOLDER": "Selectează un agent pentru a confirma",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Grup Inactiv",
+    "IDLE_PARTY_DESC": "Se așteaptă intrarea în coadă.",
+    "PARTY_MEMBERS": "Membrii Grupului",
+    "START_QUEUE": "Pornește Coada",
+    "CANCEL_QUEUE": "Anulează Coada"
   },
   "settings": {
     "TRUE": "Da",

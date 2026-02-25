@@ -53,6 +53,7 @@
     "WAIT_FOR_PREVIUS_REQUEST": "Wir arbeiten noch an deiner vorherigen Anfrage, bitte warte einen Moment, bevor du es erneut versuchst!",
     "INVALID_WEB_AUTH_URL": "**Ungültige URL!** Stelle sicher, dass du die gesamte URL aus der Adressleiste deines Browsers nach der Login-Seite kopiert hast.\nSie sollte mit `http://localhost/redirect#access_token=...` beginnen",
     "WEB_AUTH_FAILED": "**Anmeldung fehlgeschlagen!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Fehler beim Ändern des Spielmodus. **Wenn du dich derzeit in einer Custom Game Lobby befindest**, verlangt Riot, dass du das Custom Game zuerst manuell in deinem eigentlichen Valorant-Client verlässt, bevor du die Warteschlange wechselst!",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **Problem mit täglicher Shop-Benachrichtigung**\n\n{perms}\n\n**Kanal:** <#{c}>\n**Grund:** {r}\n\nBitte verwende `/settings`, um deine tägliche Shop-Benachrichtigung in einem Kanal einzurichten, auf den ich Zugriff habe, oder deaktiviere sie, wenn du keine automatischen Shop-Updates mehr möchtest.",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Skin-Benachrichtigungskanal nicht zugänglich**\n\n{perms}\n\n**Kanal:** <#{c}>\n**Grund:** {r}\n\n✅ **Ich habe automatisch {n} Benachrichtigung(en) in diesen DM-Kanal verschoben**, damit du nichts verpasst!\n\nWenn du Benachrichtigungen in einem anderen Serverkanal einrichten möchtest, benutze bitte erneut `/alert` in diesem Kanal.",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Skin-Benachrichtigungskanal nicht zugänglich**\n\n{perms}\n\n**Kanal:** <#{c}>\n**Grund:** {r}\n\nBitte richte deine Benachrichtigungen erneut in einem Kanal ein, auf den ich Zugriff habe, mit dem Befehl `/alert`."
@@ -198,9 +199,11 @@
     "QUEUING_TITLE": "🕒 Warteschlange für Match",
     "QUEUING_DESC": "Suche nach einem Match in **{queueName}**...",
     "SELECT_AGENT_PLACEHOLDER": "Wähle einen Agenten zum Einloggen",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Untätig in der Gruppe",
+    "IDLE_PARTY_DESC": "Warten auf Warteschlange.",
+    "PARTY_MEMBERS": "Gruppenmitglieder",
+    "START_QUEUE": "Warteschlange starten",
+    "CANCEL_QUEUE": "Warteschlange abbrechen"
   },
   "settings": {
     "TRUE": "Ja",

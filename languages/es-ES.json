@@ -55,7 +55,8 @@
     "NO_MATCH_DATA": "No se encontraron {m} partidas, ¿quizás es hora de hacer cola?",
     "WAIT_FOR_PREVIUS_REQUEST": "¡Todavía estamos trabajando en tu solicitud anterior, por favor espera un momento antes de intentarlo de nuevo!",
     "INVALID_WEB_AUTH_URL": "**¡URL inválida!** Asegúrate de haber copiado la URL completa de la barra de direcciones de tu navegador después de la página de inicio de sesión.\nDebe comenzar con `http://localhost/redirect#access_token=...`",
-    "WEB_AUTH_FAILED": "**¡Error de inicio de sesión!** {e}"
+    "WEB_AUTH_FAILED": "**¡Error de inicio de sesión!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "No se pudo cambiar el modo de juego. **Si estás en una sala de partida personalizada**, Riot requiere que la abandones manualmente en tu cliente de Valorant antes de cambiar de cola."
   },
   "info": {
     "SHOP_HEADER": "Tienda diaria de **{u}** (nueva tienda <t:{t}:R>)",
@@ -198,9 +199,11 @@
     "QUEUING_TITLE": "🕒 En cola para partida",
     "QUEUING_DESC": "Buscando partida en **{queueName}**...",
     "SELECT_AGENT_PLACEHOLDER": "Selecciona un agente para fijar",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Grupo inactivo",
+    "IDLE_PARTY_DESC": "Esperando para entrar en cola.",
+    "PARTY_MEMBERS": "Miembros del grupo",
+    "START_QUEUE": "Empezar cola",
+    "CANCEL_QUEUE": "Cancelar cola"
   },
   "settings": {
     "TRUE": "Sí",

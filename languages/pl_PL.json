@@ -55,7 +55,8 @@
     "WEB_AUTH_FAILED": "**Logowanie nie powiodło się!** {e}",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **Problem z powiadomieniem o codziennym sklepie**\n\n{perms}\n\n**Kanał:** <#{c}>\n**Powód:** {r}\n\nUżyj `/settings`, aby ustawić powiadomienie o codziennym sklepie w kanale, do którego mam dostęp, lub wyłącz je, jeśli nie chcesz już automatycznych aktualizacji sklepu.",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Kanał powiadomień o skinach niedostępny**\n\n{perms}\n\n**Kanał:** <#{c}>\n**Powód:** {r}\n\n✅ **Przeniosłem automatycznie {n} powiadomień do tego kanału DM**, abyś niczego nie przegapił!\n\nJeśli chcesz ustawić powiadomienia w innym kanale serwera, użyj ponownie `/alert` w tym kanale.",
-    "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Kanał powiadomień o skinach niedostępny**\n\n{perms}\n\n**Kanał:** <#{c}>\n**Powód:** {r}\n\nPonownie skonfiguruj powiadomienia w kanale, do którego mam dostęp, używając komendy `/alert`."
+    "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Kanał powiadomień o skinach niedostępny**\n\n{perms}\n\n**Kanał:** <#{c}>\n**Powód:** {r}\n\nPonownie skonfiguruj powiadomienia w kanale, do którego mam dostęp, używając komendy `/alert`.",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Nie udało się zmienić trybu gry. **Jeśli obecnie znajdujesz się w lobby gry niestandardowej**, Riot wymaga ręcznego opuszczenia gry niestandardowej w kliencie Valorant przed zmianą kolejki!"
   },
   "info": {
     "SHOP_HEADER": "Codzienny sklep dla **{u}** (nowy sklep <t:{t}:R>)",
@@ -228,9 +229,11 @@
     "QUEUING_TITLE": "🕒 W kolejce do meczu",
     "QUEUING_DESC": "Szukanie meczu w trybie **{queueName}**...",
     "SELECT_AGENT_PLACEHOLDER": "Wybierz agenta do zatwierdzenia",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Bezczynność w grupie",
+    "IDLE_PARTY_DESC": "Oczekiwanie na kolejkę.",
+    "PARTY_MEMBERS": "Członkowie grupy",
+    "START_QUEUE": "Rozpocznij kolejkę",
+    "CANCEL_QUEUE": "Anuluj kolejkę"
   },
   "queues": {
     "COMPETITIVE": "Rankingowa",

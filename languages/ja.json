@@ -53,6 +53,7 @@
     "WAIT_FOR_PREVIUS_REQUEST": "前のリクエストはまだ処理中です。しばらく待ってからもう一度お試しください！",
     "INVALID_WEB_AUTH_URL": "**無効な URL です！**ログインページの後に、ブラウザのアドレスバーから URL 全体をコピーしたことを確認してください。\n`http://localhost/redirect#access_token=...` で始まる必要があります",
     "WEB_AUTH_FAILED": "**ログインに失敗しました！** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "ゲームモードの変更に失敗しました。**現在カスタムゲームのロビーにいる場合**、キューを変更する前に、実際のValorantクライアント内で手動でカスタムゲームを抜ける必要があります。",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **デイリーショップのアラートに問題があります**\n\n{perms}\n\n**チャンネル:** <#{c}>\n**理由:** {r}\n\n`/settings` を使用して、私がアクセスできるチャンネルにデイリーショップアラートを設定するか、自動更新を無効にしてください。",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **スキン通知チャンネルにアクセスできません**\n\n{perms}\n\n**チャンネル:** <#{c}>\n**理由:** {r}\n\n✅ **{n} 件の通知をこのDMチャンネルに自動で移動しました**。見逃すことはありません。\n\n別のサーバーチャンネルで通知を設定したい場合は、そのチャンネルで `/alert` を再度使用してください。",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **スキン通知チャンネルにアクセスできません**\n\n{perms}\n\n**チャンネル:** <#{c}>\n**理由:** {r}\n\n`/alert` コマンドを使って、私が適切な権限を持つチャンネルで通知を再設定してください。"
@@ -198,9 +199,11 @@
     "QUEUING_TITLE": "🕒 マッチの待機中",
     "QUEUING_DESC": "**{queueName}** でマッチを検索中...",
     "SELECT_AGENT_PLACEHOLDER": "確定するエージェントを選択",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "パーティーで待機中",
+    "IDLE_PARTY_DESC": "キュー待ちです。",
+    "PARTY_MEMBERS": "パーティーメンバー",
+    "START_QUEUE": "キューを開始",
+    "CANCEL_QUEUE": "キューをキャンセル"
   },
   "settings": {
     "TRUE": "はい",

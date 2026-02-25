@@ -53,6 +53,7 @@
     "WAIT_FOR_PREVIUS_REQUEST": "Hala önceki talebiniz üzerinde çalışıyoruz, lütfen tekrar denemeden önce biraz bekleyin!",
     "INVALID_WEB_AUTH_URL": "**Geçersiz URL!** Giriş sayfasından sonra tarayıcınızın adres çubuğundan URL'nin tamamını kopyaladığınızdan emin olun.\n`http://localhost/redirect#access_token=...` ile başlamalıdır",
     "WEB_AUTH_FAILED": "**Giriş başarısız oldu!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Oyun modu değiştirilemedi. **Şu anda bir Özel Oyun lobisindeyken**, Riot sırayı değiştirmeden önce Valorant istemcinizden Özel Oyun'dan manuel olarak ayrılmanızı gerektirir!",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **Günlük Mağaza Uyarısında Sorun**\n\n{perms}\n\n**Kanal:** <#{c}>\n**Sebep:** {r}\n\nGünlük mağaza uyarınızı benim erişebildiğim bir kanalda ayarlamak için `/settings` komutunu kullanın veya otomatik mağaza güncellemelerini istemiyorsanız devre dışı bırakın.",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Skin uyarı kanalı erişilemez**\n\n{perms}\n\n**Kanal:** <#{c}>\n**Sebep:** {r}\n\n✅ **{n} uyarıyı bu DM kanalına otomatik olarak taşıdım**, böylece hiçbir uyarıyı kaçırmazsınız!\n\nUyarıları başka bir sunucu kanalında ayarlamak isterseniz, lütfen o kanalda tekrar `/alert` kullanın.",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Skin uyarı kanalı erişilemez**\n\n{perms}\n\n**Kanal:** <#{c}>\n**Sebep:** {r}\n\nLütfen `/alert` komutunu kullanarak benim erişimim olan bir kanalda uyarılarınızı tekrar ayarlayın."
@@ -215,9 +216,11 @@
     "QUEUING_TITLE": "🕒 Maç için Sırada",
     "QUEUING_DESC": "**{queueName}** modunda maç aranıyor...",
     "SELECT_AGENT_PLACEHOLDER": "Kilitlemek için bir Ajan Seçin",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Grupta Boşta",
+    "IDLE_PARTY_DESC": "Sıra bekleniyor.",
+    "PARTY_MEMBERS": "Grup Üyeleri",
+    "START_QUEUE": "Sırayı Başlat",
+    "CANCEL_QUEUE": "Sırayı İptal Et"
   },
   "modal": {
     "PAGE_TITLE": "Sayfa Gezgini",

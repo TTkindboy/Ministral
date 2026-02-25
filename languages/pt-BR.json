@@ -53,6 +53,7 @@
     "WAIT_FOR_PREVIUS_REQUEST": "Ainda estamos trabalhando em sua solicitação anterior, aguarde um momento antes de tentar novamente!",
     "INVALID_WEB_AUTH_URL": "**URL inválida!** Certifique-se de copiar a URL completa da barra de endereços do seu navegador após a página de login.\nDeve começar com `http://localhost/redirect#access_token=...`",
     "WEB_AUTH_FAILED": "**Login falhou!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Falha ao alterar o modo de jogo. **Se você estiver em um lobby de Jogo Personalizado**, a Riot exige que você saia manualmente do Jogo Personalizado no seu cliente Valorant antes de mudar de fila!",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **Problema com o alerta diário da loja**\n\n{perms}\n\n**Canal:** <#{c}>\n**Motivo:** {r}\n\nUse `/settings` para configurar seu alerta diário da loja em um canal onde eu tenha acesso, ou desative-o se não quiser mais atualizações automáticas da loja.",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Canal de alerta de skin inacessível**\n\n{perms}\n\n**Canal:** <#{c}>\n**Motivo:** {r}\n\n✅ **Mudei automaticamente {n} alerta(s) para este canal de DM** para que você não perca nenhum alerta!\n\nSe quiser configurar alertas em outro canal do servidor, use `/alert` novamente nesse canal.",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Canal de alerta de skin inacessível**\n\n{perms}\n\n**Canal:** <#{c}>\n**Motivo:** {r}\n\nPor favor, configure seus alertas novamente em um canal onde eu tenha acesso usando o comando `/alert`."
@@ -228,9 +229,11 @@
     "QUEUING_TITLE": "🕒 Na fila para a partida",
     "QUEUING_DESC": "Procurando partida em **{queueName}**...",
     "SELECT_AGENT_PLACEHOLDER": "Selecione um Agente para Confirmar",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Grupo Inativo",
+    "IDLE_PARTY_DESC": "Aguardando para entrar na fila.",
+    "PARTY_MEMBERS": "Membros do Grupo",
+    "START_QUEUE": "Iniciar Fila",
+    "CANCEL_QUEUE": "Cancelar Fila"
   },
   "queues": {
     "COMPETITIVE": "Competitivo",

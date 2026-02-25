@@ -55,7 +55,8 @@
     "NO_MATCH_DATA": "Tidak ada pertandingan {m} yang ditemukan, mungkin waktunya untuk queue?",
     "WAIT_FOR_PREVIUS_REQUEST": "Kami masih mengerjakan permintaan sebelumnya, mohon tunggu sebentar sebelum mencoba lagi!",
     "INVALID_WEB_AUTH_URL": "**URL tidak valid!** Pastikan kamu sudah menyalin seluruh URL dari address bar browser setelah halaman login.\nHarus dimulai dengan `http://localhost/redirect#access_token=...`",
-    "WEB_AUTH_FAILED": "**Login gagal!** {e}"
+    "WEB_AUTH_FAILED": "**Login gagal!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Gagal mengubah mode permainan. **Jika Anda saat ini berada di lobi Custom Game**, Riot mengharuskan Anda untuk keluar dari Custom Game secara manual di klien Valorant Anda sebelum mengubah antrean!"
   },
   "info": {
     "SHOP_HEADER": "Shop harian untuk **{u}** (refresh shop <t:{t}:R>)",
@@ -228,9 +229,11 @@
     "QUEUING_TITLE": "🕒 Mengantre untuk Pertandingan",
     "QUEUING_DESC": "Mencari pertandingan di **{queueName}**...",
     "SELECT_AGENT_PLACEHOLDER": "Pilih Agen untuk Mengunci",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Grup Sedang Diam",
+    "IDLE_PARTY_DESC": "Menunggu untuk masuk antrean.",
+    "PARTY_MEMBERS": "Anggota Grup",
+    "START_QUEUE": "Mulai Antrean",
+    "CANCEL_QUEUE": "Batalkan Antrean"
   },
   "queues": {
     "COMPETITIVE": "Kompetitif",

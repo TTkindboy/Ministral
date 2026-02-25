@@ -53,6 +53,7 @@
     "WAIT_FOR_PREVIUS_REQUEST": "Ginagawa pa namin ang iyong nakaraang request, maghintay sandali bago subukan ulit!",
     "INVALID_WEB_AUTH_URL": "**Invalid ang URL!** Siguruhing kinopya mo ang buong URL mula sa address bar ng iyong browser pagkatapos ng login page.\nDapat magsimula ito sa `http://localhost/redirect#access_token=...`",
     "WEB_AUTH_FAILED": "**Nabigo ang login!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Nabigong baguhin ang mode ng laro. **Kung kasalukuyan kang nasa lobby ng Custom Game**, kinakailangan ng Riot na manu-mano kang umalis sa Custom Game sa iyong Valorant client bago magpalit ng queue!",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **May problema sa Daily Shop Alert**\n\n{perms}\n\n**Channel:** <#{c}>\n**Dahilan:** {r}\n\nGamitin ang `/settings` para i-setup ang daily shop alert sa channel na may access ako, o i-disable ito kung ayaw mo nang automatic shop updates.",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Hindi ma-access ang skin alert channel**\n\n{perms}\n\n**Channel:** <#{c}>\n**Dahilan:** {r}\n\n✅ **Awtomatikong inilipat ko ang {n} alert(s) sa DM channel na ito** para hindi ka mawalan ng alerts!\n\nKung gusto mong mag-setup ng alerts sa ibang server channel, gamitin muli ang `/alert` sa channel na iyon.",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Hindi ma-access ang skin alert channel**\n\n{perms}\n\n**Channel:** <#{c}>\n**Dahilan:** {r}\n\nPakire-configure muli ang iyong alerts sa channel na may tamang access gamit ang command na `/alert`."
@@ -228,9 +229,11 @@
     "QUEUING_TITLE": "🕒 Nakapila para sa Match",
     "QUEUING_DESC": "Naghahanap ng match sa **{queueName}**...",
     "SELECT_AGENT_PLACEHOLDER": "Pumili ng Agent para i-Lock In",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Idle sa Party",
+    "IDLE_PARTY_DESC": "Naghihintay na mag-queue.",
+    "PARTY_MEMBERS": "Mga Miyembro ng Party",
+    "START_QUEUE": "Simulan ang Queue",
+    "CANCEL_QUEUE": "I-cancel ang Queue"
   },
   "queues": {
     "COMPETITIVE": "Competitive",

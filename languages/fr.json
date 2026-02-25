@@ -55,7 +55,8 @@
     "NO_MATCH_DATA": "Aucun match {m} n'a été trouvé, peut-être qu'il est temps de jouer?",
     "WAIT_FOR_PREVIUS_REQUEST": "Nous travaillons toujours sur votre demande précédente, veuillez patienter un moment avant de réessayer!",
     "INVALID_WEB_AUTH_URL": "**URL invalide!** Assurez-vous d'avoir copié l'URL entière de la barre d'adresse de votre navigateur après la page de connexion.\nElle devrait commencer par `http://localhost/redirect#access_token=...`",
-    "WEB_AUTH_FAILED": "**La connexion a échoué!** {e}"
+    "WEB_AUTH_FAILED": "**La connexion a échoué!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Échec du changement de mode de jeu. **Si vous êtes actuellement dans un salon de partie personnalisée**, Riot exige que vous quittiez manuellement la partie personnalisée dans votre client Valorant avant de changer de file d'attente !"
   },
   "info": {
     "SHOP_HEADER": "Boutique du jour pour **{u}** (nouvelle boutique <t:{t}:R>)",
@@ -228,9 +229,11 @@
     "QUEUING_TITLE": "🕒 En file d'attente pour une partie",
     "QUEUING_DESC": "Recherche d'une partie en **{queueName}**...",
     "SELECT_AGENT_PLACEHOLDER": "Sélectionner un agent à verrouiller",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Groupe inactif",
+    "IDLE_PARTY_DESC": "En attente de mise en file d'attente.",
+    "PARTY_MEMBERS": "Membres du groupe",
+    "START_QUEUE": "Lancer la file d'attente",
+    "CANCEL_QUEUE": "Annuler la file d'attente"
   },
   "queues": {
     "COMPETITIVE": "Compétitif",

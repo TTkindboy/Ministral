@@ -52,6 +52,7 @@
     "WAIT_FOR_PREVIUS_REQUEST": "Chúng tôi vẫn đang xử lý yêu cầu trước đó của bạn, vui lòng đợi một chút trước khi thử lại!",
     "INVALID_WEB_AUTH_URL": "**URL không hợp lệ!** Đảm bảo rằng bạn đã sao chép toàn bộ URL từ thanh địa chỉ trình duyệt sau trang đăng nhập.\nNó phải bắt đầu bằng `http://localhost/redirect#access_token=...`",
     "WEB_AUTH_FAILED": "**Đăng nhập thất bại!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Không thể thay đổi chế độ chơi. **Nếu bạn hiện đang ở trong sảnh Trận đấu Tùy chọn**, Riot yêu cầu bạn phải rời khỏi Trận đấu Tùy chọn theo cách thủ công trong client Valorant của mình trước khi thay đổi hàng chờ!",
     "DAILY_SHOP_CHANNEL_INACCESSIBLE": "⚠️ **Vấn đề với thông báo Cửa hàng hàng ngày**\n\n{perms}\n\n**Kênh:** <#{c}>\n**Lý do:** {r}\n\nVui lòng dùng `/settings` để cài thông báo cửa hàng hàng ngày vào kênh mà tôi có quyền truy cập, hoặc tắt nó nếu bạn không muốn cập nhật tự động nữa.",
     "ALERT_CHANNEL_INACCESSIBLE_MIGRATED": "⚠️ **Không thể truy cập kênh thông báo skin**\n\n{perms}\n\n**Kênh:** <#{c}>\n**Lý do:** {r}\n\n✅ **Tôi đã tự động chuyển {n} thông báo vào kênh DM này** để bạn không bỏ lỡ bất kỳ thông báo nào!\n\nNếu bạn muốn thiết lập thông báo trong kênh server khác, hãy dùng lại `/alert` trong kênh đó.",
     "ALERT_CHANNEL_INACCESSIBLE": "⚠️ **Không thể truy cập kênh thông báo skin**\n\n{perms}\n\n**Kênh:** <#{c}>\n**Lý do:** {r}\n\nVui lòng dùng `/alert` để cấu hình lại thông báo trong kênh mà tôi có quyền truy cập.",
@@ -215,9 +216,11 @@
     "QUEUING_TITLE": "🕒 Đang trong hàng chờ",
     "QUEUING_DESC": "Đang tìm trận đấu trong chế độ **{queueName}**...",
     "SELECT_AGENT_PLACEHOLDER": "Chọn Đặc vụ để Khóa lại",
-    "IDLE_PARTY_TITLE": "Idle in Party",
-    "IDLE_PARTY_DESC": "Waiting to queue.",
-    "PARTY_MEMBERS": "Party Members"
+    "IDLE_PARTY_TITLE": "Đang treo máy trong Tổ đội",
+    "IDLE_PARTY_DESC": "Đang chờ vào hàng chờ.",
+    "PARTY_MEMBERS": "Thành viên Tổ đội",
+    "START_QUEUE": "Bắt đầu hàng chờ",
+    "CANCEL_QUEUE": "Hủy hàng chờ"
   },
   "modal": {
     "PAGE_TITLE": "Điều hướng trang",
