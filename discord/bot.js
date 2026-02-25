@@ -96,7 +96,7 @@ import { renderCollection, getSkins } from "../valorant/inventory.js";
 import { getLoadout } from "../valorant/inventory.js";
 import { getAccountInfo, fetchMatchHistory } from "../valorant/profile.js";
 import {
-    fetchLiveGame, selectAgent, lockAgent, getAllPlayableAgents, resolveAgent, getOwnedAgents, resolveQueueName, resolveQueueIcon, makePartyCode, removePartyCode, changeQueue
+    fetchLiveGame, selectAgent, lockAgent, makePartyCode, removePartyCode, changeQueue, startQueue, cancelQueue
 } from "../valorant/livegame.js";
 import { renderLiveGame, renderLiveGameError, setRoleSelection } from "./livegameEmbed.js";
 
