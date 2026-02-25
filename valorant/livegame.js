@@ -988,9 +988,14 @@ export const getPreGameData = async (id, account = null) => {
     // Split on "/" and strip the extension rather than replacing a hardcoded
     // prefix — this is robust to any URL path changes Riot may make.
     const rawMode = matchJson.GameConfig?.GameMode ?? "";
-    const queueId = rawMode
+    const rawSlug = rawMode
         ? rawMode.split("/").pop().replace(/\.json$/i, "").toLowerCase()
         : "";
+    // Normalise mode slugs that differ from our QUEUE_NAMES keys.
+    // "customgame" → "custom"  (pre-game Custom lobbies)
+    // "standard"   → "unrated" (older Riot clients)
+    const SLUG_ALIASES = { customgame: "custom", standard: "unrated" };
+    const queueId = SLUG_ALIASES[rawSlug] ?? rawSlug;
 
     const gamePodId = matchJson.GamePodID ?? "";
     const serverName = resolveServerName(gamePodId);
@@ -1238,11 +1243,14 @@ const enrichPlayers = async (id, account, rawPlayers, queueId = "") => {
     const puuids = rawPlayers.map(p => p.puuid);
     const showCompStats = queueId === "competitive" || queueId === "skirmish" || queueId === "skirmish 2v2";
 
-    // Start all parallel fetches (including season labels)
-    const [mmrMap, nameMap, seasonMap] = await Promise.all([
+    // loadSeasons must finish first so that currentSeasonId (module-level) is
+    // populated before fetchPlayerMMRs calls parseMMRData(raw, currentSeasonId).
+    // Running them in parallel caused a race where every player appeared Unranked
+    // on the first /livegame refresh while already in a match.
+    const seasonMap = await loadSeasons();
+    const [mmrMap, nameMap] = await Promise.all([
         fetchPlayerMMRs(user, puuids),
         fetchPlayerNames(user, puuids.filter(p => !rawPlayers.find(rp => rp.puuid === p)?.incognito)),
-        loadSeasons(),
     ]);
 
     // Competitive updates — one request per player, run in parallel to get matchId
@@ -1284,7 +1292,12 @@ const enrichPlayers = async (id, account, rawPlayers, queueId = "") => {
             // reads "<agent_emoji>  `AgentName`". "Player N" is the fallback when
             // the agent is not yet known (pre-game, agent not locked).
             riotId: p.incognito
-                ? (p.agentId && p.selectionState === "locked" && agentInfo.names ? agentInfo.names["en-US"] : `Player ${idx + 1}`)
+                // In pre-game, selectionState is an explicit string ("locked" / "").
+                // In-game (core-game), the field is absent (undefined) — agents
+                // are always locked once the match starts, so treat undefined as locked.
+                ? (p.agentId && (p.selectionState === "locked" || p.selectionState === undefined) && agentInfo.names
+                    ? agentInfo.names["en-US"]
+                    : `Player ${idx + 1}`)
                 : (name ?? p.puuid.slice(0, 8)),
             // Agent
             agentName: p.agentId ? agentInfo.names : null,
