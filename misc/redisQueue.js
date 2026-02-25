@@ -284,24 +284,24 @@ export const subscribeToLogMessages = async (callback) => {
     });
 };
 
-// ==================== SHOP CACHE OPERATIONS ====================
+// ==================== INVENTORY DATA CACHE ====================
 
-const SHOP_CACHE_PREFIX = "skinpeek:shop:";
-const SHOP_CACHE_EXPIRY = 24 * 60 * 60; // 24 hours
+const INVENTORY_CACHE_PREFIX = "skinpeek:inventory:";
+const INVENTORY_CACHE_EXPIRY = 60 * 10; // 10 minutes
 
-// Store shop in Redis
-export const setShopCache = async (userId, accountIndex, shopData) => {
+// Store inventory in Redis
+export const setInventoryData = async (userId, target, data) => {
     if (!isRedisAvailable()) return;
 
-    const key = `${SHOP_CACHE_PREFIX}${userId}:${accountIndex}`;
-    await redis.setex(key, SHOP_CACHE_EXPIRY, JSON.stringify(shopData));
+    const key = `${INVENTORY_CACHE_PREFIX}${userId}:${target}`;
+    await redis.setex(key, INVENTORY_CACHE_EXPIRY, JSON.stringify(data));
 };
 
-// Get shop from Redis
-export const getShopCache = async (userId, accountIndex) => {
+// Get inventory from Redis
+export const getInventoryData = async (userId, target) => {
     if (!isRedisAvailable()) return null;
 
-    const key = `${SHOP_CACHE_PREFIX}${userId}:${accountIndex}`;
+    const key = `${INVENTORY_CACHE_PREFIX}${userId}:${target}`;
     const data = await redis.get(key);
 
     if (!data) return null;
@@ -309,7 +309,7 @@ export const getShopCache = async (userId, accountIndex) => {
     try {
         return JSON.parse(data);
     } catch (e) {
-        localError("Failed to parse shop cache:", e);
+        localError("Failed to parse inventory cache:", e);
         return null;
     }
 };

@@ -243,7 +243,10 @@ export const getShopCache = async (puuid, target = "offers", print = true) => {
         if (target === "offers") expiresTimestamp = shopCache[target].expires;
         else if (target === "night_market") expiresTimestamp = shopCache[target] ? shopCache[target].expires : getMidnightTimestamp(shopCache.timestamp);
         else if (target === "bundles") expiresTimestamp = Math.min(...shopCache.bundles.map(bundle => bundle.expires), get9PMTimetstamp(Date.now()));
-        else if (target === "all") expiresTimestamp = Math.min(shopCache.offers.expires, ...shopCache.bundles.map(bundle => bundle.expires), get9PMTimetstamp(Date.now()), shopCache.night_market.expires);
+        else if (target === "all") {
+            const nmExpires = shopCache.night_market ? shopCache.night_market.expires : getMidnightTimestamp(shopCache.timestamp);
+            expiresTimestamp = Math.min(shopCache.offers.expires, ...shopCache.bundles.map(bundle => bundle.expires), get9PMTimetstamp(Date.now()), nmExpires);
+        }
         else console.error("Invalid target for shop cache! " + target);
 
         if (Date.now() / 1000 > expiresTimestamp) {
@@ -259,7 +262,9 @@ export const getShopCache = async (puuid, target = "offers", print = true) => {
         }
 
         return shopCache;
-    } catch (e) { }
+    } catch (e) {
+        console.error(`Failed to get shop cache for ${puuid}:`, e);
+    }
     return null;
 }
 

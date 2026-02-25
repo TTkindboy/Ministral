@@ -1,12 +1,13 @@
-import {fetch, isMaintenance, userRegion, WeaponTypeUuid} from "../misc/util.js";
-import {authUser, deleteUserAuth, getUser} from "./auth.js";
-import {authFailureMessage, basicEmbed, skinCollectionSingleEmbed, collectionOfWeaponEmbed} from "../discord/embed.js";
+import { fetch, isMaintenance, userRegion, WeaponTypeUuid } from "../misc/util.js";
+import { authUser, deleteUserAuth, getUser } from "./auth.js";
+import { authFailureMessage, basicEmbed, skinCollectionSingleEmbed, collectionOfWeaponEmbed } from "../discord/embed.js";
 import config from "../misc/config.js";
-import {s} from "../misc/languages.js";
-import {riotClientHeaders} from "../misc/util.js";
+import { s } from "../misc/languages.js";
+import { riotClientHeaders } from "../misc/util.js";
+import { getInventoryData, setInventoryData } from "../misc/redisQueue.js";
 
 
-export const getEntitlements = async (user, itemTypeId, itemType="item") => {
+export const getEntitlements = async (user, itemTypeId, itemType = "item") => {
     // https://valapidocs.techchrism.me/endpoint/owned-items
     const req = await fetch(`https://pd.${userRegion(user)}.a.pvp.net/store/v1/entitlements/${user.puuid}/${itemTypeId}`, {
         headers: {
@@ -36,29 +37,42 @@ const skinCache = {};
 
 export const getSkins = async (user) => {
     // get all the owned skins of a user
-    if(user.puuid in skinCache) {
+    if (user.puuid in skinCache) {
         const cached = skinCache[user.puuid];
         const expiresIn = cached.timestamp - Date.now() + config.loadoutCacheExpiration;
-        if(expiresIn <= 0) {
+        if (expiresIn <= 0) {
             delete skinCache[user.puuid];
         } else {
-            console.log(`Fetched skins collection from cache for user ${user.username}! It expires in ${Math.ceil(expiresIn / 1000)}s.`);
-            return {success: true, skins: cached.skins};
+            console.log(`Fetched skins collection from memory cache for user ${user.username}! It expires in ${Math.ceil(expiresIn / 1000)}s.`);
+            return { success: true, skins: cached.skins };
+        }
+    } else {
+        const redisCache = await getInventoryData(user.puuid, "skins");
+        if (redisCache) {
+            const expiresIn = redisCache.timestamp - Date.now() + config.loadoutCacheExpiration;
+            if (expiresIn > 0) {
+                skinCache[user.puuid] = redisCache;
+                console.log(`Fetched skins collection from Redis cache for user ${user.username}! It expires in ${Math.ceil(expiresIn / 1000)}s.`);
+                return { success: true, skins: redisCache.skins };
+            }
         }
     }
 
     const authResult = await authUser(user.id);
-    if(!authResult.success) return authResult;
+    if (!authResult.success) return authResult;
 
     const data = await getEntitlements(user, "e7c63390-eda7-46e0-bb7a-a6abdacd2433", "skins");
-    if(!data.success) return data;
+    if (!data.success) return data;
 
     const skins = data.entitlements.Entitlements.map(ent => ent.ItemID);
 
-    skinCache[user.puuid] = {
+    const skinData = {
         skins: skins,
         timestamp: Date.now()
-    }
+    };
+
+    skinCache[user.puuid] = skinData;
+    setInventoryData(user.puuid, "skins", skinData).catch(e => console.error(`Failed to write skins to Redis for ${user.puuid}:`, e.message));
 
     console.log(`Fetched skins collection for ${user.username}`);
 
@@ -73,19 +87,29 @@ const loadoutCache = {};
 
 export const getLoadout = async (user, account) => {
     // get the currently equipped skins of a user
-    if(user.puuid in loadoutCache) {
+    if (user.puuid in loadoutCache) {
         const cached = loadoutCache[user.puuid];
         const expiresIn = cached.timestamp - Date.now() + config.loadoutCacheExpiration;
-        if(expiresIn <= 0) {
+        if (expiresIn <= 0) {
             delete loadoutCache[user.puuid];
         } else {
-            console.log(`Fetched loadout from cache for user ${user.username}! It expires in ${Math.ceil(expiresIn / 1000)}s.`);
-            return {success: true, loadout: cached.loadout, favorites: cached.favorites};
+            console.log(`Fetched loadout from memory cache for user ${user.username}! It expires in ${Math.ceil(expiresIn / 1000)}s.`);
+            return { success: true, loadout: cached.loadout, favorites: cached.favorites };
+        }
+    } else {
+        const redisCache = await getInventoryData(user.puuid, "loadout");
+        if (redisCache) {
+            const expiresIn = redisCache.timestamp - Date.now() + config.loadoutCacheExpiration;
+            if (expiresIn > 0) {
+                loadoutCache[user.puuid] = redisCache;
+                console.log(`Fetched loadout from Redis cache for user ${user.username}! It expires in ${Math.ceil(expiresIn / 1000)}s.`);
+                return { success: true, loadout: redisCache.loadout, favorites: redisCache.favorites };
+            }
         }
     }
 
     const authResult = await authUser(user.id, account);
-    if(!authResult.success) return authResult;
+    if (!authResult.success) return authResult;
 
     user = getUser(user.id, account);
     console.log(`Fetching loadout for ${user.username}...`);
@@ -115,7 +139,7 @@ export const getLoadout = async (user, account) => {
         }
     });
 
-    console.assert(req.statusCode === 200, `Valorant favorites fetch code is ${req.statusCode}!`, req);
+    console.assert(req2.statusCode === 200, `Valorant favorites fetch code is ${req2.statusCode}!`, req2);
 
     const json2 = JSON.parse(req2.body);
     if (json2.httpStatus === 400 && json2.errorCode === "BAD_CLAIMS") {
@@ -124,11 +148,14 @@ export const getLoadout = async (user, account) => {
     } else if (isMaintenance(json2))
         return { success: false, maintenance: true };
 
-    loadoutCache[user.puuid] = {
+    const loadoutData = {
         loadout: json,
         favorites: json2,
         timestamp: Date.now()
-    }
+    };
+
+    loadoutCache[user.puuid] = loadoutData;
+    setInventoryData(user.puuid, "loadout", loadoutData).catch(e => console.error(`Failed to write loadout to Redis for ${user.puuid}:`, e.message));
 
     console.log(`Fetched loadout for ${user.username}`);
 
@@ -139,11 +166,11 @@ export const getLoadout = async (user, account) => {
     }
 }
 
-export const renderCollection = async (interaction, targetId=interaction.user.id, weaponName=null) => {
+export const renderCollection = async (interaction, targetId = interaction.user.id, weaponName = null) => {
     const user = getUser(targetId);
-    if(!user) return await interaction.reply({embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)]});
+    if (!user) return await interaction.reply({ embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)] });
 
-    if(weaponName) return await renderCollectionOfWeapon(interaction, targetId, weaponName);
+    if (weaponName) return await renderCollectionOfWeapon(interaction, targetId, weaponName);
 
     const loadout = await getLoadout(user);
     if (!loadout.success) return errorFetchingCollection(loadout, interaction, targetId);
@@ -154,15 +181,15 @@ export const renderCollection = async (interaction, targetId=interaction.user.id
 const renderCollectionOfWeapon = async (interaction, targetId, weaponName) => {
     const user = getUser(targetId);
     const skins = await getSkins(user);
-    if(!skins.success) return errorFetchingCollection(skins, interaction, targetId);
+    if (!skins.success) return errorFetchingCollection(skins, interaction, targetId);
 
     return await collectionOfWeaponEmbed(interaction, targetId, user, WeaponTypeUuid[weaponName], skins.skins)
 }
 
 const errorFetchingCollection = (result, interaction, targetId) => {
-    if(!result.success) {
+    if (!result.success) {
         let errorText;
-        if(targetId && targetId !== interaction.user.id) errorText = s(interaction).error.AUTH_ERROR_COLLECTION_OTHER.f({u: `<@${targetId}>`});
+        if (targetId && targetId !== interaction.user.id) errorText = s(interaction).error.AUTH_ERROR_COLLECTION_OTHER.f({ u: `<@${targetId}>` });
         else errorText = s(interaction).error.AUTH_ERROR_COLLECTION;
 
         return authFailureMessage(interaction, result, errorText);
