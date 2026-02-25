@@ -202,9 +202,8 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ Trận đấu trực tiếp・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "Không trong trận đấu nào!",
-    "NOT_IN_MATCH_DESC": "Bạn có vẻ đang ở sảnh chờ.\n\nHãy chắc chắn bạn đang **chọn agent** hoặc đã **trong trận** và thử lại.",
-    "LIVE_GAME_FOOTER": "Trận đấu trực tiếp",
+    "NOT_IN_MATCH_TITLE": "Người chơi Ngoại tuyến",
+    "NOT_IN_MATCH_DESC": "Bạn có vẻ đang không online trong VALORANT.\n\nHãy chắc chắn bạn đã mở game và thử lại.",
     "MAINTENANCE_TITLE": "Bảo trì VALORANT",
     "MAINTENANCE_DESC": "Máy chủ VALORANT đang bảo trì. Vui lòng thử lại sau.",
     "RATE_LIMITED_TITLE": "Giới hạn",
@@ -220,7 +219,12 @@
     "IDLE_PARTY_DESC": "Đang chờ vào hàng chờ.",
     "PARTY_MEMBERS": "Thành viên Tổ đội",
     "START_QUEUE": "Bắt đầu hàng chờ",
-    "CANCEL_QUEUE": "Hủy hàng chờ"
+    "CANCEL_QUEUE": "Hủy hàng chờ",
+    "GENERATE_PARTY_CODE": "Tạo mã Tổ đội",
+    "REMOVE_PARTY_CODE": "Tắt mã Tổ đội",
+    "PARTY_CODE": "Mã Tổ đội:",
+    "PREFERRED_SERVERS": "Ưu tiên: {servers}",
+    "AUTO_SERVERS": "Tự động"
   },
   "modal": {
     "PAGE_TITLE": "Điều hướng trang",
@@ -237,8 +241,8 @@
   },
   "queues": {
     "COMPETITIVE": "Xếp hạng",
-    "UNRATED": "Unrated",
-    "CUSTOM": "Custom Game",
-    "NEWMAP": "New Map"
+    "UNRATED": "Đấu thường",
+    "CUSTOM": "Trận đấu Tùy chọn",
+    "NEWMAP": "Bản đồ Mới"
   }
 }

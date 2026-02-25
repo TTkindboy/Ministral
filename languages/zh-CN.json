@@ -215,8 +215,8 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ 实况比赛・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "不在比赛中",
-    "NOT_IN_MATCH_DESC": "你当前似乎不在预赛大厅或正在进行的比赛中。\n\n请确保你处于 **选择干员** 或 **游戏中**，然后重试。",
+    "NOT_IN_MATCH_TITLE": "玩家不在线",
+    "NOT_IN_MATCH_DESC": "你当前似乎不在线上。\n\n请确保你已经启动了 VALORANT 并重试。",
     "LIVE_GAME_FOOTER": "实况比赛",
     "MAINTENANCE_TITLE": "VALORANT 维护中",
     "MAINTENANCE_DESC": "VALORANT 服务器当前正在维护。请稍后再试。",
@@ -233,12 +233,17 @@
     "IDLE_PARTY_DESC": "等待排队中。",
     "PARTY_MEMBERS": "队伍成员",
     "START_QUEUE": "开始排队",
-    "CANCEL_QUEUE": "取消排队"
+    "CANCEL_QUEUE": "取消排队",
+    "GENERATE_PARTY_CODE": "生成队伍代码",
+    "REMOVE_PARTY_CODE": "移除队伍代码",
+    "PARTY_CODE": "队伍代码:",
+    "PREFERRED_SERVERS": "首选: {servers}",
+    "AUTO_SERVERS": "自动"
   },
   "queues": {
     "COMPETITIVE": "竞技",
-    "UNRATED": "Unrated",
-    "CUSTOM": "Custom Game",
-    "NEWMAP": "New Map"
+    "UNRATED": "一般模式",
+    "CUSTOM": "自定义",
+    "NEWMAP": "新地图"
   }
 }

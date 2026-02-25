@@ -185,8 +185,8 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ ライブゲーム・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "マッチ中ではありません",
-    "NOT_IN_MATCH_DESC": "現在、プリゲームロビーまたはライブマッチにいないようです。\n\n**エージェント選択**または**ゲーム中**であることを確認して、再度お試しください。",
+    "NOT_IN_MATCH_TITLE": "プレイヤーはオフラインです",
+    "NOT_IN_MATCH_DESC": "現在、VALORANTにログインしていないようです。\n\nゲームを起動していることを確認して、再度お試しください。",
     "LIVE_GAME_FOOTER": "ライブゲーム",
     "MAINTENANCE_TITLE": "VALORANTメンテナンス",
     "MAINTENANCE_DESC": "VALORANTサーバーは現在メンテナンス中です。後ほど再度お試しください。",
@@ -203,7 +203,12 @@
     "IDLE_PARTY_DESC": "キュー待ちです。",
     "PARTY_MEMBERS": "パーティーメンバー",
     "START_QUEUE": "キューを開始",
-    "CANCEL_QUEUE": "キューをキャンセル"
+    "CANCEL_QUEUE": "キューをキャンセル",
+    "GENERATE_PARTY_CODE": "パーティーコードを生成",
+    "REMOVE_PARTY_CODE": "パーティーコードを無効化",
+    "PARTY_CODE": "パーティーコード:",
+    "PREFERRED_SERVERS": "優先サーバー: {servers}",
+    "AUTO_SERVERS": "自動"
   },
   "settings": {
     "TRUE": "はい",
@@ -237,8 +242,8 @@
   },
   "queues": {
     "COMPETITIVE": "コンペティティブ",
-    "UNRATED": "Unrated",
-    "CUSTOM": "Custom Game",
-    "NEWMAP": "New Map"
+    "UNRATED": "アンレート",
+    "CUSTOM": "カスタムゲーム",
+    "NEWMAP": "新マップ"
   }
 }

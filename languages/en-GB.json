@@ -215,9 +215,8 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ Live Game・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "Not in a Match",
-    "NOT_IN_MATCH_DESC": "You don't appear to be in a pre-game lobby or a live match right now.\n\nMake sure you're currently in **agent select** or **in-game** and try again.",
-    "LIVE_GAME_FOOTER": "Live Game",
+    "NOT_IN_MATCH_TITLE": "Player Offline",
+    "NOT_IN_MATCH_DESC": "You don't appear to be online in VALORANT right now.\n\nMake sure you've launched the game and try again.",
     "MAINTENANCE_TITLE": "VALORANT Maintenance",
     "MAINTENANCE_DESC": "VALORANT servers are currently under maintenance. Try again later.",
     "RATE_LIMITED_TITLE": "Rate Limited",
@@ -233,7 +232,12 @@
     "PARTY_MEMBERS": "Party Members",
     "SELECT_AGENT_PLACEHOLDER": "Select an Agent to Lock In",
     "START_QUEUE": "Start Queue",
-    "CANCEL_QUEUE": "Cancel Queue"
+    "CANCEL_QUEUE": "Cancel Queue",
+    "GENERATE_PARTY_CODE": "Generate Party Code",
+    "REMOVE_PARTY_CODE": "Disable Party Code",
+    "PARTY_CODE": "Party Code:",
+    "PREFERRED_SERVERS": "Preferred: {servers}",
+    "AUTO_SERVERS": "Auto"
   },
   "queues": {
     "COMPETITIVE": "Competitive",

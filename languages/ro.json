@@ -185,8 +185,8 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ Joc live・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "Nu ești într-un meci",
-    "NOT_IN_MATCH_DESC": "Nu pari să fii într-un lobby de pre-joc sau într-un meci live acum.\n\nAsigură-te că ești în **selectare agent** sau **în joc** și încearcă din nou.",
+    "NOT_IN_MATCH_TITLE": "Jucător Offline",
+    "NOT_IN_MATCH_DESC": "Se pare că nu ești online în VALORANT în acest moment.\n\nAsigură-te că ai pornit jocul și încearcă din nou.",
     "LIVE_GAME_FOOTER": "Joc live",
     "MAINTENANCE_TITLE": "Mentenanță VALORANT",
     "MAINTENANCE_DESC": "Serverele VALORANT sunt în mentenanță. Încearcă mai târziu.",
@@ -203,7 +203,12 @@
     "IDLE_PARTY_DESC": "Se așteaptă intrarea în coadă.",
     "PARTY_MEMBERS": "Membrii Grupului",
     "START_QUEUE": "Pornește Coada",
-    "CANCEL_QUEUE": "Anulează Coada"
+    "CANCEL_QUEUE": "Anulează Coada",
+    "GENERATE_PARTY_CODE": "Generează Cod Grup",
+    "REMOVE_PARTY_CODE": "Oprește Cod Grup",
+    "PARTY_CODE": "Cod Grup:",
+    "PREFERRED_SERVERS": "Preferat: {servers}",
+    "AUTO_SERVERS": "Auto"
   },
   "settings": {
     "TRUE": "Da",
@@ -237,8 +242,8 @@
   },
   "queues": {
     "COMPETITIVE": "Competitiv",
-    "UNRATED": "Unrated",
-    "CUSTOM": "Custom Game",
-    "NEWMAP": "New Map"
+    "UNRATED": "Fără rang",
+    "CUSTOM": "Joc personalizat",
+    "NEWMAP": "Hartă nouă"
   }
 }

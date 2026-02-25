@@ -477,15 +477,16 @@ const GAME_PODS = {
     "aresriot.aws-apne1-prod.eu-gp-tokyo-1": "Tokyo",
     "aresriot.aws-apne1-prod.ext1-gp-kr1": "Tokyo",
     "aresriot.aws-apne1-prod.ext1-gp-tokyo-1": "Tokyo",
-    "aresriot.aws-apne1-prod.ext2-gp-tokyo-1": "Tokyo",
+    "aresriot.aws-apne1-prod.pbe-gp-tokyo-1": "Tokyo",
     "aresriot.aws-apne1-prod.tournament-gp-tokyo-1": "Tokyo",
+    "aresriot.aws-mnl1-prod.ap-gp-manila-1": "Manila",
     "aresriot.aws-rclusterprod-apne1-1.eu-gp-tokyo-1": "Tokyo",
     "aresriot.aws-rclusterprod-apne1-1.ext1-gp-kr1": "Tokyo",
     "aresriot.aws-rclusterprod-apne1-1.tournament-gp-tokyo-1": "Tokyo",
     "aresriot.aws-rclusterprod-apne1-1.ap-gp-tokyo-1": "Tokyo 1",
     "aresriot.aws-rclusterprod-apne1-1.ap-gp-tokyo-awsedge-1": "Tokyo 2",
     "aresqa.aws-usw2-dev.main1-gp-tournament-2": "Tournament",
-    "aresriot.aws-rclusterprod-atl1-1.na-gp-atlanta-1": "US Central (Georgia 2)",
+    "aresriot.aws-rclusterprod-atl1-1.na-gp-atlanta-1": "US East (Atlanta 1)",
     "aresriot.aws-atl1-prod.na-gp-atlanta-1": "US Central (Georgia)",
     "aresriot.aws-atl1-prod.tournament-gp-atlanta-1": "US Central (Georgia)",
     "aresriot.aws-atl2-prod.na-gp-atlanta-2": "US Central (Georgia)",
@@ -563,10 +564,28 @@ const GAME_PODS = {
     "tj.qcloud.valtest-gp-1": "online1",
     "tj.qcloud.vala-gp-2": "online2",
     "tj.qcloud.valtest-gp-2": "online2",
+    "na-1": "Virginia",
+    "na-2": "California",
+    "na-3": "Texas",
+    "na-4": "Illinois",
+    "eu-1": "Frankfurt",
+    "eu-2": "Paris",
+    "eu-3": "Stockholm",
+    "eu-4": "Istanbul",
+    "ap-1": "Singapore",
+    "ap-2": "Tokyo",
+    "ap-3": "Sydney",
+    "ap-4": "Mumbai",
+    "kr-1": "Seoul",
+    "br-1": "Sao Paulo",
+    "latam-1": "Santiago",
+    "latam-2": "Mexico City",
 };
 
-export const resolveServerName = (gamePodId) =>
-    (GAME_PODS[gamePodId] ?? gamePodId) || null;
+export const resolveServerName = (gamePodId) => {
+    const cleanId = (gamePodId || "").replace(/^p-/, "").toLowerCase();
+    return GAME_PODS[cleanId] ?? GAME_PODS[gamePodId] ?? gamePodId;
+};
 
 // ──────────────────────────────────────────────
 // Queue ID → display name
@@ -756,6 +775,8 @@ export const getPartyData = async (id, account = null) => {
     const partyJson = JSON.parse(partyResp.body);
     const members = (partyJson.Members || []).map(m => ({ puuid: m.Subject, isLeader: m.IsOwner }));
     const eligibleQueues = partyJson.EligibleQueues || [];
+    const inviteCode = partyJson.InviteCode || null;
+    const preferredGamePods = partyJson.MatchmakingData?.PreferredGamePods || [];
 
     let queueId = partyJson.MatchmakingData?.QueueID ?? "";
     if (partyJson.State === "CUSTOM_GAME_SETUP") queueId = "custom";
@@ -767,7 +788,9 @@ export const getPartyData = async (id, account = null) => {
             matchId: partyId,
             queueId,
             eligibleQueues,
-            members
+            members,
+            inviteCode,
+            preferredGamePods
         };
     }
 
@@ -778,8 +801,35 @@ export const getPartyData = async (id, account = null) => {
         queueId,
         queueName: resolveQueueName(queueId),
         eligibleQueues,
-        members
+        members,
+        inviteCode,
+        preferredGamePods
     };
+};
+
+export const makePartyCode = async (id, account, partyId) => {
+    const user = getUser(id, account);
+    const base = glzUrl(user);
+    const headers = { ...authHeaders(user), "Content-Type": "application/json" };
+    const resp = await fetch(`${base}/parties/v1/parties/${partyId}/invitecode`, {
+        method: "POST",
+        headers,
+        body: "{}"
+    });
+    console.log(`[livegame] makePartyCode for ${partyId} on ${base} returned:`, resp.statusCode);
+    return resp.statusCode === 200;
+};
+
+export const removePartyCode = async (id, account, partyId) => {
+    const user = getUser(id, account);
+    const base = glzUrl(user);
+    const headers = { ...authHeaders(user), "Content-Type": "application/json" };
+    const resp = await fetch(`${base}/parties/v1/parties/${partyId}/invitecode`, {
+        method: "DELETE",
+        headers
+    });
+    console.log(`[livegame] removePartyCode for ${partyId} on ${base} returned:`, resp.statusCode);
+    return resp.statusCode === 200;
 };
 
 // ──────────────────────────────────────────────
@@ -854,7 +904,7 @@ export const changeQueue = async (id, account, partyId, queueId) => {
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ queueID: queueId })
     });
-    console.log(`[livegame] Riot API Matchmaking /queue switch returned:`, resp.statusCode, resp.body);
+    console.log(`[livegame] Riot API Matchmaking /queue switch returned:`, resp.statusCode);
     return resp.statusCode === 200;
 };
 
@@ -1335,7 +1385,9 @@ export const fetchLiveGame = async (id, account = null) => {
                 queueName: party.queueName,
                 allyPlayers: enriched,
                 eligibleQueues: party.eligibleQueues,
-                userPuuid: user.puuid
+                userPuuid: user.puuid,
+                inviteCode: party.inviteCode,
+                preferredGamePods: party.preferredGamePods
             };
         } else {
             return {
@@ -1345,11 +1397,12 @@ export const fetchLiveGame = async (id, account = null) => {
                 queueId: party.queueId,
                 allyPlayers: enriched,
                 eligibleQueues: party.eligibleQueues,
-                userPuuid: user.puuid
+                userPuuid: user.puuid,
+                inviteCode: party.inviteCode,
+                preferredGamePods: party.preferredGamePods
             };
         }
     }
 
-    // 5. Not in any game
     return { success: true, state: "not_in_game" };
 };

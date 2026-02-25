@@ -202,10 +202,9 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ เกมสด・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "ไม่ได้อยู่ในเกม",
-    "NOT_IN_MATCH_DESC": "คุณไม่ได้อยู่ในล็อบบี้ก่อนเกมหรือเกมสดในขณะนี้\n\nโปรดตรวจสอบว่าคุณอยู่ใน **เลือกตัวละคร** หรือ **ในเกม** แล้วลองใหม่อีกครั้ง",
-    "LIVE_GAME_FOOTER": "เกมสด",
-    "MAINTENANCE_TITLE": "VALORANT Maintenance",
+    "NOT_IN_MATCH_TITLE": "ผู้เล่นออฟไลน์",
+    "NOT_IN_MATCH_DESC": "ดูเหมือนว่าคุณจะไม่ได้ออนไลน์ใน VALORANT ในขณะนี้\n\nตรวจสอบให้แน่ใจว่าคุณได้เริ่มเกมแล้วลองอีกครั้ง",
+    "MAINTENANCE_TITLE": "การซ่อมบำรุง VALORANT",
     "MAINTENANCE_DESC": "เซิร์ฟเวอร์ VALORANT กำลังอยู่ในระหว่างการบำรุงรักษา กรุณาลองใหม่ภายหลัง",
     "RATE_LIMITED_TITLE": "จำกัดการใช้งาน",
     "RATE_LIMITED_DESC": "คุณถูกจำกัดการใช้งาน กรุณารอสักครู่แล้วลองใหม่",
@@ -220,7 +219,12 @@
     "IDLE_PARTY_DESC": "กำลังรอเข้าคิว",
     "PARTY_MEMBERS": "สมาชิกปาร์ตี้",
     "START_QUEUE": "เริ่มคิว",
-    "CANCEL_QUEUE": "ยกเลิกคิว"
+    "CANCEL_QUEUE": "ยกเลิกคิว",
+    "GENERATE_PARTY_CODE": "สร้างรหัสปาร์ตี้",
+    "REMOVE_PARTY_CODE": "ปิดใช้งานรหัสปาร์ตี้",
+    "PARTY_CODE": "รหัสปาร์ตี้:",
+    "PREFERRED_SERVERS": "เซิร์ฟเวอร์ที่ต้องการ: {servers}",
+    "AUTO_SERVERS": "อัตโนมัติ"
   },
   "modal": {
     "PAGE_TITLE": "เลือกหน้า",
@@ -237,8 +241,8 @@
   },
   "queues": {
     "COMPETITIVE": "จัดอันดับ",
-    "UNRATED": "Unrated",
-    "CUSTOM": "Custom Game",
-    "NEWMAP": "New Map"
+    "UNRATED": "ทั่วไป",
+    "CUSTOM": "เกมที่กำหนดเอง",
+    "NEWMAP": "แผนที่ใหม่"
   }
 }

@@ -18,7 +18,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder }
 import { s, discToValLang, DEFAULT_VALORANT_LANG } from "../misc/languages.js";
 import { getSetting } from "../misc/settings.js";
 import config from "../misc/config.js";
-import { resolveAgent, getOwnedAgents, resolveQueueName, resolveQueueIcon } from "../valorant/livegame.js";
+import { resolveAgent, getOwnedAgents, resolveQueueName, resolveQueueIcon, resolveServerName } from "../valorant/livegame.js";
 import { getUser } from "../valorant/auth.js";
 import { agentEmoji, rankEmoji, queueEmoji } from "./emoji.js";
 import { emojiToString } from "../misc/util.js";
@@ -88,7 +88,7 @@ const formatPlayerRow = async (player, channel, showCompStats = false) => {
     const compParts = [];
     if (showCompStats) {
         if (player.winRate !== null)
-            compParts.push(`**${player.winRate}%**wr (${player.games})`);
+            compParts.push(`**${player.winRate}%**wr \`${player.games}\``);
 
         const lastMatch = player.recentMatches?.[0];
         if (lastMatch) {
@@ -139,7 +139,7 @@ const buildGameEmbed = async (data, allyPlayers, enemyPlayers, channel, localeIn
 
     const embed = {
         author: {
-            name: `Live Game・${mapAndServer}`,
+            name: `${data.queueName}・${mapAndServer}`,
             icon_url: data.queueIcon ?? undefined,
         },
         color,
@@ -221,12 +221,18 @@ export const renderLiveGame = async (liveGameData, userId, _isDM = false, channe
             color = 0x616161;
         }
 
+        const serverText = (liveGameData.preferredGamePods && liveGameData.preferredGamePods.length > 0)
+            ? s(userId).livegame.PREFERRED_SERVERS.f({ servers: liveGameData.preferredGamePods.map(resolveServerName).join(", ") })
+            : s(userId).livegame.AUTO_SERVERS;
+
         const embed = {
             title,
-            description,
+            description: liveGameData.inviteCode
+                ? `${description}\n\n${s(userId).livegame.PARTY_CODE} **\`${liveGameData.inviteCode}\`**`
+                : description,
             color,
             fields: hasParty ? await buildPlayerFields(allyPlayers, channel, true, (s(userId).livegame.PARTY_MEMBERS || "Party Members")) : undefined,
-            footer: { text: s(userId).livegame.LIVE_GAME_FOOTER },
+            footer: { text: serverText },
         };
 
         let components = [liveGameRefreshRow(userId)];
@@ -249,10 +255,31 @@ export const renderLiveGame = async (liveGameData, userId, _isDM = false, channe
                 }
 
                 const buttonRow = new ActionRowBuilder().addComponents(queueButton);
+
+                const codeButton = new ButtonBuilder()
+                    .setCustomId(`livegame/make_code/${liveGameData.matchId}`)
+                    .setLabel(s(userId).livegame.GENERATE_PARTY_CODE)
+                    .setStyle(ButtonStyle.Secondary);
+                buttonRow.addComponents(codeButton);
+
+                if (liveGameData.inviteCode) {
+                    const removeCodeButton = new ButtonBuilder()
+                        .setCustomId(`livegame/remove_code/${liveGameData.matchId}`)
+                        .setLabel(s(userId).livegame.REMOVE_PARTY_CODE)
+                        .setStyle(ButtonStyle.Danger);
+                    buttonRow.addComponents(removeCodeButton);
+                }
+
                 components.unshift(buttonRow);
 
                 if (state === "not_in_game" && liveGameData.eligibleQueues && liveGameData.eligibleQueues.length > 0) {
-                    const allQueues = liveGameData.eligibleQueues.includes("custom") ? liveGameData.eligibleQueues : [...liveGameData.eligibleQueues, "custom"];
+                    let allQueues = [...liveGameData.eligibleQueues];
+                    const isCurrentlyCustom = liveGameData.queueId === "" || liveGameData.queueId === "custom";
+                    if (isCurrentlyCustom && !allQueues.includes("custom")) {
+                        allQueues.push("custom");
+                    } else if (!isCurrentlyCustom) {
+                        allQueues = allQueues.filter(q => q !== "custom");
+                    }
                     const queueOptions = await Promise.all(allQueues
                         .map(async q => {
                             const icon = resolveQueueIcon(q);

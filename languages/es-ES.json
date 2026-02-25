@@ -185,8 +185,8 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ Partida en vivo・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "No en una partida",
-    "NOT_IN_MATCH_DESC": "No pareces estar en un lobby de pre-partida o en una partida activa ahora mismo.\n\nAsegúrate de estar en **selección de agente** o **en partida** e inténtalo de nuevo.",
+    "NOT_IN_MATCH_TITLE": "Jugador desconectado",
+    "NOT_IN_MATCH_DESC": "No pareces estar conectado a VALORANT en este momento.\n\nAsegúrate de haber iniciado el juego e inténtalo de nuevo.",
     "LIVE_GAME_FOOTER": "Partida en vivo",
     "MAINTENANCE_TITLE": "Mantenimiento ",
     "MAINTENANCE_DESC": "Los servidores de VALORANT están en mantenimiento. Inténtalo más tarde.",
@@ -203,7 +203,12 @@
     "IDLE_PARTY_DESC": "Esperando para entrar en cola.",
     "PARTY_MEMBERS": "Miembros del grupo",
     "START_QUEUE": "Empezar cola",
-    "CANCEL_QUEUE": "Cancelar cola"
+    "CANCEL_QUEUE": "Cancelar cola",
+    "GENERATE_PARTY_CODE": "Generar código de grupo",
+    "REMOVE_PARTY_CODE": "Desactivar código de grupo",
+    "PARTY_CODE": "Código de grupo:",
+    "PREFERRED_SERVERS": "Preferido: {servers}",
+    "AUTO_SERVERS": "Auto"
   },
   "settings": {
     "TRUE": "Sí",
@@ -237,8 +242,8 @@
   },
   "queues": {
     "COMPETITIVE": "Competitivo",
-    "UNRATED": "Unrated",
-    "CUSTOM": "Custom Game",
-    "NEWMAP": "New Map"
+    "UNRATED": "Normal",
+    "CUSTOM": "Partida personalizada",
+    "NEWMAP": "Nuevo mapa"
   }
 }

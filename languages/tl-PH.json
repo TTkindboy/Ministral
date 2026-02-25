@@ -215,8 +215,8 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ Live Game・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "Hindi nasa Laro",
-    "NOT_IN_MATCH_DESC": "Hindi ka mukhang nasa pre-game lobby o live match ngayon.\n\nSiguraduhing nasa **agent select** o **in-game** ka at subukan muli.",
+    "NOT_IN_MATCH_TITLE": "Offline ang Player",
+    "NOT_IN_MATCH_DESC": "Mukhang hindi ka kasalukuyang online sa VALORANT.\n\nSiguraduhing nabuksan mo na ang laro at subukan muli.",
     "LIVE_GAME_FOOTER": "Live Game",
     "MAINTENANCE_TITLE": "Maintenance ng VALORANT",
     "MAINTENANCE_DESC": "Kasulukuyang nasa maintenance ang mga server ng VALORANT. Subukan muli mamaya.",
@@ -233,12 +233,17 @@
     "IDLE_PARTY_DESC": "Naghihintay na mag-queue.",
     "PARTY_MEMBERS": "Mga Miyembro ng Party",
     "START_QUEUE": "Simulan ang Queue",
-    "CANCEL_QUEUE": "I-cancel ang Queue"
+    "CANCEL_QUEUE": "I-cancel ang Queue",
+    "GENERATE_PARTY_CODE": "Bumuo ng party code",
+    "REMOVE_PARTY_CODE": "Alisin ang party code",
+    "PARTY_CODE": "Party code:",
+    "PREFERRED_SERVERS": "Gusto: {servers}",
+    "AUTO_SERVERS": "Auto"
   },
   "queues": {
     "COMPETITIVE": "Competitive",
-    "UNRATED": "Unrated",
-    "CUSTOM": "Custom Game",
-    "NEWMAP": "New Map"
+    "UNRATED": "Walang Rank",
+    "CUSTOM": "Pasadyang Laro",
+    "NEWMAP": "Bagong Mapa"
   }
 }

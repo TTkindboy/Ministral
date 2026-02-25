@@ -215,8 +215,8 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ Live Game・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "Tidak dalam Pertandingan",
-    "NOT_IN_MATCH_DESC": "Kamu tidak dalam lobi pra-pertandingan atau pertandingan hidup sekarang.\n\nPastikan kamu di **agent select** atau **in-game** dan coba lagi.",
+    "NOT_IN_MATCH_TITLE": "Pemain Offline",
+    "NOT_IN_MATCH_DESC": "Sepertinya kamu tidak online di VALORANT saat ini.\n\nPastikan kamu sudah membuka game dan coba lagi.",
     "LIVE_GAME_FOOTER": "Live Game",
     "MAINTENANCE_TITLE": "Maintenance VALORANT",
     "MAINTENANCE_DESC": "Server VALORANT sedang dalam perawatan. Coba lagi nanti.",
@@ -233,12 +233,17 @@
     "IDLE_PARTY_DESC": "Menunggu untuk masuk antrean.",
     "PARTY_MEMBERS": "Anggota Grup",
     "START_QUEUE": "Mulai Antrean",
-    "CANCEL_QUEUE": "Batalkan Antrean"
+    "CANCEL_QUEUE": "Batalkan Antrean",
+    "GENERATE_PARTY_CODE": "Buat Kode Grup",
+    "REMOVE_PARTY_CODE": "Matikan Kode Grup",
+    "PARTY_CODE": "Kode Grup:",
+    "PREFERRED_SERVERS": "Pilihan: {servers}",
+    "AUTO_SERVERS": "Otomatis"
   },
   "queues": {
     "COMPETITIVE": "Kompetitif",
     "UNRATED": "Unrated",
-    "CUSTOM": "Custom Game",
-    "NEWMAP": "New Map"
+    "CUSTOM": "Game Kustom",
+    "NEWMAP": "Peta Baru"
   }
 }

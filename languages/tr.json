@@ -202,8 +202,8 @@
   "livegame": {
     "EMBED_TITLE": "⚔️ Canlı Oyun・{mapName}",
     "EMBED_FOOTER": "{stateLabel}・{queueName}",
-    "NOT_IN_MATCH_TITLE": "Maçta değil",
-    "NOT_IN_MATCH_DESC": "Şu anda bir ön oyun lobisinde veya canlı bir maçta görünmüyorsun.\n\n**Ajan seçimi** veya **oyunda** olduğundan emin ol ve tekrar dene.",
+    "NOT_IN_MATCH_TITLE": "Oyuncu Çevrimdışı",
+    "NOT_IN_MATCH_DESC": "Şu anda VALORANT'ta çevrimiçi görünmüyorsun.\n\nOyunu başlattığından emin ol ve tekrar dene.",
     "LIVE_GAME_FOOTER": "Canlı Oyun",
     "MAINTENANCE_TITLE": "VALORANT Bakımı",
     "MAINTENANCE_DESC": "VALORANT sunucuları şu anda bakımda. Daha sonra tekrar deneyin.",
@@ -220,7 +220,12 @@
     "IDLE_PARTY_DESC": "Sıra bekleniyor.",
     "PARTY_MEMBERS": "Grup Üyeleri",
     "START_QUEUE": "Sırayı Başlat",
-    "CANCEL_QUEUE": "Sırayı İptal Et"
+    "CANCEL_QUEUE": "Sırayı İptal Et",
+    "GENERATE_PARTY_CODE": "Grup kodu oluştur",
+    "REMOVE_PARTY_CODE": "Grup kodunu kaldır",
+    "PARTY_CODE": "Grup kodu:",
+    "PREFERRED_SERVERS": "Tercih edilen: {servers}",
+    "AUTO_SERVERS": "Otomatik"
   },
   "modal": {
     "PAGE_TITLE": "Sayfa Gezgini",
@@ -237,8 +242,8 @@
   },
   "queues": {
     "COMPETITIVE": "Rekabetçi",
-    "UNRATED": "Unrated",
-    "CUSTOM": "Custom Game",
-    "NEWMAP": "New Map"
+    "UNRATED": "Derecesiz",
+    "CUSTOM": "Özel Oyun",
+    "NEWMAP": "Yeni Harita"
   }
 }

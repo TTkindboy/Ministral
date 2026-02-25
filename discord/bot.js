@@ -95,7 +95,9 @@ import fuzzysort from "fuzzysort";
 import { renderCollection, getSkins } from "../valorant/inventory.js";
 import { getLoadout } from "../valorant/inventory.js";
 import { getAccountInfo, fetchMatchHistory } from "../valorant/profile.js";
-import { fetchLiveGame, selectAgent, lockAgent, getAllPlayableAgents, resolveAgent, startQueue, cancelQueue, changeQueue } from "../valorant/livegame.js";
+import {
+    fetchLiveGame, selectAgent, lockAgent, getAllPlayableAgents, resolveAgent, getOwnedAgents, resolveQueueName, resolveQueueIcon, makePartyCode, removePartyCode, changeQueue
+} from "../valorant/livegame.js";
 import { renderLiveGame, renderLiveGameError, setRoleSelection } from "./livegameEmbed.js";
 
 // ─── Pre-game → in-game transition poller ─────────────────────────────────
@@ -1891,6 +1893,34 @@ client.on("interactionCreate", async (interaction) => {
                 const q1 = new ActionRowBuilder().addComponents(pageInput);
                 modal.addComponents(q1);
                 await interaction.showModal(modal);
+            } else if (interaction.customId.startsWith("livegame/make_code/") || interaction.customId.startsWith("livegame/remove_code/")) {
+                const [, action, matchId] = interaction.customId.split('/');
+
+                if (interaction.message.interaction.user.id !== interaction.user.id) {
+                    return await interaction.reply({
+                        embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_GENERIC)],
+                        flags: [MessageFlags.Ephemeral]
+                    });
+                }
+
+                await interaction.deferUpdate();
+                interaction.deferred = true;
+
+                if (action === "make_code") {
+                    await makePartyCode(interaction.user.id, null, matchId);
+                } else if (action === "remove_code") {
+                    await removePartyCode(interaction.user.id, null, matchId);
+                }
+
+                // Yield briefly for backend state replication
+                await new Promise(r => setTimeout(r, 1000));
+
+                const liveGameData = await fetchLiveGame(interaction.user.id);
+                const payload = liveGameData.success
+                    ? await renderLiveGame(liveGameData, interaction.user.id, !interaction.guild, interaction.channel)
+                    : renderLiveGameError(liveGameData, interaction.user.id);
+
+                await updateInteraction(interaction, payload);
             } else if (interaction.customId.startsWith("livegame/refresh/")) {
                 const [, , targetId] = interaction.customId.split('/');
 
