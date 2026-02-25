@@ -227,6 +227,15 @@
     "ENEMY_TEAM_DIVIDER": "── 敌方队伍 ──",
     "QUEUING_TITLE": "🕒 正在排队中",
     "QUEUING_DESC": "正在搜寻 **{queueName}** 比赛...",
-    "SELECT_AGENT_PLACEHOLDER": "选择特工以确认锁定"
+    "SELECT_AGENT_PLACEHOLDER": "选择特工以确认锁定",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
+  },
+  "queues": {
+    "COMPETITIVE": "竞技",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

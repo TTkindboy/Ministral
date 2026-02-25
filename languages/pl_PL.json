@@ -227,6 +227,15 @@
     "ENEMY_TEAM_DIVIDER": "── Drużyna wroga ──",
     "QUEUING_TITLE": "🕒 W kolejce do meczu",
     "QUEUING_DESC": "Szukanie meczu w trybie **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Wybierz agenta do zatwierdzenia"
+    "SELECT_AGENT_PLACEHOLDER": "Wybierz agenta do zatwierdzenia",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
+  },
+  "queues": {
+    "COMPETITIVE": "Rankingowa",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

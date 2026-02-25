@@ -41,6 +41,7 @@ const authHeaders = (user) => ({
 
 let agentsCache = null;
 let competitiveTiersCache = null;
+let gamemodesCache = null;
 
 /** Fetch all playable agents once and cache them (keyed by lower-case UUID). */
 const loadAgents = async () => {
@@ -92,10 +93,34 @@ const loadCompetitiveTiers = async () => {
 export const clearLiveGameCache = () => {
     agentsCache = null;
     competitiveTiersCache = null;
+    gamemodesCache = null;
     mapImagesCache = null;
     mapNamesCache = null;
     seasonsCache = null;
     currentSeasonId = null;
+};
+
+const loadGamemodes = async () => {
+    if (gamemodesCache) return;
+    try {
+        const req = await globalThis.fetch("https://valorant-api.com/v1/gamemodes?language=all");
+        const json = await req.json();
+        gamemodesCache = {};
+        for (const mode of json.data) {
+            gamemodesCache[mode.uuid.toLowerCase()] = {};
+            if (mode.displayName && typeof mode.displayName === "object") {
+                // Populate the cache with localized strings (e.g. ['en-US': 'Swiftplay', ...])
+                for (const [lang, val] of Object.entries(mode.displayName)) {
+                    gamemodesCache[mode.uuid.toLowerCase()][lang] = val;
+                }
+            } else {
+                gamemodesCache[mode.uuid.toLowerCase()]["en-US"] = mode.displayName;
+            }
+        }
+    } catch (e) {
+        console.error("[livegame] Failed to load gamemodes:", e);
+        gamemodesCache = {};
+    }
 };
 
 /** Resolve agent UUID → {names, icon, roles} */
@@ -560,11 +585,32 @@ const QUEUE_NAMES = {
     hurm: "Team Deathmatch",
     valaram: "ARAM",
     newmap: "New Map",
+    skirmish: "Skirmish",
+    skirmish2v2: "Skirmish 2v2",
     "": "Custom",
 };
 
-export const resolveQueueName = (queueId) =>
-    QUEUE_NAMES[queueId?.toLowerCase()] ?? (queueId ?? "Unknown Mode");
+const QUEUE_UUIDS = {
+    spikerush: "e921d1e6-416b-c31f-1291-74930c330b7b",
+    deathmatch: "a8790ec5-4237-f2f0-e93b-08a8e89865b2",
+    ggteam: "a4ed6518-4741-6dcb-35bd-f884aecdc859",
+    onefa: "4744698a-4513-dc96-9c22-a9aa437e4a58",
+    snowball: "57038d6d-49b1-3a74-c5ef-3395d9f23a97",
+    swiftplay: "5d0f264b-4ebe-cc63-c147-809e1374484b",
+    hurm: "e086db66-47fd-e791-ca81-06a645ac7661",
+    valaram: "1cd8901f-47af-49cb-d758-e2afd0eb2a39",
+    skirmish: "0e9805d8-4af6-5ffb-f467-55806a6bc484",
+    skirmish2v2: "0e9805d8-4af6-5ffb-f467-55806a6bc484",
+};
+
+export const resolveQueueName = (queueId, language = "en-US") => {
+    const qid = queueId?.toLowerCase() || "";
+    const uuid = QUEUE_UUIDS[qid];
+    if (uuid && gamemodesCache && gamemodesCache[uuid]) {
+        return gamemodesCache[uuid][language] ?? gamemodesCache[uuid]["en-US"] ?? (QUEUE_NAMES[qid] ?? queueId);
+    }
+    return QUEUE_NAMES[qid] ?? (queueId ?? "Unknown Mode");
+};
 
 /**
  * Queue ID → game mode display icon URL (from valorant-api.com/v1/gamemodes).
@@ -581,6 +627,10 @@ const QUEUE_ICONS = {
     swiftplay: "https://media.valorant-api.com/gamemodes/5d0f264b-4ebe-cc63-c147-809e1374484b/displayicon.png",
     hurm: "https://media.valorant-api.com/gamemodes/e086db66-47fd-e791-ca81-06a645ac7661/displayicon.png",
     custom: "https://media.valorant-api.com/gamemodes/e2dc3878-4fe5-d132-28f8-3d8c259efcc6/displayicon.png",
+    valaram: "https://media.valorant-api.com/gamemodes/1cd8901f-47af-49cb-d758-e2afd0eb2a39/displayicon.png",
+    newmap: "https://media.valorant-api.com/gamemodes/96bd3920-4f36-d026-2b28-c683eb0bcac5/displayicon.png",
+    skirmish: "https://media.valorant-api.com/gamemodes/0e9805d8-4af6-5ffb-f467-55806a6bc484/displayicon.png",
+    skirmish2v2: "https://media.valorant-api.com/gamemodes/0e9805d8-4af6-5ffb-f467-55806a6bc484/displayicon.png",
     "": "https://media.valorant-api.com/gamemodes/e2dc3878-4fe5-d132-28f8-3d8c259efcc6/displayicon.png",
 };
 
@@ -704,12 +754,22 @@ export const getPartyData = async (id, account = null) => {
     }
 
     const partyJson = JSON.parse(partyResp.body);
+    const members = (partyJson.Members || []).map(m => ({ puuid: m.Subject, isLeader: m.IsOwner }));
+    const eligibleQueues = partyJson.EligibleQueues || [];
+
+    let queueId = partyJson.MatchmakingData?.QueueID ?? "";
+    if (partyJson.State === "CUSTOM_GAME_SETUP") queueId = "custom";
 
     if (partyJson.State !== "MATCHMAKING") {
-        return { success: true, state: "not_queuing" };
+        return {
+            success: true,
+            state: "not_queuing",
+            matchId: partyId,
+            queueId,
+            eligibleQueues,
+            members
+        };
     }
-
-    const queueId = partyJson.MatchmakingData?.QueueID ?? "";
 
     return {
         success: true,
@@ -717,6 +777,8 @@ export const getPartyData = async (id, account = null) => {
         matchId: partyId,
         queueId,
         queueName: resolveQueueName(queueId),
+        eligibleQueues,
+        members
     };
 };
 
@@ -745,6 +807,54 @@ export const lockAgent = async (id, account, matchId, agentId) => {
         `${base}/pregame/v1/matches/${matchId}/lock/${agentId}`,
         { method: "POST", headers }
     );
+    return resp.statusCode === 200;
+};
+
+export const startQueue = async (id, account, partyId) => {
+    const user = getUser(id, account);
+    const base = glzUrl(user);
+    const headers = authHeaders(user);
+    const resp = await fetch(`${base}/parties/v1/parties/${partyId}/matchmaking/join`, { method: "POST", headers });
+    return resp.statusCode === 200;
+};
+
+export const cancelQueue = async (id, account, partyId) => {
+    const user = getUser(id, account);
+    const base = glzUrl(user);
+    const headers = authHeaders(user);
+    const resp = await fetch(`${base}/parties/v1/parties/${partyId}/matchmaking/leave`, { method: "POST", headers });
+    return resp.statusCode === 200;
+};
+
+export const changeQueue = async (id, account, partyId, queueId) => {
+    const user = getUser(id, account);
+    const base = glzUrl(user);
+    const headers = authHeaders(user);
+    // First, escape Custom Match restrictions back into standard modes
+    // console.log(`[livegame] Attempting to escape Custom Match via /makeDefault for party ${partyId}`);
+    // const escResp = await fetch(`${base}/parties/v1/parties/${partyId}/makeDefault?queueID=${queueId}`, {
+    //     method: "POST",
+    //     headers
+    // });
+    // console.log(`[livegame] /makeDefault status: ${escResp.statusCode}`);
+
+    if (queueId === "custom") {
+        console.log(`[livegame] Initiating transition to Custom Match via /makecustomgame for ${partyId}`);
+        const resp = await fetch(`${base}/parties/v1/parties/${partyId}/makecustomgame`, {
+            method: "POST",
+            headers
+        });
+        console.log(`[livegame] Riot API Custom Match /makecustomgame lock returned:`, resp.statusCode, resp.body);
+        return resp.statusCode === 200;
+    }
+
+    console.log(`[livegame] Initiating transition to standard queue ${queueId} via /queue for ${partyId}`);
+    const resp = await fetch(`${base}/parties/v1/parties/${partyId}/queue`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ queueID: queueId })
+    });
+    console.log(`[livegame] Riot API Matchmaking /queue switch returned:`, resp.statusCode, resp.body);
     return resp.statusCode === 200;
 };
 
@@ -1177,7 +1287,7 @@ const enrichPlayers = async (id, account, rawPlayers, queueId = "") => {
  */
 export const fetchLiveGame = async (id, account = null) => {
     // 1. Ensure static caches are ready before the parallel API calls
-    await Promise.all([loadAgents(), loadCompetitiveTiers(), loadMapImages(), loadSeasons()]);
+    await Promise.all([loadAgents(), loadCompetitiveTiers(), loadMapImages(), loadSeasons(), loadGamemodes()]);
 
     // 2. Try in-game
     const inGame = await getInGameData(id, account);
@@ -1205,12 +1315,39 @@ export const fetchLiveGame = async (id, account = null) => {
         return { ...preGame, players: enriched, allyPlayers: enriched, enemyPlayers: [], mapImage, isSingleTeam, queueIcon };
     }
 
-    // 4. Try queueing
+    // 4. Try queueing or idling party
     const party = await getPartyData(id, account);
     if (!party.success) return party;
 
-    if (party.state === "queuing") {
-        return { ...party };
+    if (party.state === "queuing" || party.state === "not_queuing") {
+        let enriched = [];
+        if (party.members && party.members.length > 0) {
+            enriched = await enrichPlayers(id, account, party.members, party.queueId);
+        }
+
+        const user = getUser(id, account);
+        if (party.state === "queuing") {
+            return {
+                success: true,
+                state: "queuing",
+                matchId: party.matchId,
+                queueId: party.queueId,
+                queueName: party.queueName,
+                allyPlayers: enriched,
+                eligibleQueues: party.eligibleQueues,
+                userPuuid: user.puuid
+            };
+        } else {
+            return {
+                success: true,
+                state: "not_in_game",
+                matchId: party.matchId,
+                queueId: party.queueId,
+                allyPlayers: enriched,
+                eligibleQueues: party.eligibleQueues,
+                userPuuid: user.puuid
+            };
+        }
     }
 
     // 5. Not in any game

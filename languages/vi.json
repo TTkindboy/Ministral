@@ -214,7 +214,10 @@
     "ENEMY_TEAM_DIVIDER": "── Đội địch ──",
     "QUEUING_TITLE": "🕒 Đang trong hàng chờ",
     "QUEUING_DESC": "Đang tìm trận đấu trong chế độ **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Chọn Đặc vụ để Khóa lại"
+    "SELECT_AGENT_PLACEHOLDER": "Chọn Đặc vụ để Khóa lại",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
   },
   "modal": {
     "PAGE_TITLE": "Điều hướng trang",
@@ -228,5 +231,11 @@
     "AVERAGE_COMBAT_SCORE": "Điểm chiến đấu TB",
     "HS_PERCENT": "% Headshot",
     "PERCENT": "%{v}"
+  },
+  "queues": {
+    "COMPETITIVE": "Xếp hạng",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

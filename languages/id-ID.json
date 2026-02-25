@@ -227,6 +227,15 @@
     "ENEMY_TEAM_DIVIDER": "── Tim Musuh ──",
     "QUEUING_TITLE": "🕒 Mengantre untuk Pertandingan",
     "QUEUING_DESC": "Mencari pertandingan di **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Pilih Agen untuk Mengunci"
+    "SELECT_AGENT_PLACEHOLDER": "Pilih Agen untuk Mengunci",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
+  },
+  "queues": {
+    "COMPETITIVE": "Kompetitif",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

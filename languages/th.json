@@ -214,7 +214,10 @@
     "ENEMY_TEAM_DIVIDER": "── ทีมศัตรู ──",
     "QUEUING_TITLE": "🕒 กำลังเข้าคิวหาแมตช์",
     "QUEUING_DESC": "กำลังค้นหาแมตช์ในโหมด **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "เลือกเอเจนท์เพื่อยืนยัน"
+    "SELECT_AGENT_PLACEHOLDER": "เลือกเอเจนท์เพื่อยืนยัน",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
   },
   "modal": {
     "PAGE_TITLE": "เลือกหน้า",
@@ -228,5 +231,11 @@
     "AVERAGE_COMBAT_SCORE": "คะแนนการต่อสู้เฉลี่ย",
     "HS_PERCENT": "อัตรา Headshot",
     "PERCENT": "{v}%"
+  },
+  "queues": {
+    "COMPETITIVE": "จัดอันดับ",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

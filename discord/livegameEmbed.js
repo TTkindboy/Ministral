@@ -18,9 +18,9 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder }
 import { s, discToValLang, DEFAULT_VALORANT_LANG } from "../misc/languages.js";
 import { getSetting } from "../misc/settings.js";
 import config from "../misc/config.js";
-import { resolveAgent, getOwnedAgents } from "../valorant/livegame.js";
+import { resolveAgent, getOwnedAgents, resolveQueueName, resolveQueueIcon } from "../valorant/livegame.js";
 import { getUser } from "../valorant/auth.js";
-import { agentEmoji, rankEmoji } from "./emoji.js";
+import { agentEmoji, rankEmoji, queueEmoji } from "./emoji.js";
 import { emojiToString } from "../misc/util.js";
 
 const roleSelections = new Map();
@@ -47,7 +47,7 @@ const STATE_LABEL = {
  *   <agent>  `RiotId`・<rank> **42 RR**・<peak> (E5A3)
  *
  * Competitive also appends:
- *   ・**46%WR** (13)┊🔹13:5
+ *   ・**46%WR** (13)┊`🔹13:5`
  *
  * Level has been removed.
  * Peak rank is always shown when the player has competitive history.
@@ -64,7 +64,7 @@ const formatPlayerRow = async (player, channel, showCompStats = false) => {
 
     const agentEmojiStr = localizedAgentName && player.agentIcon
         ? (emojiToString(await agentEmoji(localizedAgentName, player.agentIcon)) ?? (player.incognito ? "" : `\`${localizedAgentName}\``))
-        : (player.incognito ? "" : `\`${localizedAgentName ?? "—"}\``);
+        : (player.incognito ? "" : (localizedAgentName ? `\`${localizedAgentName}\`` : ""));
 
     // Current rank emoji — tier 0 (Unranked) now has an icon too
     const currentRankEmojiStr = player.currentTierIcon
@@ -95,7 +95,7 @@ const formatPlayerRow = async (player, channel, showCompStats = false) => {
             let symbol = lastMatch.allyScore === lastMatch.enemyScore
                 ? "▫️"
                 : (lastMatch.win ? "🔹" : "🔻");
-            matchScoreStr = `┊${symbol}${lastMatch.allyScore}:${lastMatch.enemyScore}`;
+            matchScoreStr = `┊\`${symbol}${lastMatch.allyScore}:${lastMatch.enemyScore}\``;
         }
     }
 
@@ -198,30 +198,90 @@ export const liveGameRefreshRow = (userId) =>
 export const renderLiveGame = async (liveGameData, userId, _isDM = false, channel = null) => {
     const { state, allyPlayers = [], enemyPlayers = [] } = liveGameData;
 
-    if (state === "not_in_game") {
-        roleSelections.delete(userId);
-        return {
-            embeds: [{
-                title: s(userId).livegame.NOT_IN_MATCH_TITLE,
-                description: s(userId).livegame.NOT_IN_MATCH_DESC,
-                color: 0x616161,
-                footer: { text: s(userId).livegame.LIVE_GAME_FOOTER },
-            }],
-            components: [liveGameRefreshRow(userId)],
-        };
-    }
+    let discLang = config.localiseText ? getSetting(userId, 'locale') : 'en-GB';
+    if (discLang === "Automatic") discLang = 'en-US';
+    const valLang = discToValLang[discLang] || DEFAULT_VALORANT_LANG;
 
-    if (state === "queuing") {
+    if (state === "not_in_game" || state === "queuing") {
         roleSelections.delete(userId);
-        return {
-            embeds: [{
-                title: s(userId).livegame.QUEUING_TITLE,
-                description: s(userId).livegame.QUEUING_DESC.f({ queueName: liveGameData.queueName }),
-                color: COLOR_PREGAME,
-                footer: { text: s(userId).livegame.LIVE_GAME_FOOTER },
-            }],
-            components: [liveGameRefreshRow(userId)],
+        const hasParty = allyPlayers && allyPlayers.length > 0;
+
+        let title, description, color;
+        const qUpper = liveGameData.queueId?.toUpperCase() || "CUSTOM";
+        const dictQ = (s(userId).queues && qUpper in s(userId).queues) ? s(userId).queues[qUpper] : undefined;
+        const localizedQueueNameQueueing = dictQ || resolveQueueName(liveGameData.queueId, valLang);
+
+        if (state === "queuing") {
+            title = s(userId).livegame.QUEUING_TITLE;
+            description = s(userId).livegame.QUEUING_DESC.f({ queueName: localizedQueueNameQueueing });
+            color = COLOR_PREGAME;
+        } else {
+            title = hasParty ? (s(userId).livegame.IDLE_PARTY_TITLE || "Idle in Party") : s(userId).livegame.NOT_IN_MATCH_TITLE;
+            description = hasParty ? (s(userId).livegame.IDLE_PARTY_DESC || "Waiting to queue.") : s(userId).livegame.NOT_IN_MATCH_DESC;
+            color = 0x616161;
+        }
+
+        const embed = {
+            title,
+            description,
+            color,
+            fields: hasParty ? await buildPlayerFields(allyPlayers, channel, true, (s(userId).livegame.PARTY_MEMBERS || "Party Members")) : undefined,
+            footer: { text: s(userId).livegame.LIVE_GAME_FOOTER },
         };
+
+        let components = [liveGameRefreshRow(userId)];
+
+        // UI Controls for party leader
+        if (hasParty && liveGameData.matchId) {
+            const myPlayer = allyPlayers.find(p => p.puuid === liveGameData.userPuuid);
+            if (myPlayer && myPlayer.isLeader) {
+                let queueButton;
+                if (state === "queuing") {
+                    queueButton = new ButtonBuilder()
+                        .setCustomId(`livegame/cancel_queue/${liveGameData.matchId}`)
+                        .setLabel(s(userId).livegame.CANCEL_QUEUE)
+                        .setStyle(ButtonStyle.Danger);
+                } else {
+                    queueButton = new ButtonBuilder()
+                        .setCustomId(`livegame/start_queue/${liveGameData.matchId}`)
+                        .setLabel(s(userId).livegame.START_QUEUE)
+                        .setStyle(ButtonStyle.Success);
+                }
+
+                const buttonRow = new ActionRowBuilder().addComponents(queueButton);
+                components.unshift(buttonRow);
+
+                if (state === "not_in_game" && liveGameData.eligibleQueues && liveGameData.eligibleQueues.length > 0) {
+                    const allQueues = liveGameData.eligibleQueues.includes("custom") ? liveGameData.eligibleQueues : [...liveGameData.eligibleQueues, "custom"];
+                    const queueOptions = await Promise.all(allQueues
+                        .map(async q => {
+                            const icon = resolveQueueIcon(q);
+                            const qUpper = q.toUpperCase();
+                            const dictQ = (s(userId).queues && qUpper in s(userId).queues) ? s(userId).queues[qUpper] : undefined;
+                            const localizedQueueName = dictQ || resolveQueueName(q, valLang);
+                            const emojiData = await queueEmoji(q, icon);
+                            return {
+                                label: localizedQueueName,
+                                value: q,
+                                default: q === liveGameData.queueId,
+                                emoji: emojiData ? { id: emojiData.id, name: emojiData.name, animated: emojiData.animated } : undefined
+                            };
+                        }));
+
+                    if (queueOptions.length > 0) {
+                        const queueSelectRow = new ActionRowBuilder().addComponents(
+                            new StringSelectMenuBuilder()
+                                .setCustomId(`livegame/select_queue/${liveGameData.matchId}`)
+                                .setPlaceholder("Select a Mode")
+                                .addOptions(queueOptions)
+                        );
+                        components.unshift(queueSelectRow);
+                    }
+                }
+            }
+        }
+
+        return { embeds: [embed], components };
     }
 
     const embed = await buildGameEmbed(liveGameData, allyPlayers, enemyPlayers, channel, userId);
@@ -237,10 +297,6 @@ export const renderLiveGame = async (liveGameData, userId, _isDM = false, channe
             const lockedAgentIds = new Set(
                 allyPlayers.filter(p => p.selectionState === "locked").map(p => p.agentId?.toLowerCase())
             );
-
-            let discLang = config.localiseText ? getSetting(userId, 'locale') : 'en-GB';
-            if (discLang === "Automatic") discLang = 'en-US';
-            const valLang = discToValLang[discLang] || DEFAULT_VALORANT_LANG;
 
             const options = [];
             for (const agentId of ownedAgentIds) {

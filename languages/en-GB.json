@@ -55,7 +55,8 @@
     "NO_MATCH_DATA": "No {m} matches was found, maybe it's time to queue up?",
     "WAIT_FOR_PREVIUS_REQUEST": "We're still working on your previous request, please wait a moment before trying again!",
     "INVALID_WEB_AUTH_URL": "**Invalid URL!** Make sure you copied the entire URL from your browser's address bar after the login page.\nIt should start with `http://localhost/redirect#access_token=...`",
-    "WEB_AUTH_FAILED": "**Login failed!** {e}"
+    "WEB_AUTH_FAILED": "**Login failed!** {e}",
+    "CUSTOM_GAME_ESCAPE_REJECTED": "Failed to change game mode. **If you are currently in a Custom Game lobby**, Riot requires you to manually leave the Custom Game within your actual Valorant client first before changing queues!"
   },
   "info": {
     "SHOP_HEADER": "Daily shop for **{u}** (new shop <t:{t}:R>)",
@@ -227,6 +228,17 @@
     "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
     "QUEUING_TITLE": "🕒 Queuing for Match",
     "QUEUING_DESC": "Searching for a match in **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Select an Agent to Lock In"
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members",
+    "SELECT_AGENT_PLACEHOLDER": "Select an Agent to Lock In",
+    "START_QUEUE": "Start Queue",
+    "CANCEL_QUEUE": "Cancel Queue"
+  },
+  "queues": {
+    "COMPETITIVE": "Competitive",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

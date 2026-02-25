@@ -197,7 +197,10 @@
     "ENEMY_TEAM_DIVIDER": "── Gegnerteam ──",
     "QUEUING_TITLE": "🕒 Warteschlange für Match",
     "QUEUING_DESC": "Suche nach einem Match in **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Wähle einen Agenten zum Einloggen"
+    "SELECT_AGENT_PLACEHOLDER": "Wähle einen Agenten zum Einloggen",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
   },
   "settings": {
     "TRUE": "Ja",
@@ -228,5 +231,11 @@
     "AVERAGE_COMBAT_SCORE": "Acs",
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
+  },
+  "queues": {
+    "COMPETITIVE": "Wettbewerb",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

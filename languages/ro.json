@@ -197,7 +197,10 @@
     "ENEMY_TEAM_DIVIDER": "── Echipa adversă ──",
     "QUEUING_TITLE": "🕒 La coadă pentru meci",
     "QUEUING_DESC": "Se caută un meci în **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Selectează un agent pentru a confirma"
+    "SELECT_AGENT_PLACEHOLDER": "Selectează un agent pentru a confirma",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
   },
   "settings": {
     "TRUE": "Da",
@@ -228,5 +231,11 @@
     "AVERAGE_COMBAT_SCORE": "Pmc",
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
+  },
+  "queues": {
+    "COMPETITIVE": "Competitiv",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

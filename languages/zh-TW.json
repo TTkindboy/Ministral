@@ -227,6 +227,15 @@
     "ENEMY_TEAM_DIVIDER": "── 敵方隊伍 ──",
     "QUEUING_TITLE": "🕒 正在排隊中",
     "QUEUING_DESC": "正在搜尋 **{queueName}** 比賽...",
-    "SELECT_AGENT_PLACEHOLDER": "選擇特務以確認鎖定"
+    "SELECT_AGENT_PLACEHOLDER": "選擇特務以確認鎖定",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
+  },
+  "queues": {
+    "COMPETITIVE": "競技",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

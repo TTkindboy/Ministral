@@ -227,6 +227,15 @@
     "ENEMY_TEAM_DIVIDER": "── Enemy Team ──",
     "QUEUING_TITLE": "🕒 Nakapila para sa Match",
     "QUEUING_DESC": "Naghahanap ng match sa **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Pumili ng Agent para i-Lock In"
+    "SELECT_AGENT_PLACEHOLDER": "Pumili ng Agent para i-Lock In",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
+  },
+  "queues": {
+    "COMPETITIVE": "Competitive",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

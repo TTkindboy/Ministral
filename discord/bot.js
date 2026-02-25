@@ -95,7 +95,7 @@ import fuzzysort from "fuzzysort";
 import { renderCollection, getSkins } from "../valorant/inventory.js";
 import { getLoadout } from "../valorant/inventory.js";
 import { getAccountInfo, fetchMatchHistory } from "../valorant/profile.js";
-import { fetchLiveGame, selectAgent, lockAgent, getAllPlayableAgents, resolveAgent } from "../valorant/livegame.js";
+import { fetchLiveGame, selectAgent, lockAgent, getAllPlayableAgents, resolveAgent, startQueue, cancelQueue, changeQueue } from "../valorant/livegame.js";
 import { renderLiveGame, renderLiveGameError, setRoleSelection } from "./livegameEmbed.js";
 
 // ─── Pre-game → in-game transition poller ─────────────────────────────────
@@ -1396,6 +1396,7 @@ client.on("interactionCreate", async (interaction) => {
             if (interaction.values[0].startsWith("levels") || interaction.values[0].startsWith("chromas")) selectType = "get-level-video"
             if (interaction.customId.startsWith("livegame/select_agent")) selectType = "livegame/select_agent";
             if (interaction.customId.startsWith("livegame/select_role")) selectType = "livegame/select_role";
+            if (interaction.customId.startsWith("livegame/select_queue")) selectType = "livegame/select_queue";
             switch (selectType) {
                 case "skin-select": {
                     if (interaction.message.interaction.user.id !== interaction.user.id) {
@@ -1436,6 +1437,46 @@ client.on("interactionCreate", async (interaction) => {
                         embeds: [await skinChosenEmbed(interaction, skin)],
                         components: [removeAlertActionRow(interaction.user.id, chosenSkin, s(interaction).info.REMOVE_ALERT_BUTTON)]
                     });
+
+                    break;
+                }
+                case "livegame/select_queue": {
+                    if (interaction.message.interaction.user.id !== interaction.user.id) {
+                        return await interaction.reply({
+                            embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_GENERIC)],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    await interaction.deferUpdate();
+                    interaction.deferred = true;
+
+                    const queueId = interaction.values[0];
+                    const matchId = interaction.customId.split('/')[2];
+                    console.log(`[bot] Intercepted livegame/select_queue trigger for match ${matchId} targeting ${queueId}`);
+                    if (!queueId) return;
+
+                    const success = await changeQueue(interaction.user.id, null, matchId, queueId);
+                    console.log(`[bot] Yielding completion of livegame/select_queue trigger for match ${matchId} targeting ${queueId}`);
+
+                    if (!success) {
+                        return await interaction.followUp({
+                            content: s(interaction).error.CUSTOM_GAME_ESCAPE_REJECTED,
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    // Riot takes a second to update Party properties via HTTP POST. Let's yield briefly!
+                    // This way the immediate fetchLiveGame resolves to the updated queue instead of the old one.
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    // Re-render embed immediately
+                    const liveGameData = await fetchLiveGame(interaction.user.id);
+                    const payload = liveGameData.success
+                        ? await renderLiveGame(liveGameData, interaction.user.id, !interaction.guild, interaction.channel)
+                        : renderLiveGameError(liveGameData, interaction.user.id);
+
+                    await updateInteraction(interaction, payload);
 
                     break;
                 }
@@ -1874,6 +1915,39 @@ client.on("interactionCreate", async (interaction) => {
                 // Restart poller if still in agent select
                 if (liveGameData.success && (liveGameData.state === "pregame" || liveGameData.state === "queuing")) {
                     startLiveGamePoller(interaction.user.id, interaction);
+                }
+            } else if (interaction.customId.startsWith("livegame/start_queue/") || interaction.customId.startsWith("livegame/cancel_queue/")) {
+                const [, action, matchId] = interaction.customId.split('/');
+
+                if (interaction.message.interaction.user.id !== interaction.user.id) {
+                    return await interaction.reply({
+                        embeds: [basicEmbed(s(interaction).error.NOT_UR_MESSAGE_GENERIC)],
+                        flags: [MessageFlags.Ephemeral]
+                    });
+                }
+
+                await interaction.deferUpdate();
+                interaction.deferred = true;
+
+                if (action === "start_queue") {
+                    await startQueue(interaction.user.id, null, matchId);
+                } else if (action === "cancel_queue") {
+                    await cancelQueue(interaction.user.id, null, matchId);
+                }
+
+                const liveGameData = await fetchLiveGame(interaction.user.id);
+                const payload = liveGameData.success
+                    ? await renderLiveGame(liveGameData, interaction.user.id, !interaction.guild, interaction.channel)
+                    : renderLiveGameError(liveGameData, interaction.user.id);
+
+                await updateInteraction(interaction, payload);
+
+                if (liveGameData.success) {
+                    if (liveGameData.state === "queuing") {
+                        startLiveGamePoller(interaction.user.id, interaction);
+                    } else if (liveGameData.state === "not_in_game") {
+                        cancelLiveGamePoller(interaction.user.id);
+                    }
                 }
             } else if (interaction.customId.startsWith("livegame/lock_agent/")) {
                 const [, , matchId, agentId] = interaction.customId.split('/');

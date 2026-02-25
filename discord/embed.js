@@ -20,7 +20,7 @@ import { DEFAULT_VALORANT_LANG, discToValLang, l, s, hideUsername } from "../mis
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, escapeMarkdown, EmbedBuilder, MessageFlags, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, PermissionsBitField } from "discord.js";
 import { getStatsFor } from "../misc/stats.js";
 import { getUser } from "../valorant/auth.js";
-import { readUserJson, removeDupeAccounts, saveUser } from "../valorant/accountSwitcher.js";
+import { readUserJson, saveUser } from "../valorant/accountSwitcher.js";
 import { getSetting, humanifyValue, settingIsVisible, settingName } from "../misc/settings.js";
 import { VPEmoji } from "./emoji.js";
 import { getNextNightMarketTimestamp } from "../valorant/shop.js";
@@ -1100,7 +1100,7 @@ const pageButtons = (pageId, userId, current, max) => {
 }
 
 export const switchAccountButtons = (interaction, customId, oneAccountButton = false, accessory = false, id = interaction?.user?.id || interaction) => {
-    const json = removeDupeAccounts(id);
+    const json = readUserJson(id);
     if (!json || json.accounts.length === 1 && !oneAccountButton) return [];
     const accountNumbers = [...Array(json.accounts.length).keys()].map(n => n + 1).slice(0, config.maxAccountsPerUser <= 10 ? config.maxAccountsPerUser : 10);
     const hideIgn = getSetting(id, "hideIgn");

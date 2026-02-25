@@ -227,6 +227,15 @@
     "ENEMY_TEAM_DIVIDER": "── Équipe adverse ──",
     "QUEUING_TITLE": "🕒 En file d'attente pour une partie",
     "QUEUING_DESC": "Recherche d'une partie en **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Sélectionner un agent à verrouiller"
+    "SELECT_AGENT_PLACEHOLDER": "Sélectionner un agent à verrouiller",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
+  },
+  "queues": {
+    "COMPETITIVE": "Compétitif",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

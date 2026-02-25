@@ -197,7 +197,10 @@
     "ENEMY_TEAM_DIVIDER": "── 敵チーム ──",
     "QUEUING_TITLE": "🕒 マッチの待機中",
     "QUEUING_DESC": "**{queueName}** でマッチを検索中...",
-    "SELECT_AGENT_PLACEHOLDER": "確定するエージェントを選択"
+    "SELECT_AGENT_PLACEHOLDER": "確定するエージェントを選択",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
   },
   "settings": {
     "TRUE": "はい",
@@ -228,5 +231,11 @@
     "AVERAGE_COMBAT_SCORE": "Acs",
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
+  },
+  "queues": {
+    "COMPETITIVE": "コンペティティブ",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

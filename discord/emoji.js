@@ -26,6 +26,12 @@ export const agentEmoji = async (agentName, iconUrl) => {
     return getOrCreateEmoji(emojiName, iconUrl);
 };
 
+export const queueEmoji = async (queueName, iconUrl) => {
+    if (!queueName || !iconUrl) return null;
+    const emojiName = ("Queue_" + queueName.replace(/[^a-zA-Z0-9]/g, "_")).slice(0, 32);
+    return getOrCreateEmoji(emojiName, iconUrl);
+};
+
 export const rankEmoji = async (tier, iconUrl) => {
     if (tier == null || !iconUrl) return null;
     return getOrCreateEmoji(`Rank_${tier}`, iconUrl);

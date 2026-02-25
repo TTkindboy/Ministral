@@ -197,7 +197,10 @@
     "ENEMY_TEAM_DIVIDER": "── Equipo enemigo ──",
     "QUEUING_TITLE": "🕒 En cola para partida",
     "QUEUING_DESC": "Buscando partida en **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Selecciona un agente para fijar"
+    "SELECT_AGENT_PLACEHOLDER": "Selecciona un agente para fijar",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
   },
   "settings": {
     "TRUE": "Sí",
@@ -228,5 +231,11 @@
     "AVERAGE_COMBAT_SCORE": "Acs",
     "HS_PERCENT": "HS%",
     "PERCENT": "%{v}"
+  },
+  "queues": {
+    "COMPETITIVE": "Competitivo",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }

@@ -227,6 +227,15 @@
     "ENEMY_TEAM_DIVIDER": "── Equipe Inimiga ──",
     "QUEUING_TITLE": "🕒 Na fila para a partida",
     "QUEUING_DESC": "Procurando partida em **{queueName}**...",
-    "SELECT_AGENT_PLACEHOLDER": "Selecione um Agente para Confirmar"
+    "SELECT_AGENT_PLACEHOLDER": "Selecione um Agente para Confirmar",
+    "IDLE_PARTY_TITLE": "Idle in Party",
+    "IDLE_PARTY_DESC": "Waiting to queue.",
+    "PARTY_MEMBERS": "Party Members"
+  },
+  "queues": {
+    "COMPETITIVE": "Competitivo",
+    "UNRATED": "Unrated",
+    "CUSTOM": "Custom Game",
+    "NEWMAP": "New Map"
   }
 }
