@@ -14,7 +14,7 @@
  * everything together.
  * ─────────────────────────────────────────────────────────────────────────*/
 
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, StringSelectMenuBuilder } from "discord.js";
 import { s, discToValLang, DEFAULT_VALORANT_LANG } from "../misc/languages.js";
 import { getSetting } from "../misc/settings.js";
 import config from "../misc/config.js";
@@ -440,7 +440,7 @@ export const renderLiveGameError = (liveGameData, userId = null) => {
                 color: 0x616161,
             }],
             components,
-            ephemeral: true
+            flags: [MessageFlags.Ephemeral]
         };
     }
     if (liveGameData.rateLimit) {
@@ -451,7 +451,7 @@ export const renderLiveGameError = (liveGameData, userId = null) => {
                 color: 0xBF360C,
             }],
             components,
-            ephemeral: true
+            flags: [MessageFlags.Ephemeral]
         };
     }
     return {
@@ -461,6 +461,6 @@ export const renderLiveGameError = (liveGameData, userId = null) => {
             color: 0x616161,
         }],
         components,
-        ephemeral: true
+        flags: [MessageFlags.Ephemeral]
     };
 };

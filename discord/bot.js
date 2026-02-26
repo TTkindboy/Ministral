@@ -782,12 +782,12 @@ client.on("interactionCreate", async (interaction) => {
                         const otherValorantUser = getUser(otherUser.id);
                         if (!otherValorantUser) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED_OTHER)],
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         if (!getSetting(otherUser.id, "othersCanViewShop")) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.OTHER_SHOP_DISABLED.f({ u: `<@${otherUser.id}>` }))],
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         targetUser = otherUser;
@@ -933,7 +933,7 @@ client.on("interactionCreate", async (interaction) => {
                     const channel = interaction.channel || await fetchChannel(interaction.channelId);
                     if (!canSendMessages(channel)) return await interaction.reply({
                         embeds: [basicEmbed(s(interaction).error.ALERT_NO_PERMS)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
 
                     await defer(interaction);
@@ -954,7 +954,7 @@ client.on("interactionCreate", async (interaction) => {
                     if (filteredResults.length === 0) {
                         if (searchResults.length === 0) return await interaction.followUp({
                             embeds: [basicEmbed(s(interaction).error.SKIN_NOT_FOUND)],
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         const skin = searchResults[0].obj;
@@ -1167,12 +1167,12 @@ client.on("interactionCreate", async (interaction) => {
                         const otherValorantUser = getUser(otherUser.id);
                         if (!otherValorantUser) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED_OTHER)],
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         if (!getSetting(otherUser.id, "othersCanViewColl")) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.OTHER_COLLECTION_DISABLED.f({ u: `<@${otherUser.id}>` }))],
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         targetUser = otherUser;
@@ -1218,7 +1218,7 @@ client.on("interactionCreate", async (interaction) => {
                         if (skins.length === 0) {
                             return await interaction.followUp({
                                 embeds: [basicEmbed(s(interaction).error.SKIN_NOT_FOUND)],
-                                ephemeral: true
+                                flags: [MessageFlags.Ephemeral]
                             });
                         } else if (skins.length === 1 ||
                             l(skins[0].obj.names, interaction.locale).toLowerCase() === skinName.toLowerCase() ||
@@ -1368,12 +1368,12 @@ client.on("interactionCreate", async (interaction) => {
                         const otherValorantUser = getUser(otherUser.id);
                         if (!otherValorantUser) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED_OTHER)],
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         if (!getSetting(otherUser.id, "othersCanViewProfile")) return await interaction.reply({
                             embeds: [basicEmbed(s(interaction).error.OTHER_PROFILE_DISABLED.f({ u: `<@${otherUser.id}>` }))],
-                            ephemeral: true
+                            flags: [MessageFlags.Ephemeral]
                         });
 
                         targetUser = otherUser;
@@ -1790,7 +1790,7 @@ client.on("interactionCreate", async (interaction) => {
 
                 if (!canSendMessages(interaction.channel)) return await interaction.reply({
                     embeds: [basicEmbed(s(interaction).error.GENERIC_NO_PERMS)],
-                    ephemeral: true
+                    flags: [MessageFlags.Ephemeral]
                 });
 
                 const channel = await client.channels.fetch(interaction.channelId);
@@ -2036,7 +2036,7 @@ client.on("interactionCreate", async (interaction) => {
                 if (!callbackUrl.includes("localhost/redirect") || !callbackUrl.includes("code=")) {
                     return await interaction.editReply({
                         embeds: [basicEmbed("**Invalid URL!** Make sure you copied the entire URL from your browser's address bar.\n\nIt should look like:\n`http://localhost/redirect?code=...`")],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
                 }
 
@@ -2051,7 +2051,7 @@ client.on("interactionCreate", async (interaction) => {
                     console.log(`${interaction.user.tag} web auth login failed: ${result.error}`);
                     await interaction.editReply({
                         embeds: [basicEmbed(`**Login failed!** ${result.error}`)],
-                        ephemeral: true
+                        flags: [MessageFlags.Ephemeral]
                     });
                 }
             } else if (interaction.customId.startsWith("gotopage")) {
