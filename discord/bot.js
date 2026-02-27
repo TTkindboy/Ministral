@@ -1850,13 +1850,21 @@ client.on("interactionCreate", async (interaction) => {
                     let valorantUser = getUser(id);
                     const [, weaponTypeIndex] = interaction.customId.split('/')[1].split('-');
                     const weaponType = Object.values(WeaponTypeUuid)[parseInt(weaponTypeIndex)];
-                    newMessage = await collectionOfWeaponEmbed(interaction, id, valorantUser, weaponType, (await getSkins(valorantUser)).skins);
+                    const skinsResult = await getSkins(valorantUser);
+                    if (!skinsResult.success) {
+                        newMessage = authFailureMessage(interaction, skinsResult, s(interaction).error.AUTH_ERROR_COLLECTION, id !== interaction.user.id);
+                    } else {
+                        newMessage = await collectionOfWeaponEmbed(interaction, id, valorantUser, weaponType, skinsResult.skins);
+                    }
                 }
 
-                if (!newMessage.components) newMessage.components = switchAccountButtons(interaction, customId, true, false, id);
-
-
-                await message.edit(newMessage);
+                if (newMessage.flags) {
+                    // Auth / API error — ephemeral payload can't be used with message.edit()
+                    await interaction.followUp(newMessage);
+                } else {
+                    if (!newMessage.components) newMessage.components = switchAccountButtons(interaction, customId, true, false, id);
+                    await message.edit(newMessage);
+                }
             } else if (interaction.customId.startsWith("webauth/")) {
                 // Web auth button - show modal to paste callback URL
                 const [, odId] = interaction.customId.split('/');
