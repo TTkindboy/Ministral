@@ -1,6 +1,6 @@
 services:
   bot:
-    image: ghcr.io/TTkindboy/ministral:latest
+    image: ghcr.io/ttkindboy/ministral:master
     restart: unless-stopped
     depends_on:
       - redis
