@@ -1,18 +1,18 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
-WORKDIR /usr/app
+WORKDIR /app
+RUN corepack enable pnpm
 
-COPY assets /usr/app/assets
-COPY discord /usr/app/discord
-COPY languages /usr/app/languages
-COPY misc /usr/app/misc
-COPY valorant /usr/app/valorant
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
-COPY package.json /usr/app
-COPY package-lock.json /usr/app
+RUN pnpm install --frozen-lockfile
 
-COPY SkinPeek.js /usr/app/
+COPY assets ./assets
+COPY discord ./discord
+COPY languages ./languages
+COPY misc ./misc
+COPY valorant ./valorant
 
-RUN npm i
+COPY SkinPeek.js ./
 
-CMD ["node", "SkinPeek.js"]
+CMD ["pnpm", "start"]
