@@ -888,13 +888,13 @@ export const botInfoEmbed = (interaction, client, guildCount, userCount, registe
             inline: true
         },
         {
-            name: ":service_dog:",
-            value: s(interaction).info.INFO_WOOF,
+            name: ":video_game:",
+            value: "ycm",
             inline: true
         },
         {
             name: s(interaction).info.INFO_SOURCE,
-            value: "[`mistralwz/Ministral`](https://github.com/mistralwz/Ministral)",
+            value: "[`TTkindboy/Ministral`](https://github.com/TTkindboy/Ministral)",
             inline: true
         }
     ];
