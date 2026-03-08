@@ -96,7 +96,8 @@ import { renderCollection, getSkins } from "../valorant/inventory.js";
 import { getLoadout } from "../valorant/inventory.js";
 import { getAccountInfo, fetchMatchHistory } from "../valorant/profile.js";
 import {
-    fetchLiveGame, selectAgent, lockAgent, makePartyCode, removePartyCode, changeQueue, startQueue, cancelQueue
+    fetchLiveGame, selectAgent, lockAgent, makePartyCode, removePartyCode, changeQueue, startQueue, cancelQueue,
+    resolveOwnedAgentFromInput, autocompleteOwnedAgents
 } from "../valorant/livegame.js";
 import { renderLiveGame, renderLiveGameError, setRoleSelection } from "./livegameEmbed.js";
 
@@ -442,6 +443,17 @@ const commands = [
     {
         name: "livegame",
         description: "See your current Valorant match with player ranks and agents."
+    },
+    {
+        name: "ilock",
+        description: "Instantly select and lock an agent",
+        options: [{
+            type: ApplicationCommandOptionType.String,
+            name: "agent",
+            description: "The agent you want to instantly lock",
+            required: true,
+            autocomplete: true
+        }]
     },
     {
         name: "battlepass",
@@ -1375,6 +1387,67 @@ client.on("interactionCreate", async (interaction) => {
 
                     break;
                 }
+                case "ilock": {
+                    if (!valorantUser) return await interaction.reply({
+                        embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
+                        flags: [MessageFlags.Ephemeral]
+                    });
+
+                    await defer(interaction);
+
+                    const initialLiveGameData = await fetchLiveGame(interaction.user.id);
+                    if (!initialLiveGameData.success) {
+                        return await interaction.followUp(renderLiveGameError(initialLiveGameData, interaction.user.id));
+                    }
+
+                    if (initialLiveGameData.state !== "pregame") {
+                        return await interaction.followUp({
+                            embeds: [basicEmbed("❌ You must be in agent select (pregame) to use `/ilock`.")],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    const agentInput = interaction.options.getString("agent", true);
+                    const resolvedAgent = await resolveOwnedAgentFromInput(valorantUser, agentInput);
+                    if (!resolvedAgent.success) {
+                        const errorMessage = resolvedAgent.reason === "ambiguous"
+                            ? `❌ Agent name is ambiguous: ${resolvedAgent.matches.slice(0, 5).map(match => `\`${match.agent.names["en-US"] ?? Object.values(match.agent.names || {})[0] ?? match.agentId}\``).join(", ")}`
+                            : "❌ Agent not found in your owned agents.";
+                        return await interaction.followUp({
+                            embeds: [basicEmbed(errorMessage)],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    const matchId = initialLiveGameData.matchId;
+                    const agentId = resolvedAgent.agentId;
+                    const selected = await selectAgent(interaction.user.id, null, matchId, agentId);
+                    if (!selected) {
+                        return await interaction.followUp({
+                            embeds: [basicEmbed("❌ Failed to select that agent. Try again.")],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    await new Promise(r => setTimeout(r, 100));
+
+                    const locked = await lockAgent(interaction.user.id, null, matchId, agentId);
+                    if (!locked) {
+                        return await interaction.followUp({
+                            embeds: [basicEmbed("❌ Failed to lock that agent. Try again.")],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    const liveGameData = await fetchLiveGame(interaction.user.id);
+                    const payload = liveGameData.success
+                        ? await renderLiveGame(liveGameData, interaction.user.id, !interaction.guild, interaction.channel)
+                        : renderLiveGameError(liveGameData, interaction.user.id);
+
+                    await interaction.followUp(payload);
+
+                    break;
+                }
                 case "profile": {
                     let targetUser = interaction.user;
 
@@ -2184,6 +2257,13 @@ client.on("interactionCreate", async (interaction) => {
                 });
 
                 await interaction.respond(filteredValues.map(value => value.obj));
+            } else if (interaction.commandName === "ilock") {
+                const user = getUser(interaction.user.id);
+                if (!user) return await interaction.respond([]);
+
+                const focusedValue = interaction.options.getFocused();
+                const results = await autocompleteOwnedAgents(user, focusedValue, 25);
+                await interaction.respond(results);
             }
         } catch (e) {
             console.error(e);
