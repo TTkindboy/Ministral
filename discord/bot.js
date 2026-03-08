@@ -105,6 +105,22 @@ import { renderLiveGame, renderLiveGameError, setRoleSelection } from "./livegam
 // Maps userId → { timer: Timeout, retries: number }
 const liveGamePollers = new Map();
 const POLLER_MAX_TIME_MS = 300_000;       // 5 mins total
+const ILOCK_POLL_INTERVAL_MS = 2000;
+const ILOCK_WAIT_TIMEOUT_MS = 120000;
+const ILOCK_LOCK_DELAY_MS = 150;
+// Maps userId -> { token, agentId, startedAt, interaction }
+const ilockRequests = new Map();
+
+const cancelIlockRequest = (userId) => {
+    const existing = ilockRequests.get(userId);
+    if (existing) {
+        existing.token.cancelled = true;
+        ilockRequests.delete(userId);
+    }
+    return !!existing;
+};
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Cancel any running pre-game poller for this user.
@@ -150,6 +166,78 @@ const startLiveGamePoller = (userId, interaction, retriesLeft = Math.ceil(POLLER
 
     liveGamePollers.set(userId, { timer, retries: retriesLeft });
 };
+
+const runIlockWaiter = async (interaction, agentId) => {
+    const userId = interaction.user.id;
+
+    const token = { cancelled: false };
+    ilockRequests.set(userId, {
+        token,
+        agentId,
+        startedAt: Date.now(),
+        interaction,
+    });
+
+    const deadline = Date.now() + ILOCK_WAIT_TIMEOUT_MS;
+
+    while (Date.now() < deadline) {
+        if (token.cancelled) return;
+        if (ilockRequests.get(userId)?.token !== token) return;
+
+        const liveGameData = await fetchLiveGame(userId);
+        if (!liveGameData.success) {
+            ilockRequests.delete(userId);
+            await interaction.followUp(renderLiveGameError(liveGameData, userId));
+            return;
+        }
+
+        if (liveGameData.state === "pregame") {
+            const matchId = liveGameData.matchId;
+            const selected = await selectAgent(userId, null, matchId, agentId);
+            if (!selected) {
+                ilockRequests.delete(userId);
+                await interaction.followUp({
+                    embeds: [basicEmbed("❌ Failed to select that agent. Try again.")],
+                    flags: [MessageFlags.Ephemeral]
+                });
+                return;
+            }
+
+            await sleep(ILOCK_LOCK_DELAY_MS);
+            if (token.cancelled) return;
+            if (ilockRequests.get(userId)?.token !== token) return;
+
+            const locked = await lockAgent(userId, null, matchId, agentId);
+            ilockRequests.delete(userId);
+            if (!locked) {
+                await interaction.followUp({
+                    embeds: [basicEmbed("❌ Failed to lock that agent. Try again.")],
+                    flags: [MessageFlags.Ephemeral]
+                });
+                return;
+            }
+
+            const updatedLiveGameData = await fetchLiveGame(userId);
+            const payload = updatedLiveGameData.success
+                ? await renderLiveGame(updatedLiveGameData, userId, !interaction.guild, interaction.channel)
+                : renderLiveGameError(updatedLiveGameData, userId);
+            await interaction.followUp(payload);
+            return;
+        }
+
+        await sleep(ILOCK_POLL_INTERVAL_MS);
+    }
+
+    if (token.cancelled) return;
+    if (ilockRequests.get(userId)?.token !== token) return;
+
+    ilockRequests.delete(userId);
+    await interaction.followUp({
+        embeds: [basicEmbed("⌛ Timed out waiting for pregame (2 minutes). Try `/ilock` again when queue pops.")],
+        flags: [MessageFlags.Ephemeral]
+    });
+};
+
 import { spawn } from "child_process";
 import * as fs from "fs";
 
@@ -450,8 +538,8 @@ const commands = [
         options: [{
             type: ApplicationCommandOptionType.String,
             name: "agent",
-            description: "The agent you want to instantly lock",
-            required: true,
+            description: "Agent name or 'cancel' to stop pending ilock",
+            required: false,
             autocomplete: true
         }]
     },
@@ -1395,20 +1483,24 @@ client.on("interactionCreate", async (interaction) => {
 
                     await defer(interaction);
 
-                    const initialLiveGameData = await fetchLiveGame(interaction.user.id);
-                    if (!initialLiveGameData.success) {
-                        return await interaction.followUp(renderLiveGameError(initialLiveGameData, interaction.user.id));
-                    }
-
-                    if (initialLiveGameData.state !== "pregame") {
+                    const agentInputRaw = interaction.options.getString("agent")?.trim();
+                    if (!agentInputRaw) {
                         return await interaction.followUp({
-                            embeds: [basicEmbed("❌ You must be in agent select (pregame) to use `/ilock`.")],
+                            embeds: [basicEmbed("Provide an agent name, or use `/ilock agent:cancel` to cancel a pending request.")],
                             flags: [MessageFlags.Ephemeral]
                         });
                     }
 
-                    const agentInput = interaction.options.getString("agent", true);
-                    const resolvedAgent = await resolveOwnedAgentFromInput(valorantUser, agentInput);
+                    const agentInput = agentInputRaw.toLowerCase();
+                    if (agentInput === "cancel") {
+                        const cancelled = cancelIlockRequest(interaction.user.id);
+                        return await interaction.followUp({
+                            embeds: [basicEmbed(cancelled ? "🛑 Cancelled your pending `/ilock` request." : "No pending `/ilock` request to cancel.")],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    const resolvedAgent = await resolveOwnedAgentFromInput(valorantUser, agentInputRaw);
                     if (!resolvedAgent.success) {
                         const errorMessage = resolvedAgent.reason === "ambiguous"
                             ? `❌ Agent name is ambiguous: ${resolvedAgent.matches.slice(0, 5).map(match => `\`${match.agent.names["en-US"] ?? Object.values(match.agent.names || {})[0] ?? match.agentId}\``).join(", ")}`
@@ -1419,32 +1511,18 @@ client.on("interactionCreate", async (interaction) => {
                         });
                     }
 
-                    const matchId = initialLiveGameData.matchId;
-                    const agentId = resolvedAgent.agentId;
-                    const selected = await selectAgent(interaction.user.id, null, matchId, agentId);
-                    if (!selected) {
-                        return await interaction.followUp({
-                            embeds: [basicEmbed("❌ Failed to select that agent. Try again.")],
-                            flags: [MessageFlags.Ephemeral]
-                        });
+                    const existing = ilockRequests.get(interaction.user.id);
+                    if (existing) {
+                        cancelIlockRequest(interaction.user.id);
                     }
 
-                    await new Promise(r => setTimeout(r, 100));
+                    await interaction.followUp({
+                        embeds: [basicEmbed(`✅ I’ll lock **${resolvedAgent.agent.names["en-US"] ?? Object.values(resolvedAgent.agent.names || {})[0] ?? "that agent"}** when pregame starts (up to 2 minutes). Use \`/ilock agent:cancel\` to cancel.`)],
+                        flags: [MessageFlags.Ephemeral]
+                    });
 
-                    const locked = await lockAgent(interaction.user.id, null, matchId, agentId);
-                    if (!locked) {
-                        return await interaction.followUp({
-                            embeds: [basicEmbed("❌ Failed to lock that agent. Try again.")],
-                            flags: [MessageFlags.Ephemeral]
-                        });
-                    }
-
-                    const liveGameData = await fetchLiveGame(interaction.user.id);
-                    const payload = liveGameData.success
-                        ? await renderLiveGame(liveGameData, interaction.user.id, !interaction.guild, interaction.channel)
-                        : renderLiveGameError(liveGameData, interaction.user.id);
-
-                    await interaction.followUp(payload);
+                    runIlockWaiter(interaction, resolvedAgent.agentId)
+                        .catch(err => console.error("[ilock] waiter failed:", err));
 
                     break;
                 }
@@ -2262,8 +2340,11 @@ client.on("interactionCreate", async (interaction) => {
                 if (!user) return await interaction.respond([]);
 
                 const focusedValue = interaction.options.getFocused();
-                const results = await autocompleteOwnedAgents(user, focusedValue, 25);
-                await interaction.respond(results);
+                const results = await autocompleteOwnedAgents(user, focusedValue, 24);
+                if ("cancel".includes((focusedValue || "").toLowerCase())) {
+                    results.unshift({ name: "cancel", value: "cancel" });
+                }
+                await interaction.respond(results.slice(0, 25));
             }
         } catch (e) {
             console.error(e);
