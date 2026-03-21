@@ -96,7 +96,8 @@ import { renderCollection, getSkins } from "../valorant/inventory.js";
 import { getLoadout } from "../valorant/inventory.js";
 import { getAccountInfo, fetchMatchHistory } from "../valorant/profile.js";
 import {
-    fetchLiveGame, selectAgent, lockAgent, makePartyCode, removePartyCode, changeQueue, startQueue, cancelQueue
+    fetchLiveGame, selectAgent, lockAgent, makePartyCode, removePartyCode, changeQueue, startQueue, cancelQueue,
+    resolveOwnedAgentFromInput, autocompleteOwnedAgents
 } from "../valorant/livegame.js";
 import { renderLiveGame, renderLiveGameError, setRoleSelection } from "./livegameEmbed.js";
 
@@ -104,6 +105,22 @@ import { renderLiveGame, renderLiveGameError, setRoleSelection } from "./livegam
 // Maps userId → { timer: Timeout, retries: number }
 const liveGamePollers = new Map();
 const POLLER_MAX_TIME_MS = 300_000;       // 5 mins total
+const ILOCK_POLL_INTERVAL_MS = 2000;
+const ILOCK_WAIT_TIMEOUT_MS = 120000;
+const ILOCK_LOCK_DELAY_MS = 150;
+// Maps userId -> { token, agentId, startedAt, interaction }
+const ilockRequests = new Map();
+
+const cancelIlockRequest = (userId) => {
+    const existing = ilockRequests.get(userId);
+    if (existing) {
+        existing.token.cancelled = true;
+        ilockRequests.delete(userId);
+    }
+    return !!existing;
+};
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Cancel any running pre-game poller for this user.
@@ -149,6 +166,78 @@ const startLiveGamePoller = (userId, interaction, retriesLeft = Math.ceil(POLLER
 
     liveGamePollers.set(userId, { timer, retries: retriesLeft });
 };
+
+const runIlockWaiter = async (interaction, agentId) => {
+    const userId = interaction.user.id;
+
+    const token = { cancelled: false };
+    ilockRequests.set(userId, {
+        token,
+        agentId,
+        startedAt: Date.now(),
+        interaction,
+    });
+
+    const deadline = Date.now() + ILOCK_WAIT_TIMEOUT_MS;
+
+    while (Date.now() < deadline) {
+        if (token.cancelled) return;
+        if (ilockRequests.get(userId)?.token !== token) return;
+
+        const liveGameData = await fetchLiveGame(userId);
+        if (!liveGameData.success) {
+            ilockRequests.delete(userId);
+            await interaction.followUp(renderLiveGameError(liveGameData, userId));
+            return;
+        }
+
+        if (liveGameData.state === "pregame") {
+            const matchId = liveGameData.matchId;
+            const selected = await selectAgent(userId, null, matchId, agentId);
+            if (!selected) {
+                ilockRequests.delete(userId);
+                await interaction.followUp({
+                    embeds: [basicEmbed("❌ Failed to select that agent. Try again.")],
+                    flags: [MessageFlags.Ephemeral]
+                });
+                return;
+            }
+
+            await sleep(ILOCK_LOCK_DELAY_MS);
+            if (token.cancelled) return;
+            if (ilockRequests.get(userId)?.token !== token) return;
+
+            const locked = await lockAgent(userId, null, matchId, agentId);
+            ilockRequests.delete(userId);
+            if (!locked) {
+                await interaction.followUp({
+                    embeds: [basicEmbed("❌ Failed to lock that agent. Try again.")],
+                    flags: [MessageFlags.Ephemeral]
+                });
+                return;
+            }
+
+            const updatedLiveGameData = await fetchLiveGame(userId);
+            const payload = updatedLiveGameData.success
+                ? await renderLiveGame(updatedLiveGameData, userId, !interaction.guild, interaction.channel)
+                : renderLiveGameError(updatedLiveGameData, userId);
+            await interaction.followUp(payload);
+            return;
+        }
+
+        await sleep(ILOCK_POLL_INTERVAL_MS);
+    }
+
+    if (token.cancelled) return;
+    if (ilockRequests.get(userId)?.token !== token) return;
+
+    ilockRequests.delete(userId);
+    await interaction.followUp({
+        embeds: [basicEmbed("⌛ Timed out waiting for pregame (2 minutes). Try `/ilock` again when queue pops.")],
+        flags: [MessageFlags.Ephemeral]
+    });
+};
+
 import { spawn } from "child_process";
 import * as fs from "fs";
 
@@ -442,6 +531,17 @@ const commands = [
     {
         name: "livegame",
         description: "See your current Valorant match with player ranks and agents."
+    },
+    {
+        name: "ilock",
+        description: "Instantly select and lock an agent",
+        options: [{
+            type: ApplicationCommandOptionType.String,
+            name: "agent",
+            description: "Agent name or 'cancel' to stop pending ilock",
+            required: false,
+            autocomplete: true
+        }]
     },
     {
         name: "battlepass",
@@ -1375,6 +1475,57 @@ client.on("interactionCreate", async (interaction) => {
 
                     break;
                 }
+                case "ilock": {
+                    if (!valorantUser) return await interaction.reply({
+                        embeds: [basicEmbed(s(interaction).error.NOT_REGISTERED)],
+                        flags: [MessageFlags.Ephemeral]
+                    });
+
+                    await defer(interaction);
+
+                    const agentInputRaw = interaction.options.getString("agent")?.trim();
+                    if (!agentInputRaw) {
+                        return await interaction.followUp({
+                            embeds: [basicEmbed("Provide an agent name, or use `/ilock agent:cancel` to cancel a pending request.")],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    const agentInput = agentInputRaw.toLowerCase();
+                    if (agentInput === "cancel") {
+                        const cancelled = cancelIlockRequest(interaction.user.id);
+                        return await interaction.followUp({
+                            embeds: [basicEmbed(cancelled ? "🛑 Cancelled your pending `/ilock` request." : "No pending `/ilock` request to cancel.")],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    const resolvedAgent = await resolveOwnedAgentFromInput(valorantUser, agentInputRaw);
+                    if (!resolvedAgent.success) {
+                        const errorMessage = resolvedAgent.reason === "ambiguous"
+                            ? `❌ Agent name is ambiguous: ${resolvedAgent.matches.slice(0, 5).map(match => `\`${match.agent.names["en-US"] ?? Object.values(match.agent.names || {})[0] ?? match.agentId}\``).join(", ")}`
+                            : "❌ Agent not found in your owned agents.";
+                        return await interaction.followUp({
+                            embeds: [basicEmbed(errorMessage)],
+                            flags: [MessageFlags.Ephemeral]
+                        });
+                    }
+
+                    const existing = ilockRequests.get(interaction.user.id);
+                    if (existing) {
+                        cancelIlockRequest(interaction.user.id);
+                    }
+
+                    await interaction.followUp({
+                        embeds: [basicEmbed(`✅ I’ll lock **${resolvedAgent.agent.names["en-US"] ?? Object.values(resolvedAgent.agent.names || {})[0] ?? "that agent"}** when pregame starts (up to 2 minutes). Use \`/ilock agent:cancel\` to cancel.`)],
+                        flags: [MessageFlags.Ephemeral]
+                    });
+
+                    runIlockWaiter(interaction, resolvedAgent.agentId)
+                        .catch(err => console.error("[ilock] waiter failed:", err));
+
+                    break;
+                }
                 case "profile": {
                     let targetUser = interaction.user;
 
@@ -2184,6 +2335,16 @@ client.on("interactionCreate", async (interaction) => {
                 });
 
                 await interaction.respond(filteredValues.map(value => value.obj));
+            } else if (interaction.commandName === "ilock") {
+                const user = getUser(interaction.user.id);
+                if (!user) return await interaction.respond([]);
+
+                const focusedValue = interaction.options.getFocused();
+                const results = await autocompleteOwnedAgents(user, focusedValue, 24);
+                if ("cancel".includes((focusedValue || "").toLowerCase())) {
+                    results.unshift({ name: "cancel", value: "cancel" });
+                }
+                await interaction.respond(results.slice(0, 25));
             }
         } catch (e) {
             console.error(e);

@@ -135,6 +135,101 @@ export const getAllPlayableAgents = async () => {
     return Object.keys(agentsCache || {});
 };
 
+const normalizeAgentInput = (input = "") =>
+    input
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+const getAgentDisplayName = (agent) =>
+    agent?.names?.["en-US"]
+    ?? Object.values(agent?.names ?? {}).find(name => typeof name === "string" && name.trim().length > 0)
+    ?? "Unknown Agent";
+
+const getNormalizedAgentNames = (agent) => {
+    const names = Object.values(agent?.names ?? {})
+        .filter(name => typeof name === "string")
+        .map(normalizeAgentInput)
+        .filter(Boolean);
+    return [...new Set(names)];
+};
+
+export const resolveOwnedAgentFromInput = async (user, input) => {
+    await loadAgents();
+
+    const normalizedInput = normalizeAgentInput(input);
+    if (!normalizedInput) return { success: false, reason: "not_found" };
+
+    const ownedAgents = await getOwnedAgents(user);
+    const ownedSet = new Set(ownedAgents.map(agentId => agentId.toLowerCase()));
+
+    const exactMatches = [];
+    const fuzzyMatches = [];
+
+    for (const [agentId, agent] of Object.entries(agentsCache || {})) {
+        if (!ownedSet.has(agentId)) continue;
+
+        const normalizedNames = getNormalizedAgentNames(agent);
+        const hasExactMatch = normalizedNames.some(name => name === normalizedInput);
+        if (hasExactMatch) {
+            exactMatches.push({ agentId, agent });
+            continue;
+        }
+
+        const fuzzyScore = normalizedNames.reduce((score, name) => {
+            if (name.startsWith(normalizedInput)) return Math.max(score, 2);
+            if (name.includes(normalizedInput) || normalizedInput.includes(name)) return Math.max(score, 1);
+            return score;
+        }, 0);
+
+        if (fuzzyScore > 0) fuzzyMatches.push({ agentId, agent, score: fuzzyScore });
+    }
+
+    if (exactMatches.length === 1) return { success: true, ...exactMatches[0] };
+    if (exactMatches.length > 1) return { success: false, reason: "ambiguous", matches: exactMatches };
+
+    if (fuzzyMatches.length === 0) return { success: false, reason: "not_found" };
+
+    fuzzyMatches.sort((a, b) => b.score - a.score || getAgentDisplayName(a.agent).localeCompare(getAgentDisplayName(b.agent)));
+    const topScore = fuzzyMatches[0].score;
+    const topMatches = fuzzyMatches.filter(match => match.score === topScore);
+
+    if (topMatches.length === 1) return { success: true, agentId: topMatches[0].agentId, agent: topMatches[0].agent };
+    return { success: false, reason: "ambiguous", matches: topMatches };
+};
+
+export const autocompleteOwnedAgents = async (user, input, limit = 25) => {
+    await loadAgents();
+
+    const normalizedInput = normalizeAgentInput(input);
+    const ownedAgents = await getOwnedAgents(user);
+    const ownedSet = new Set(ownedAgents.map(agentId => agentId.toLowerCase()));
+
+    const options = [];
+    for (const [agentId, agent] of Object.entries(agentsCache || {})) {
+        if (!ownedSet.has(agentId)) continue;
+
+        const normalizedNames = getNormalizedAgentNames(agent);
+        if (normalizedInput && !normalizedNames.some(name => name.includes(normalizedInput) || normalizedInput.includes(name))) {
+            continue;
+        }
+
+        const displayName = getAgentDisplayName(agent);
+        options.push({
+            sortName: displayName.toLowerCase(),
+            name: displayName,
+            value: displayName,
+        });
+    }
+
+    return options
+        .sort((a, b) => a.sortName.localeCompare(b.sortName))
+        .slice(0, Math.max(1, Math.min(limit, 25)))
+        .map(({ name, value }) => ({ name, value }));
+};
+
 /** Resolve tier number (0-27) → {name, color, icon} */
 export const resolveTier = async (tier) => {
     await loadCompetitiveTiers();
